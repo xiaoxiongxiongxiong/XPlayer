@@ -1,4 +1,16 @@
 <RCC>
-    <qresource prefix="XPlayer">
+    <qresource prefix="/XPlayer">
+        <file>res/backward.ico</file>
+        <file>res/forward.ico</file>
+        <file>res/last.ico</file>
+        <file>res/link.ico</file>
+        <file>res/next.ico</file>
+        <file>res/pause.ico</file>
+        <file>res/play.ico</file>
+        <file>res/silence.ico</file>
+        <file>res/stop.ico</file>
+        <file>res/voice.ico</file>
+        <file>res/vod.ico</file>
+        <file>res/live.ico</file>
     </qresource>
 </RCC>

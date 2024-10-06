@@ -3,6 +3,7 @@
 
 #include <QOpenglWidget>
 #include <QOpenGLFunctions_3_0>
+#include <QPainter>
 
 class CVideoRender :public QOpenGLWidget, protected QOpenGLFunctions_3_0
 {
@@ -15,6 +16,8 @@ protected:
     void initializeGL() override;
     void paintGL() override;
     void resizeGL(int w, int h) override;
+
+    void paintEvent(QPaintEvent * event) override;
 };
 
 #endif

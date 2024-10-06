@@ -117,6 +117,8 @@
     <QtRcc Include="XPlayer.qrc" />
     <QtUic Include="XPlayer.ui" />
     <QtMoc Include="XPlayer.h" />
+    <ClCompile Include="..\src\demuxer\xplayer_demuxer.cpp" />
+    <ClCompile Include="..\src\demuxer\xplayer_stream.cpp" />
     <ClCompile Include="..\src\renderer\CAudioRender.cpp" />
     <ClCompile Include="..\src\renderer\CVideoRender.cpp" />
     <ClCompile Include="XPlayer.cpp" />
@@ -126,6 +128,8 @@
     <QtMoc Include="..\src\renderer\CVideoRender.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\demuxer\xplayer_demuxer.h" />
+    <ClInclude Include="..\src\demuxer\xplayer_stream.h" />
     <ClInclude Include="..\src\renderer\CAudioRender.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
