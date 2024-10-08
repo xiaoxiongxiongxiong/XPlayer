@@ -79,8 +79,7 @@ QSlider::sub-page:horizontal{
     </property>
     <property name="icon">
      <iconset resource="XPlayer.qrc">
-      <normaloff>:/XPlayer/res/pause.ico</normaloff>
-      <normalon>:/XPlayer/res/play.ico</normalon>:/XPlayer/res/pause.ico</iconset>
+      <normaloff>:/XPlayer/res/pause.ico</normaloff>:/XPlayer/res/pause.ico</iconset>
     </property>
     <property name="iconSize">
      <size>
@@ -220,6 +219,76 @@ QSlider::sub-page:horizontal{
     </property>
    </widget>
   </widget>
+  <widget class="QMenuBar" name="m_barMenu">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1280</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="m_mnuOpen">
+    <property name="title">
+     <string>打开</string>
+    </property>
+    <addaction name="m_actVod"/>
+    <addaction name="m_actLive"/>
+   </widget>
+   <widget class="QMenu" name="m_mnuVideo">
+    <property name="title">
+     <string>视频</string>
+    </property>
+    <addaction name="m_actDisableVideo"/>
+   </widget>
+   <widget class="QMenu" name="m_mnuAudio">
+    <property name="title">
+     <string>音频</string>
+    </property>
+    <addaction name="m_actDisableAudio"/>
+   </widget>
+   <widget class="QMenu" name="m_munInfo">
+    <property name="title">
+     <string>信息</string>
+    </property>
+    <addaction name="m_actCodec"/>
+    <addaction name="m_actRun"/>
+   </widget>
+   <addaction name="m_mnuOpen"/>
+   <addaction name="m_mnuVideo"/>
+   <addaction name="m_mnuAudio"/>
+   <addaction name="m_munInfo"/>
+  </widget>
+  <action name="m_actVod">
+   <property name="text">
+    <string>文件</string>
+   </property>
+  </action>
+  <action name="m_actLive">
+   <property name="text">
+    <string>链接</string>
+   </property>
+  </action>
+  <action name="m_actDisableVideo">
+   <property name="text">
+    <string>禁用</string>
+   </property>
+  </action>
+  <action name="m_actDisableAudio">
+   <property name="text">
+    <string>禁用</string>
+   </property>
+  </action>
+  <action name="m_actCodec">
+   <property name="text">
+    <string>编解码器</string>
+   </property>
+  </action>
+  <action name="m_actRun">
+   <property name="text">
+    <string>运行信息</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources>

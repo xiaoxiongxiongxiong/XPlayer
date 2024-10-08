@@ -13,9 +13,19 @@ public:
     XPlayer(QWidget * parent = nullptr);
     ~XPlayer();
 
-    void mousePressEvent(QMouseEvent * event) override;//鼠标点击
-    void mouseMoveEvent(QMouseEvent * event) override;//鼠标移动
-    void mouseReleaseEvent(QMouseEvent * event) override;//鼠标释放
+    void mousePressEvent(QMouseEvent * event) override;   // 鼠标点击
+    void mouseMoveEvent(QMouseEvent * event) override;    // 鼠标移动
+    void mouseReleaseEvent(QMouseEvent * event) override; // 鼠标释放
+
+public slots:
+    void onBtnClickedVod();
+    void onBtnClickedLive();
+    void onBtnClickedCtrl();
+    void onBtnClickedStop();
+    void onBtnClickedBackward();
+    void onBtnClickedForward();
+    void onBtnClickedLast();
+    void onBtnClickedNext();
 
 protected:
     void paintEvent(QPaintEvent * event) override;
@@ -26,6 +36,4 @@ private:
 
     QPoint m_lastPos;
     bool m_blPressed = false;
-
-    QMenuBar * m_pclsMenuBar = nullptr;
 };

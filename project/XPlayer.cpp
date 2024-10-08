@@ -12,51 +12,24 @@ XPlayer::XPlayer(QWidget * parent)
 {
     ui.setupUi(this);
 
-    this->setWindowFlags(Qt::SplashScreen | Qt::WindowStaysOnTopHint | Qt::FramelessWindowHint);
+    this->setWindowFlags(Qt::SplashScreen | Qt::FramelessWindowHint);
 
-    m_pclsMenuBar = this->menuBar();
-    m_pclsMenuBar->setAutoFillBackground(true);
-    this->setMenuBar(m_pclsMenuBar);
+    ui.m_actVod->setIcon(QIcon(":/XPlayer/res/vod.ico"));
+    ui.m_actLive->setIcon(QIcon(":/XPlayer/res/live.ico"));
 
-    QMenu * media_mnu = new QMenu(QStringLiteral("媒体"));
-    QAction * file_action = new QAction(QStringLiteral("文件"));
-    file_action->setIcon(QIcon(":/XPlayer/res/vod.ico"));
-    //connect(file_action, &QAction::triggered, this, &ctv_media_player::onBtnClickedVod);
-    media_mnu->addAction(file_action);
+    connect(ui.m_actVod, &QAction::triggered, this, &XPlayer::onBtnClickedVod);
+    connect(ui.m_actLive, &QAction::triggered, this, &XPlayer::onBtnClickedLive);
 
-    QAction * link_action = new QAction(QStringLiteral("链接"));
-    link_action->setIcon(QIcon(":/XPlayer/res/live.ico"));
-    //connect(link_action, &QAction::triggered, this, &ctv_media_player::onBtnClickedLive);
-    media_mnu->addAction(link_action);
-    m_pclsMenuBar->addMenu(media_mnu);
-
-    QMenu * video_mnu = new QMenu(QStringLiteral("视频"));
-    QAction * video_action = new QAction(QStringLiteral("禁用"));
-    video_mnu->addAction(video_action);
-    m_pclsMenuBar->addMenu(video_mnu);
-
-    QMenu * audio_mnu = new QMenu(QStringLiteral("音频"));
-    QAction * audio_action = new QAction(QStringLiteral("禁用"));
-    audio_mnu->addAction(audio_action);
-    m_pclsMenuBar->addMenu(audio_mnu);
-
-    QMenu * info_mnu = new QMenu(QStringLiteral("信息"));
-    QAction * codec_action = new QAction(QStringLiteral("编解码器信息"));
-    info_mnu->addAction(codec_action);
-
-    QAction * error_action = new QAction(QStringLiteral("运行信息"));
-    info_mnu->addAction(error_action);
-
-    m_pclsMenuBar->addMenu(info_mnu);
+    connect(ui.m_btnCtrl, SIGNAL(clicked()), this, SLOT(onBtnClickedCtrl()));
+    connect(ui.m_btnNext, SIGNAL(clicked()), this, SLOT(onBtnClickedNext()));
+    connect(ui.m_btnLast, SIGNAL(clicked()), this, SLOT(onBtnClickedLast()));
+    connect(ui.m_btnBackward, SIGNAL(clicked()), this, SLOT(onBtnClickedBackward()));
+    connect(ui.m_btnForward, SIGNAL(clicked()), this, SLOT(onBtnClickedForward()));
+    connect(ui.m_btnStop, SIGNAL(clicked()), this, SLOT(onBtnClickedStop()));
 }
 
 XPlayer::~XPlayer()
 {
-    if (nullptr != m_pclsMenuBar)
-    {
-        delete m_pclsMenuBar;
-        m_pclsMenuBar = nullptr;
-    }
 }
 
 void XPlayer::mousePressEvent(QMouseEvent * event)
@@ -84,6 +57,43 @@ void XPlayer::mouseReleaseEvent(QMouseEvent * event)
     m_blPressed = false; // 鼠标松开时，置为false
 }
 
+void XPlayer::onBtnClickedVod()
+{
+}
+
+void XPlayer::onBtnClickedLive()
+{
+}
+
+void XPlayer::onBtnClickedCtrl()
+{
+    static bool flag = false;
+    if (flag)
+        ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/play.ico"));
+    else
+        ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/pause.ico"));
+    flag = !flag;
+}
+
+void XPlayer::onBtnClickedStop()
+{
+}
+
+void XPlayer::onBtnClickedBackward()
+{
+}
+
+void XPlayer::onBtnClickedForward()
+{
+}
+
+void XPlayer::onBtnClickedLast()
+{
+}
+
+void XPlayer::onBtnClickedNext()
+{
+}
 
 void XPlayer::paintEvent(QPaintEvent * event)
 {
@@ -98,7 +108,7 @@ void XPlayer::resizeEvent(QResizeEvent * event)
 
     const auto center = width / 2 - 25;
 
-    const auto bh = m_pclsMenuBar->size().height();
+    const auto bh = ui.m_barMenu->size().height();
 
     QPainter painter(this);
     painter.fillRect(0, this->height() - 70, this->width(), 70, QColor(0, 0, 0));
