@@ -61,6 +61,9 @@
     <ClCompile Include="..\src\demuxer\xplayer_stream.cpp">
       <Filter>Source Files\src\demuxer</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\utils\xplayer_utils.cpp">
+      <Filter>Source Files\src\utils</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\renderer\xplayer_audio_render.cpp">
       <Filter>Source Files\src\renderer</Filter>
     </ClCompile>
@@ -74,6 +77,9 @@
     </ClInclude>
     <ClInclude Include="..\src\demuxer\xplayer_stream.h">
       <Filter>Source Files\src\demuxer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\xplayer_utils.h">
+      <Filter>Source Files\src\utils</Filter>
     </ClInclude>
     <ClInclude Include="..\src\renderer\xplayer_audio_render.h">
       <Filter>Source Files\src\renderer</Filter>
