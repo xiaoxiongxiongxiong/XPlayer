@@ -1,26 +1,26 @@
-﻿#include "CVideoRender.h"
+﻿#include "xplayer_video_render.h"
 
-CVideoRender::CVideoRender(QWidget * parent) :
+CXPlayerVideoRender::CXPlayerVideoRender(QWidget * parent) :
     QOpenGLWidget(parent)
 {
 
 }
 
-void CVideoRender::initializeGL()
+void CXPlayerVideoRender::initializeGL()
 {
 
 }
 
-void CVideoRender::paintGL()
+void CXPlayerVideoRender::paintGL()
 {
 }
 
-void CVideoRender::resizeGL(int w, int h)
+void CXPlayerVideoRender::resizeGL(int w, int h)
 {
 
 }
 
-void CVideoRender::paintEvent(QPaintEvent * event)
+void CXPlayerVideoRender::paintEvent(QPaintEvent * event)
 {
     //QPainter painter(this);
     //painter.setPen(Qt::NoPen); // 关闭默认的绘图边框模式
@@ -34,4 +34,3 @@ void CVideoRender::paintEvent(QPaintEvent * event)
     //// 调用基类函数绘制子部件
     //QOpenGLWidget::paintEvent(event);
 }
-

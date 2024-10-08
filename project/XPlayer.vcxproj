@@ -119,18 +119,16 @@
     <QtMoc Include="XPlayer.h" />
     <ClCompile Include="..\src\demuxer\xplayer_demuxer.cpp" />
     <ClCompile Include="..\src\demuxer\xplayer_stream.cpp" />
-    <ClCompile Include="..\src\renderer\CAudioRender.cpp" />
-    <ClCompile Include="..\src\renderer\CVideoRender.cpp" />
+    <ClCompile Include="..\src\renderer\xplayer_audio_render.cpp" />
+    <ClCompile Include="..\src\renderer\xplayer_video_render.cpp" />
     <ClCompile Include="XPlayer.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="..\src\renderer\CVideoRender.h" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\src\demuxer\xplayer_demuxer.h" />
     <ClInclude Include="..\src\demuxer\xplayer_stream.h" />
-    <ClInclude Include="..\src\renderer\CAudioRender.h" />
+    <ClInclude Include="..\src\renderer\xplayer_audio_render.h" />
+    <QtMoc Include="..\src\renderer\xplayer_video_render.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

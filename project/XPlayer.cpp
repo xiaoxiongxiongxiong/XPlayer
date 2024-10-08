@@ -4,8 +4,8 @@
 #include <QMenuBar>
 #include <windows.h>
 
-#include "renderer/CVideoRender.h"
-#include "renderer/CAudioRender.h"
+#include "renderer/xplayer_audio_render.h"
+#include "renderer/xplayer_video_render.h"
 
 XPlayer::XPlayer(QWidget * parent)
     : QMainWindow(parent)

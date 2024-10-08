@@ -55,33 +55,33 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\renderer\CVideoRender.cpp">
-      <Filter>Source Files\src\renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\renderer\CAudioRender.cpp">
-      <Filter>Source Files\src\renderer</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\demuxer\xplayer_demuxer.cpp">
       <Filter>Source Files\src\demuxer</Filter>
     </ClCompile>
     <ClCompile Include="..\src\demuxer\xplayer_stream.cpp">
       <Filter>Source Files\src\demuxer</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\renderer\xplayer_audio_render.cpp">
+      <Filter>Source Files\src\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\renderer\xplayer_video_render.cpp">
+      <Filter>Source Files\src\renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="..\src\renderer\CVideoRender.h">
-      <Filter>Source Files\src\renderer</Filter>
-    </QtMoc>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\src\renderer\CAudioRender.h">
-      <Filter>Source Files\src\renderer</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\demuxer\xplayer_demuxer.h">
       <Filter>Source Files\src\demuxer</Filter>
     </ClInclude>
     <ClInclude Include="..\src\demuxer\xplayer_stream.h">
       <Filter>Source Files\src\demuxer</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\renderer\xplayer_audio_render.h">
+      <Filter>Source Files\src\renderer</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="..\src\renderer\xplayer_video_render.h">
+      <Filter>Source Files\src\renderer</Filter>
+    </QtMoc>
   </ItemGroup>
 </Project>

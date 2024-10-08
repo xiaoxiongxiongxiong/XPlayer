@@ -5,12 +5,12 @@
 #include <QOpenGLFunctions_3_0>
 #include <QPainter>
 
-class CVideoRender :public QOpenGLWidget, protected QOpenGLFunctions_3_0
+class CXPlayerVideoRender :public QOpenGLWidget, protected QOpenGLFunctions_3_0
 {
     Q_OBJECT
 public:
-    CVideoRender(QWidget * parent = nullptr);
-    ~CVideoRender() = default;
+    CXPlayerVideoRender(QWidget * parent = nullptr);
+    ~CXPlayerVideoRender() = default;
 
 protected:
     void initializeGL() override;
