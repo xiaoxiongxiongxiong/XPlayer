@@ -121,6 +121,7 @@
     <ClCompile Include="..\src\demuxer\xplayer_stream.cpp" />
     <ClCompile Include="..\src\renderer\xplayer_audio_render.cpp" />
     <ClCompile Include="..\src\renderer\xplayer_video_render.cpp" />
+    <ClCompile Include="..\src\rescaler\xplayer_audio_rescaler.cpp" />
     <ClCompile Include="..\src\rescaler\xplayer_video_rescaler.cpp" />
     <ClCompile Include="..\src\utils\xplayer_utils.cpp" />
     <ClCompile Include="XPlayer.cpp" />
@@ -131,6 +132,7 @@
     <ClInclude Include="..\src\demuxer\xplayer_stream.h" />
     <ClInclude Include="..\src\renderer\xplayer_audio_render.h" />
     <QtMoc Include="..\src\renderer\xplayer_video_render.h" />
+    <ClInclude Include="..\src\rescaler\xplayer_audio_rescaler.h" />
     <ClInclude Include="..\src\rescaler\xplayer_video_rescaler.h" />
     <ClInclude Include="..\src\utils\xplayer_utils.h" />
   </ItemGroup>

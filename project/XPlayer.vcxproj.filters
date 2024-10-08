@@ -70,6 +70,9 @@
     <ClCompile Include="..\src\renderer\xplayer_video_render.cpp">
       <Filter>Source Files\src\renderer</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\rescaler\xplayer_audio_rescaler.cpp">
+      <Filter>Source Files\src\rescaler</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\rescaler\xplayer_video_rescaler.cpp">
       <Filter>Source Files\src\rescaler</Filter>
     </ClCompile>
@@ -86,6 +89,9 @@
     </ClInclude>
     <ClInclude Include="..\src\renderer\xplayer_audio_render.h">
       <Filter>Source Files\src\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rescaler\xplayer_audio_rescaler.h">
+      <Filter>Source Files\src\rescaler</Filter>
     </ClInclude>
     <ClInclude Include="..\src\rescaler\xplayer_video_rescaler.h">
       <Filter>Source Files\src\rescaler</Filter>
