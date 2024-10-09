@@ -54,8 +54,18 @@ bool CXPlayerDemuxImpl::createStreams()
     const auto cnt = static_cast<int>(_ctx->nb_streams);
     for (int i = 0; i < cnt; ++i)
     {
+        const auto * codec_par = _ctx->streams[i]->codecpar;
+        if (AVMEDIA_TYPE_VIDEO != codec_par->codec_type && AVMEDIA_TYPE_AUDIO != codec_par->codec_type)
+            continue;
+
         auto si = std::make_shared<CXPlayerStream>(i);
-        si->create();
+        if (!si)
+        {
+            xpu_format_string(_err, "Create stream %d failed", i);
+            return false;
+        }
+
+        si->create(codec_par);
     }
 
     return true;
