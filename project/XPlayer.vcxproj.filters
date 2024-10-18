@@ -67,7 +67,7 @@
     <ClCompile Include="..\src\renderer\xplayer_audio_render.cpp">
       <Filter>Source Files\src\renderer</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\renderer\xplayer_video_render.cpp">
+    <ClCompile Include="..\src\renderer\xplayer_video_render_opengl.cpp">
       <Filter>Source Files\src\renderer</Filter>
     </ClCompile>
     <ClCompile Include="..\src\rescaler\xplayer_audio_rescaler.cpp">
@@ -107,7 +107,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="..\src\renderer\xplayer_video_render.h">
+    <QtMoc Include="..\src\renderer\xplayer_video_render_opengl.h">
       <Filter>Source Files\src\renderer</Filter>
     </QtMoc>
   </ItemGroup>
