@@ -1,14 +1,13 @@
 ﻿#ifndef __XPLAYER_DEMUXER_H__
 #define __XPLAYER_DEMUXER_H__
 
-#include <stdint.h>
-#include <stdbool.h>
+#include <cstdint>
+#include <cstdbool>
 #include <string>
-#include <vector>
-#include <memory>
 
-class CXPlayerStream;
 typedef struct AVFormatContext AVFormatContext;
+typedef struct AVStream AVStream;
+typedef struct AVPacket AVPacket;
 
 class CXPlayerDemuxImpl
 {
@@ -24,14 +23,20 @@ public:
     // 时长
     int64_t duration() const;
 
+    // 获取流个数
+    int getStreamsCount();
+
+    // 获取流信息
+    AVStream * getStreamInfo(int index);
+
+    // 定位
+    int seek(int stream_index, int64_t timestamp);
+
+    // 读包
+    int readPacket(AVPacket * pkt);
+
     // 获取错误信息
     const char * err() const;
-
-private:
-    // 创建流
-    bool createStreams();
-    // 销毁流
-    void destroyStreams();
 
 private:
     // 源时长
@@ -39,9 +44,6 @@ private:
 
     // 源上下文
     AVFormatContext * _ctx = nullptr;
-
-    //
-    std::vector<std::shared_ptr<CXPlayerStream>> _streams;
 
     // 错误信息
     std::string _err;
