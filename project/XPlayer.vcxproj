@@ -75,7 +75,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(ProjectDir)..\dep\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>avutil.lib;avformat.lib;avcodec.lib;swresample.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avutil.lib;avformat.lib;avcodec.lib;swresample.lib;swscale.lib;SDL2.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -125,6 +125,7 @@
     <ClCompile Include="..\src\demuxer\xplayer_stream.cpp" />
     <ClCompile Include="..\src\renderer\xplayer_audio_render.cpp" />
     <ClCompile Include="..\src\renderer\xplayer_video_render.cpp" />
+    <ClCompile Include="..\src\renderer\xplayer_video_render_sdl.cpp" />
     <ClCompile Include="..\src\rescaler\xplayer_audio_rescaler.cpp" />
     <ClCompile Include="..\src\rescaler\xplayer_video_rescaler.cpp" />
     <ClCompile Include="..\src\utils\xplayer_utils.cpp" />
@@ -136,6 +137,7 @@
     <ClInclude Include="..\src\demuxer\xplayer_stream.h" />
     <ClInclude Include="..\src\renderer\xplayer_audio_render.h" />
     <QtMoc Include="..\src\renderer\xplayer_video_render.h" />
+    <ClInclude Include="..\src\renderer\xplayer_video_render_sdl.h" />
     <ClInclude Include="..\src\rescaler\xplayer_audio_rescaler.h" />
     <ClInclude Include="..\src\rescaler\xplayer_video_rescaler.h" />
     <ClInclude Include="..\src\utils\xplayer_queue.h" />
