@@ -36,4 +36,6 @@ private:
 
     QPoint m_lastPos;
     bool m_blPressed = false;
+
+    QMenu * m_pclsChoices = nullptr;
 };

@@ -12,5 +12,12 @@
         <file>res/voice.ico</file>
         <file>res/vod.ico</file>
         <file>res/live.ico</file>
+        <file>res/close_hover.ico</file>
+        <file>res/close_normal.ico</file>
+        <file>res/minimize_hover.ico</file>
+        <file>res/minimize_normal.ico</file>
+        <file>res/maximize_normal.ico</file>
+        <file>res/maximize_hover.ico</file>
+        <file>res/line.ico</file>
     </qresource>
 </RCC>

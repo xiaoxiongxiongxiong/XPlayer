@@ -17,13 +17,29 @@
    <string notr="true"/>
   </property>
   <widget class="QWidget" name="centralWidget">
+   <property name="styleSheet">
+    <string notr="true">QWidget {
+    font: 75 12pt;Segoe UI;
+    color: white;
+    background-color: #000000;
+}
+QWidget::titlebar {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
+                                stop: 0 #232323, 
+                                stop: 0.5 #111111, 
+                                stop: 1 #232323);
+     border: 1px solid #232323;
+     border-radius: 4px;
+     margin: 2px;
+}</string>
+   </property>
    <widget class="QOpenGLWidget" name="m_wndScreen">
     <property name="geometry">
      <rect>
-      <x>0</x>
-      <y>0</y>
+      <x>-10</x>
+      <y>10</y>
       <width>1280</width>
-      <height>750</height>
+      <height>710</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -218,53 +234,141 @@ QSlider::sub-page:horizontal{
      </size>
     </property>
    </widget>
-  </widget>
-  <widget class="QMenuBar" name="m_barMenu">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>1280</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="m_mnuOpen">
-    <property name="title">
-     <string>打开</string>
+   <widget class="QWidget" name="m_wndTitle" native="true">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>1280</width>
+      <height>40</height>
+     </rect>
     </property>
-    <addaction name="m_actVod"/>
-    <addaction name="m_actLive"/>
-   </widget>
-   <widget class="QMenu" name="m_mnuVideo">
-    <property name="title">
-     <string>视频</string>
+    <property name="styleSheet">
+     <string notr="true"/>
     </property>
-    <addaction name="m_actDisableVideo"/>
+    <widget class="QPushButton" name="m_btnClose">
+     <property name="geometry">
+      <rect>
+       <x>1240</x>
+       <y>0</y>
+       <width>40</width>
+       <height>40</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">#m_btnClose{
+border-style:solid;
+background-color: rgba(255, 255, 255, 0);
+border-image:url(:/XPlayer/res/close_normal.ico);
+}
+#m_btnClose:hover{
+border-image:url(:/XPlayer/res/close_hover.ico);
+}</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset resource="XPlayer.qrc">
+       <normaloff>:/XPlayer/res/close_normal.ico</normaloff>:/XPlayer/res/close_normal.ico</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>40</width>
+       <height>40</height>
+      </size>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="m_btnMinimize">
+     <property name="geometry">
+      <rect>
+       <x>1160</x>
+       <y>0</y>
+       <width>40</width>
+       <height>40</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">#m_btnMinimize{
+border-style:solid;
+background-color: rgba(255, 255, 255, 0);
+border-image:url(:/XPlayer/res/minimize_normal.ico);
+}
+#m_btnMinimize:hover{
+border-image:url(:/XPlayer/res/minimize_hover.ico);
+}</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>40</width>
+       <height>40</height>
+      </size>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="m_btnMaximize">
+     <property name="geometry">
+      <rect>
+       <x>1200</x>
+       <y>0</y>
+       <width>40</width>
+       <height>40</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">#m_btnMaximize{
+border-style:solid;
+background-color: rgba(255, 255, 255, 0);
+border-image:url(:/XPlayer/res/maximize_normal.ico);
+}
+#m_btnMaximize:hover{
+border-image:url(:/XPlayer/res/maximize_hover.ico);
+}</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>40</width>
+       <height>40</height>
+      </size>
+     </property>
+    </widget>
+    <widget class="QToolButton" name="m_btnChoice">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>0</y>
+       <width>60</width>
+       <height>40</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>选项</string>
+     </property>
+     <property name="popupMode">
+      <enum>QToolButton::MenuButtonPopup</enum>
+     </property>
+    </widget>
    </widget>
-   <widget class="QMenu" name="m_mnuAudio">
-    <property name="title">
-     <string>音频</string>
-    </property>
-    <addaction name="m_actDisableAudio"/>
-   </widget>
-   <widget class="QMenu" name="m_munInfo">
-    <property name="title">
-     <string>信息</string>
-    </property>
-    <addaction name="m_actCodec"/>
-    <addaction name="m_actRun"/>
-   </widget>
-   <addaction name="m_mnuOpen"/>
-   <addaction name="m_mnuVideo"/>
-   <addaction name="m_mnuAudio"/>
-   <addaction name="m_munInfo"/>
   </widget>
   <action name="m_actVod">
+   <property name="icon">
+    <iconset resource="XPlayer.qrc">
+     <normaloff>:/XPlayer/res/vod.ico</normaloff>:/XPlayer/res/vod.ico</iconset>
+   </property>
    <property name="text">
     <string>文件</string>
    </property>
   </action>
   <action name="m_actLive">
+   <property name="icon">
+    <iconset resource="XPlayer.qrc">
+     <normaloff>:/XPlayer/res/live.ico</normaloff>:/XPlayer/res/live.ico</iconset>
+   </property>
    <property name="text">
     <string>链接</string>
    </property>
@@ -287,6 +391,14 @@ QSlider::sub-page:horizontal{
   <action name="m_actRun">
    <property name="text">
     <string>运行信息</string>
+   </property>
+  </action>
+  <action name="m_actOpen">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>打开</string>
    </property>
   </action>
  </widget>

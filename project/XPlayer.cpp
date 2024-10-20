@@ -12,10 +12,40 @@ XPlayer::XPlayer(QWidget * parent)
 {
     ui.setupUi(this);
 
-    this->setWindowFlags(Qt::SplashScreen | Qt::FramelessWindowHint);
+    this->setWindowFlags(Qt::FramelessWindowHint); // Qt::SplashScreen | Qt::FramelessWindowHint);
 
     ui.m_actVod->setIcon(QIcon(":/XPlayer/res/vod.ico"));
     ui.m_actLive->setIcon(QIcon(":/XPlayer/res/live.ico"));
+
+    ui.m_actVod->setShortcut(QKeySequence::Open);
+    ui.m_actLive->setShortcut(QKeySequence::Underline);
+
+    m_pclsChoices = new QMenu(ui.m_wndTitle);
+    m_pclsChoices->addAction(ui.m_actVod);
+    m_pclsChoices->addAction(ui.m_actLive);
+
+    m_pclsChoices->addSeparator();
+
+    auto * video_mnu = m_pclsChoices->addMenu(QStringLiteral("视频选项"));
+    video_mnu->addAction(ui.m_actDisableVideo);
+
+    auto * audio_mnu = m_pclsChoices->addMenu(QStringLiteral("音频选项"));
+    audio_mnu->addAction(ui.m_actDisableAudio);
+
+    m_pclsChoices->setStyleSheet(R"(
+        QMenu {
+            background-color: #1f1f1f;
+            color: white;
+        }
+        QMenu::item {
+            padding: 2px 20px 2px 20px;
+        }
+        QMenu::item:selected {
+            background-color: #323232;
+            color: white;
+        }
+    )");
+    ui.m_btnChoice->setMenu(m_pclsChoices);
 
     connect(ui.m_actVod, &QAction::triggered, this, &XPlayer::onBtnClickedVod);
     connect(ui.m_actLive, &QAction::triggered, this, &XPlayer::onBtnClickedLive);
