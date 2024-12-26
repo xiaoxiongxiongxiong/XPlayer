@@ -32,6 +32,9 @@ protected:
     void resizeEvent(QResizeEvent * event) override;
 
 private:
+    void play(const std::string & url);
+
+private:
     Ui::XPlayerClass ui;
 
     QPoint m_lastPos;

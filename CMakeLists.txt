@@ -1,0 +1,83 @@
+﻿cmake_minimum_required(VERSION 3.16)
+project(XPlayer LANGUAGES CXX)
+
+include(qt.cmake)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS=1)
+add_compile_definitions(_SILENCE_CXX17_C_HEADER_DEPRECATION_WARNING)
+
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
+find_package(Qt${QT_VERSION_MAJOR}
+    COMPONENTS
+        Core
+        Gui
+        Widgets
+        OpenGL
+)
+qt_standard_project_setup()
+
+file(GLOB XPLAYER_SRC_FILES
+    "src/*.cpp"
+    "src/*.h"
+    "src/demuxer/*.cpp"
+    "src/demuxer/*.h"
+    "src/renderer/*.cpp"
+    "src/renderer/*.h"
+    "src/rescaler/*.cpp"
+    "src/rescaler/*.h"
+    "src/utils/*.cpp"
+    "src/utils/*.h"
+)
+
+file(GLOB XPLAYER_UI_FILES
+    "ui/*.cpp"
+    "ui/*.h"
+    "ui/*.ui"
+)
+
+if(QT_VERSION VERSION_LESS 6.0)
+    qt5_add_resources(QRC_FILES "ui/XPlayer.qrc")
+else()
+    qt6_add_resources(QRC_FILES "ui/XPlayer.qrc")
+endif()
+
+qt_add_executable(${PROJECT_NAME} 
+                  ${XPLAYER_UI_FILES} 
+                  ${XPLAYER_SRC_FILES}
+                  ${QRC_FILES})
+
+set_target_properties(${PROJECT_NAME}
+    PROPERTIES
+        WIN32_EXECUTABLE TRUE
+)
+
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+    dep/include
+    src/demuxer
+    src/renderer
+    src/rescaler
+    src/utils
+    src/)
+
+target_link_directories(${PROJECT_NAME}
+    PRIVATE
+    dep/lib
+)
+
+target_link_libraries(${PROJECT_NAME}
+    PUBLIC
+        Qt${QT_VERSION_MAJOR}::Core
+        Qt${QT_VERSION_MAJOR}::Gui
+        Qt${QT_VERSION_MAJOR}::Widgets
+        Qt${QT_VERSION_MAJOR}::OpenGL
+        avutil
+        avformat
+        avcodec
+        swresample
+        swscale
+        SDL2
+)

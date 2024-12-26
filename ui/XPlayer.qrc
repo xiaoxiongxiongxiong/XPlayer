@@ -18,6 +18,5 @@
         <file>res/minimize_normal.ico</file>
         <file>res/maximize_normal.ico</file>
         <file>res/maximize_hover.ico</file>
-        <file>res/line.ico</file>
     </qresource>
 </RCC>

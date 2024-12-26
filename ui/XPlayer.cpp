@@ -1,11 +1,16 @@
 ﻿#include "XPlayer.h"
 
+#include <QFileDialog>
+#include <QMessageBox>
 #include <QResizeEvent>
 #include <QMenuBar>
+#include <QPainter>
 #include <windows.h>
 
+#include "utils/xplayer_utils.h"
 #include "renderer/xplayer_audio_render.h"
-#include "renderer/xplayer_video_render.h"
+#include "renderer/xplayer_video_render_sdl.h"
+#include "xplayer_source.h"
 
 XPlayer::XPlayer(QWidget * parent)
     : QMainWindow(parent)
@@ -89,6 +94,17 @@ void XPlayer::mouseReleaseEvent(QMouseEvent * event)
 
 void XPlayer::onBtnClickedVod()
 {
+    const QString strFilter = tr("mp4(*.mp4);;mpegts(*.ts);;All Files(*.*)");
+    QString strFileName = QFileDialog::getOpenFileName(this, QStringLiteral("文件对话框"), "F:\\media", strFilter);
+    if (strFileName.isEmpty())
+    {
+        return;
+    }
+
+    std::string path;
+    auto strFileArray = strFileName.toLocal8Bit();
+    path.assign(strFileArray.constData(), strFileArray.length());
+    play(path);
 }
 
 void XPlayer::onBtnClickedLive()
@@ -136,9 +152,13 @@ void XPlayer::resizeEvent(QResizeEvent * event)
     const auto height = event->size().height();
     const auto width = event->size().width();
 
+    auto title_size = ui.m_wndTitle->size();
+    title_size.setWidth(width);
+    ui.m_wndTitle->resize(title_size);
+
     const auto center = width / 2 - 25;
 
-    const auto bh = ui.m_barMenu->size().height();
+    const auto bh = 0;// ui.m_barMenu->size().height();
 
     QPainter painter(this);
     painter.fillRect(0, this->height() - 70, this->width(), 70, QColor(0, 0, 0));
@@ -156,4 +176,47 @@ void XPlayer::resizeEvent(QResizeEvent * event)
     ui.m_btnCtrl->move(center, height - 50 - bh);
     ui.m_btnForward->move(center + 50, height - 50 - bh);
     ui.m_btnNext->move(center + 100, height - 50 - bh);
+}
+
+void XPlayer::play(const std::string & url)
+{
+    if (!CXPlayerSource::getInstance().open(url))
+    {
+        QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("打开失败！"));
+        return;
+    }
+
+    int64_t duration_ms = CXPlayerSource::getInstance().duration();
+    if (duration_ms > 0)
+    {
+        ui.m_sldProgress->setEnabled(true);
+        ui.m_sldProgress->setMaximum(static_cast<int>(duration_ms));
+    }
+    else
+        ui.m_sldProgress->setEnabled(false);
+
+    std::vector<int> ais;
+    std::vector<int> vis;
+    CXPlayerSource::getInstance().getStreamsInfo(ais, vis);
+
+    for (auto iter = ais.cbegin(); iter != ais.cend(); ++iter)
+    {
+        const auto index = static_cast<int>(std::distance(ais.cbegin(), iter));
+        auto * act = new QAction(this);
+        act->setText(QStringLiteral("音轨%1").arg(index));
+        act->setData(QVariant::fromValue(*iter));
+        act->setObjectName(QStringLiteral("m_actAudio%d").arg(index));
+        //ui.m_mnuAudio->addAction(act);
+    }
+
+    for (auto iter = vis.cbegin(); iter != vis.cend(); iter++)
+    {
+        const auto index = static_cast<int>(std::distance(vis.cbegin(), iter));
+        auto * act = new QAction(this);
+        act->setText(QStringLiteral("视轨%1").arg(index));
+        act->setData(QVariant::fromValue(*iter));
+        act->setObjectName(QStringLiteral("m_actVideo%d").arg(index));
+        act->setChecked(true);
+        //ui.m_mnuVideo->addAction(act);
+    }
 }
