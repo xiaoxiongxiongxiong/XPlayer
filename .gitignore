@@ -33,6 +33,5 @@
 
 *.tlog
 
-bin/*
-project/.vs/*
-project/obj/*
+.vs/*
+out/*

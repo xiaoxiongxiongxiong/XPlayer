@@ -6,7 +6,7 @@ extern "C" {
 
 #include "utils/xplayer_utils.h"
 #include "demuxer/xplayer_demuxer.h"
-#include "demuxer/xplayer_stream.h"
+#include "xplayer_stream.h"
 
 bool CXPlayerSource::open(const std::string & url, const std::string & params)
 {

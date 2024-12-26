@@ -5,6 +5,8 @@ extern "C" {
 }
 
 #include "utils/xplayer_utils.h"
+#include "renderer/xplayer_video_render_sdl.h"
+#include "renderer/xplayer_audio_render.h"
 
 CXPlayerStream::CXPlayerStream(int index) :
     _index(index)
@@ -19,6 +21,8 @@ bool CXPlayerStream::create(const AVCodecParameters * codecpar)
         xpu_format_string(_err, "Invalid params");
         return false;
     }
+
+    _state.store(XPLAYER_DECODE_PREPARE);
 
     _codecpar = avcodec_parameters_alloc();
     if (nullptr == _codecpar)
@@ -42,6 +46,8 @@ bool CXPlayerStream::create(const AVCodecParameters * codecpar)
         avcodec_parameters_free(&_codecpar);
         return false;
     }
+
+    _state.store(XPLAYER_DECODE_READY);
 
     try
     {
@@ -83,17 +89,28 @@ void CXPlayerStream::destroy()
     avcodec_parameters_free(&_codecpar);
     destroyDecoder();
 
+    if (XPLAYER_DECODE_SUCC != _state.load() && XPLAYER_DECODE_FAIL != _state.load())
+        _state.store(XPLAYER_DECODE_SUCC);
 }
 
 void CXPlayerStream::enable(const bool flag)
 {
+    if (flag)
+        _state.store(XPLAYER_DECODE_RUNNING);
+    else
+        _state.store(XPLAYER_DECODE_IDLE);
+}
+
+void CXPlayerStream::flush()
+{
+    _reset.store(true);
 }
 
 bool CXPlayerStream::push(const AVPacket & pkt, bool over)
 {
     if (over)
     {
-        _is_over.store(over);
+        _demux_over.store(over);
         return true;
     }
 
@@ -113,7 +130,7 @@ bool CXPlayerStream::push(const AVPacket & pkt, bool over)
     if (AV_NOPTS_VALUE != pkt.dts)
         _latest_pkt_dts = pkt.dts;
 
-    while (_running && _pkts.size() > 200)
+    while (_running.load() && _pkts.size() > 200)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
@@ -121,6 +138,16 @@ bool CXPlayerStream::push(const AVPacket & pkt, bool over)
     _pkts.push(pkt);
 
     return true;
+}
+
+XPLAYER_DECODE_STATE CXPlayerStream::state() const
+{
+    return _state.load();
+}
+
+const char * CXPlayerStream::err() const
+{
+    return _err.c_str();
 }
 
 bool CXPlayerStream::createDecoder()
@@ -177,7 +204,127 @@ void CXPlayerStream::destroyDecoder()
     avcodec_free_context(&_codec);
 }
 
+bool CXPlayerStream::reopenDecoder()
+{
+    destroyDecoder();
+    return createDecoder();
+}
+
+bool CXPlayerStream::createRender(const void * wnd, int width, int height)
+{
+    return true;
+}
+
+void CXPlayerStream::destroyRender()
+{
+}
+
+void CXPlayerStream::reset()
+{
+    if (!_reset.load())
+        return;
+
+    while (!_pkts.empty())
+    {
+        AVPacket pkt = {};
+        _pkts.pop(pkt);
+        av_packet_unref(&pkt);
+    }
+
+    reopenDecoder();
+    _reset.store(false);
+}
+
 void CXPlayerStream::decodeThr()
 {
+    bool should_reopen_decoder = false;
+    _state.store(XPLAYER_DECODE_IDLE);
 
+    while (_running.load())
+    {
+        reset();
+
+        if (_pkts.empty())
+        {
+            if (_demux_over.load())
+                break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            continue;
+        }
+
+        AVPacket pkt = {};
+        if (!_pkts.pop(pkt))
+            continue;
+
+        if (XPLAYER_DECODE_IDLE == _state.load())
+        {
+            av_packet_unref(&pkt);
+            should_reopen_decoder = true;
+            continue;
+        }
+
+        if (!XPLAYER_DECODE_RUNNING == _state.load())
+            continue;
+
+        if (should_reopen_decoder && !reopenDecoder())
+            break;
+        should_reopen_decoder = false;
+
+        int ret = avcodec_send_packet(_codec, &pkt);
+        av_packet_unref(&pkt);
+        if (0 != ret)
+        {
+            if (AVERROR_EOF == ret)
+            {
+                _demux_over.store(true);
+                _state.store(XPLAYER_DECODE_SUCC);
+            }
+            else
+            {
+                char buff[AV_ERROR_MAX_STRING_SIZE] = {};
+                av_make_error_string(buff, AV_ERROR_MAX_STRING_SIZE, ret);
+                xpu_format_string(_err, "%s", buff);
+                _state.store(XPLAYER_DECODE_FAIL);
+            }
+            break;
+        }
+
+        do 
+        {
+            AVFrame frm = {};
+            ret = avcodec_receive_frame(_codec, &frm);
+            if (0 != ret)
+            {
+                if (AVERROR_EOF == ret)
+                {
+                    _demux_over.store(true);
+                    _state.store(XPLAYER_DECODE_SUCC);
+                }
+                else if (AVERROR(EAGAIN) == ret)
+                    break;
+                else
+                {
+                    char buff[AV_ERROR_MAX_STRING_SIZE] = {};
+                    av_make_error_string(buff, AV_ERROR_MAX_STRING_SIZE, ret);
+                    xpu_format_string(_err, "%s", buff);
+                    _state.store(XPLAYER_DECODE_FAIL);
+                }
+                break;
+            }
+
+            // TODO 渲染
+            if (AVMEDIA_TYPE_AUDIO == _codecpar->codec_type)
+            {
+
+            }
+            else if (AVMEDIA_TYPE_VIDEO == _codecpar->codec_type)
+            {
+
+            }
+            av_frame_unref(&frm);
+        } while (true);
+
+        if (XPLAYER_DECODE_FAIL == _state.load() || XPLAYER_DECODE_SUCC == _state.load())
+            break;
+    }
 }

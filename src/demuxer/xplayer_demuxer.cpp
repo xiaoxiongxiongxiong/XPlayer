@@ -1,5 +1,4 @@
 ﻿#include "xplayer_demuxer.h"
-#include "xplayer_stream.h"
 
 extern "C" {
 #include "libavformat/avformat.h"

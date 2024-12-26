@@ -15,26 +15,20 @@ find_package(Qt${QT_VERSION_MAJOR}
         Core
         Gui
         Widgets
-        OpenGL
 )
 qt_standard_project_setup()
 
 file(GLOB XPLAYER_SRC_FILES
     "src/*.cpp"
-    "src/*.h"
     "src/demuxer/*.cpp"
-    "src/demuxer/*.h"
+    "src/decoder/*.cpp"
     "src/renderer/*.cpp"
-    "src/renderer/*.h"
     "src/rescaler/*.cpp"
-    "src/rescaler/*.h"
     "src/utils/*.cpp"
-    "src/utils/*.h"
 )
 
 file(GLOB XPLAYER_UI_FILES
     "ui/*.cpp"
-    "ui/*.h"
     "ui/*.ui"
 )
 
@@ -60,6 +54,7 @@ target_include_directories(${PROJECT_NAME}
     src/demuxer
     src/renderer
     src/rescaler
+    src/decoder
     src/utils
     src/)
 
@@ -73,7 +68,6 @@ target_link_libraries(${PROJECT_NAME}
         Qt${QT_VERSION_MAJOR}::Core
         Qt${QT_VERSION_MAJOR}::Gui
         Qt${QT_VERSION_MAJOR}::Widgets
-        Qt${QT_VERSION_MAJOR}::OpenGL
         avutil
         avformat
         avcodec
