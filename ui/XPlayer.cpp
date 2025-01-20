@@ -55,6 +55,10 @@ XPlayer::XPlayer(QWidget * parent)
     connect(ui.m_actVod, &QAction::triggered, this, &XPlayer::onBtnClickedVod);
     connect(ui.m_actLive, &QAction::triggered, this, &XPlayer::onBtnClickedLive);
 
+    connect(ui.m_btnMinimize, SIGNAL(clicked()), this, SLOT(onBtnClickedMinimize()));
+    connect(ui.m_btnMaximize, SIGNAL(clicked()), this, SLOT(onBtnClickedMaximize()));
+    connect(ui.m_btnClose, SIGNAL(clicked()), this, SLOT(onBtnClickedClose()));
+
     connect(ui.m_btnCtrl, SIGNAL(clicked()), this, SLOT(onBtnClickedCtrl()));
     connect(ui.m_btnNext, SIGNAL(clicked()), this, SLOT(onBtnClickedNext()));
     connect(ui.m_btnLast, SIGNAL(clicked()), this, SLOT(onBtnClickedLast()));
@@ -92,6 +96,28 @@ void XPlayer::mouseReleaseEvent(QMouseEvent * event)
     m_blPressed = false; // 鼠标松开时，置为false
 }
 
+void XPlayer::onBtnClickedMinimize()
+{
+    if (Qt::WindowMinimized == this->windowState())
+        this->showNormal();
+    else
+        this->showMinimized();
+}
+
+void XPlayer::onBtnClickedMaximize()
+{
+    if (Qt::WindowMaximized == this->windowState())
+        this->showNormal();
+    else
+        this->showMaximized();
+}
+
+void XPlayer::onBtnClickedClose()
+{
+    QApplication * app;
+    app->quit();
+}
+
 void XPlayer::onBtnClickedVod()
 {
     const QString strFilter = tr("mp4(*.mp4);;mpegts(*.ts);;All Files(*.*)");
@@ -101,10 +127,7 @@ void XPlayer::onBtnClickedVod()
         return;
     }
 
-    std::string path;
-    auto strFileArray = strFileName.toLocal8Bit();
-    path.assign(strFileArray.constData(), strFileArray.length());
-    play(path);
+    play(strFileName.toStdString());
 }
 
 void XPlayer::onBtnClickedLive()
@@ -182,7 +205,8 @@ void XPlayer::play(const std::string & url)
 {
     if (!CXPlayerSource::getInstance().open(url))
     {
-        QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("打开失败！"));
+        auto * err = CXPlayerSource::getInstance().err();
+        QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("%1！").arg(err));
         return;
     }
 

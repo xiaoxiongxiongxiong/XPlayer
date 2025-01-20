@@ -96,6 +96,11 @@ void CXPlayerSource::setVolume(int volume)
 {
 }
 
+const char * CXPlayerSource::err() const
+{
+    return _err.c_str();
+}
+
 bool CXPlayerSource::createStreams()
 {
     const auto cnt = _ctx->getStreamsCount();

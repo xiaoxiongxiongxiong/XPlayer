@@ -49,6 +49,9 @@ public:
     // 设置音量
     void setVolume(int volume);
 
+    // 错误信息
+    const char * err() const;
+
 private:
     CXPlayerSource() = default;
     ~CXPlayerSource() = default;

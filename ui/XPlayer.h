@@ -18,6 +18,10 @@ public:
     void mouseReleaseEvent(QMouseEvent * event) override; // 鼠标释放
 
 public slots:
+    void onBtnClickedMinimize();
+    void onBtnClickedMaximize();
+    void onBtnClickedClose();
+
     void onBtnClickedVod();
     void onBtnClickedLive();
     void onBtnClickedCtrl();
