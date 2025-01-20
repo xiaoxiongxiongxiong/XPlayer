@@ -8,7 +8,7 @@
 #include <windows.h>
 
 #include "utils/xplayer_utils.h"
-#include "renderer/xplayer_audio_render.h"
+#include "renderer/xplayer_audio_render_sdl.h"
 #include "renderer/xplayer_video_render_sdl.h"
 #include "xplayer_source.h"
 

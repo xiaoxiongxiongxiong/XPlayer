@@ -1,5 +1,5 @@
-﻿#ifndef __XPLAYER_AUDIO_RENDER_H__
-#define __XPLAYER_AUDIO_RENDER_H__
+﻿#ifndef __XPLAYER_AUDIO_RENDER_SDL_H__
+#define __XPLAYER_AUDIO_RENDER_SDL_H__
 
 #include <cstdbool>
 #include <cstdint>
