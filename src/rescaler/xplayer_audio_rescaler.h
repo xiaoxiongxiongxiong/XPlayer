@@ -10,14 +10,20 @@ extern "C" {
 #include "libswresample/swresample.h"
 }
 
+typedef struct _xplayer_audio_info_t
+{
+    AVChannelLayout layout;  // 声道排列
+    AVSampleFormat fmt;      // 采样格式
+    int sample_rate;         // 采样率
+} xplayer_audio_info_t;
+
 class CXPlayerAudioRescaler
 {
 public:
     CXPlayerAudioRescaler() = default;
     ~CXPlayerAudioRescaler() = default;
     // 创建转换器
-    bool create(const AVChannelLayout & out_layout, int out_fmt, int out_sample_rate,
-                const AVChannelLayout & in_layout, int in_fmt, int in_sample_rate, int frame_size);
+    bool create(const xplayer_audio_info_t & src, const xplayer_audio_info_t & dst, int frame_size);
 
     // 销毁
     void destroy();

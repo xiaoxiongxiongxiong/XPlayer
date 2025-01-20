@@ -1,39 +1,38 @@
 ﻿#include "xplayer_audio_rescaler.h"
 #include "utils/xplayer_utils.h"
 
-bool CXPlayerAudioRescaler::create(const AVChannelLayout & out_layout, int out_fmt, int out_sample_rate,
-                                   const AVChannelLayout & in_layout, int in_fmt, int in_sample_rate, int frame_size)
+bool CXPlayerAudioRescaler::create(const xplayer_audio_info_t & src, const xplayer_audio_info_t & dst, int frame_size)
 {
-    if (in_fmt <= AV_SAMPLE_FMT_NONE || in_fmt >= AV_SAMPLE_FMT_NB)
+    if (src.fmt <= AV_SAMPLE_FMT_NONE || src.fmt >= AV_SAMPLE_FMT_NB)
     {
-        xpu_format_string(_err, "Invalid input format: %d!", out_fmt);
+        xpu_format_string(_err, "Invalid input format: %d!", src.fmt);
         return false;
     }
 
-    if (out_fmt <= AV_SAMPLE_FMT_NONE || out_fmt >= AV_SAMPLE_FMT_NB)
+    if (dst.fmt <= AV_SAMPLE_FMT_NONE || dst.fmt >= AV_SAMPLE_FMT_NB)
     {
-        xpu_format_string(_err, "Invalid output format: %d!", out_fmt);
+        xpu_format_string(_err, "Invalid output format: %d!", dst.fmt);
         return false;
     }
 
-    if (out_layout.nb_channels <= 0)
+    if (dst.layout.nb_channels <= 0)
     {
-        xpu_format_string(_err, "Output channels %d is invalid.", out_layout.nb_channels);
+        xpu_format_string(_err, "Output channels %d is invalid.", dst.layout.nb_channels);
         return false;
     }
 
-    _in_sample_fmt = static_cast<AVSampleFormat>(in_fmt);
-    _out_sample_fmt = static_cast<AVSampleFormat>(out_fmt);
+    _in_sample_fmt = src.fmt;
+    _out_sample_fmt = dst.fmt;
 
-    if (0 == av_channel_layout_compare(&out_layout, &in_layout) &&
-        out_fmt == in_fmt && out_sample_rate == in_sample_rate)
+    if (0 == av_channel_layout_compare(&dst.layout, &src.layout) &&
+        dst.fmt == src.fmt && dst.sample_rate == src.sample_rate)
     {
         _need_rescale = false;
         return true;
     }
 
-    int ret = swr_alloc_set_opts2(&_swr_ctx, &out_layout, _out_sample_fmt, out_sample_rate,
-                                  &in_layout, _in_sample_fmt, in_sample_rate, 0, nullptr);
+    int ret = swr_alloc_set_opts2(&_swr_ctx, &dst.layout, _out_sample_fmt, dst.sample_rate,
+                                  &src.layout, _in_sample_fmt, src.sample_rate, 0, nullptr);
     if (0 != ret)
     {
         char buff[AV_ERROR_MAX_STRING_SIZE] = { 0 };
@@ -53,12 +52,12 @@ bool CXPlayerAudioRescaler::create(const AVChannelLayout & out_layout, int out_f
         return false;
     }
 
-    _in_sample_rate = in_sample_rate;
-    _in_ch_layout = in_layout;
+    _in_sample_rate = src.sample_rate;
+    _in_ch_layout = src.layout;
     _in_nb_samples = frame_size;
 
-    _out_ch_layout = out_layout;
-    _out_sample_rate = out_sample_rate;
+    _out_ch_layout = dst.layout;
+    _out_sample_rate = dst.sample_rate;
 
     return true;
 }
