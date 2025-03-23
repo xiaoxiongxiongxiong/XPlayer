@@ -5,6 +5,8 @@
 #include <QResizeEvent>
 #include <QMenuBar>
 #include <QPainter>
+#include <QFileInfo>
+#include <QPropertyAnimation>
 #include <windows.h>
 
 #include "utils/xplayer_utils.h"
@@ -52,6 +54,12 @@ XPlayer::XPlayer(QWidget * parent)
     )");
     ui.m_btnChoice->setMenu(m_pclsChoices);
 
+    // 创建位置动画
+    ani = new QPropertyAnimation(ui.m_labName, "geometry");
+    ani->setDuration(6000); // 动画持续时间6秒
+    ani->setLoopCount(-1);
+    ani->start();
+
     connect(ui.m_actVod, &QAction::triggered, this, &XPlayer::onBtnClickedVod);
     connect(ui.m_actLive, &QAction::triggered, this, &XPlayer::onBtnClickedLive);
 
@@ -59,6 +67,7 @@ XPlayer::XPlayer(QWidget * parent)
     connect(ui.m_btnMaximize, SIGNAL(clicked()), this, SLOT(onBtnClickedMaximize()));
     connect(ui.m_btnClose, SIGNAL(clicked()), this, SLOT(onBtnClickedClose()));
 
+    connect(ui.m_btnVolume, SIGNAL(clicked()), this, SLOT(onBtnClickedVolume()));
     connect(ui.m_btnCtrl, SIGNAL(clicked()), this, SLOT(onBtnClickedCtrl()));
     connect(ui.m_btnNext, SIGNAL(clicked()), this, SLOT(onBtnClickedNext()));
     connect(ui.m_btnLast, SIGNAL(clicked()), this, SLOT(onBtnClickedLast()));
@@ -118,14 +127,41 @@ void XPlayer::onBtnClickedClose()
     app->quit();
 }
 
+void XPlayer::onBtnClickedVolume()
+{
+    auto val = ui.m_sldVolume->value();
+    if (val > 0)
+    {
+        ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
+        ui.m_sldVolume->setProperty("user_id", val);
+        ui.m_sldVolume->setValue(0);
+    }
+    else
+    {
+        ui.m_sldVolume->setValue(ui.m_sldVolume->property("user_id").toInt());
+        ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
+    }
+
+    //static bool flag = false;
+    //if (flag)
+    //    ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
+    //else
+    //{
+    //    ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
+    //    ui.m_sldVolume->setValue(0);
+    //}
+    //flag = !flag;
+}
+
 void XPlayer::onBtnClickedVod()
 {
     const QString strFilter = tr("mp4(*.mp4);;mpegts(*.ts);;All Files(*.*)");
     QString strFileName = QFileDialog::getOpenFileName(this, QStringLiteral("文件对话框"), "F:\\media", strFilter);
     if (strFileName.isEmpty())
-    {
         return;
-    }
+
+    QFileInfo fileInfo(strFileName);
+    ui.m_labName->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
 
     play(strFileName.toStdString());
 }
@@ -146,6 +182,7 @@ void XPlayer::onBtnClickedCtrl()
 
 void XPlayer::onBtnClickedStop()
 {
+
 }
 
 void XPlayer::onBtnClickedBackward()
@@ -167,7 +204,7 @@ void XPlayer::onBtnClickedNext()
 void XPlayer::paintEvent(QPaintEvent * event)
 {
     QPainter painter(this);
-    painter.fillRect(0, this->height() - 70, this->width(), 70, QColor(0, 0, 0));
+    painter.fillRect(0, 0, this->height(), this->width(), QColor(34, 39, 56));
 }
 
 void XPlayer::resizeEvent(QResizeEvent * event)
@@ -175,30 +212,57 @@ void XPlayer::resizeEvent(QResizeEvent * event)
     const auto height = event->size().height();
     const auto width = event->size().width();
 
+    // 标题栏处理
     auto title_size = ui.m_wndTitle->size();
     title_size.setWidth(width);
     ui.m_wndTitle->resize(title_size);
 
-    const auto center = width / 2 - 25;
+    auto bw = ui.m_btnMinimize->size().width();
+    ui.m_btnMinimize->move(width - bw * 3, 0);
+    ui.m_btnMaximize->move(width - bw * 2, 0);
+    ui.m_btnClose->move(width - bw, 0);
 
-    const auto bh = 0;// ui.m_barMenu->size().height();
+    auto tmp = ui.m_labName->size();
+    ui.m_labName->move((width - bw * 3 - 60) / 2, 2);
+    //auto lab_pos = ui.m_labName->geometry();
+    //ani->setStartValue(ui.m_labName->geometry()); // 初始位置和大小
+    //lab_pos.setLeft(lab_pos.left() - tmp.width() / 2);
+    //lab_pos.setWidth(tmp.width());
+    //ani->setEndValue(lab_pos); // 结束位置和大小
 
-    QPainter painter(this);
-    painter.fillRect(0, this->height() - 70, this->width(), 70, QColor(0, 0, 0));
+    // 操作栏处理
+    auto ctrl_size = ui.m_wndCtrl->size();
+    ctrl_size.setWidth(width);
+    ui.m_wndCtrl->resize(ctrl_size);
+    ui.m_wndCtrl->move(0, height - ctrl_size.height());
 
-    ui.m_wndScreen->resize(event->size().width(), height - bh - 70);
-    //_video_render->setWindowSize(event->size().width(), height - 60);
+    const auto btn_size = ui.m_btnCtrl->size();
+    bw = btn_size.width();
+    auto bh = (ctrl_size.height() - btn_size.height()) / 2;
+    const auto center = width / 2 - bw / 2;
+    ui.m_btnLast->move(center - bw * 2, bh);
+    ui.m_btnBackward->move(center - bw, bh);
+    ui.m_btnCtrl->move(center, bh);
+    ui.m_btnForward->move(center + bw, bh);
+    ui.m_btnNext->move(center + bw * 2, bh);
+    ui.m_btnStop->move(5, bh);
 
-    ui.m_sldProgress->move(0, height - 70 - bh);
-    ui.m_sldProgress->resize(width, 20);
+    // 进度条 + 音量
+    auto prg_size = ui.m_sldProgress->size();
+    auto bvs = ui.m_btnVolume->size();
+    auto slds = ui.m_sldVolume->size();
+    auto val = bvs.width() + slds.width() + 10;
+    auto sh = height - ctrl_size.height() - prg_size.height();
+    prg_size.setWidth(width - val);
+    ui.m_sldProgress->resize(prg_size);
+    ui.m_sldProgress->move(0, sh);
+    ui.m_btnVolume->move(width - val + 5, sh);
+    ui.m_sldVolume->move(width - slds.width() - 5, sh);
 
-    ui.m_btnStop->move(50, height - 50 - bh);
-
-    ui.m_btnLast->move(center - 100, height - 50 - bh);
-    ui.m_btnBackward->move(center - 50, height - 50 - bh);
-    ui.m_btnCtrl->move(center, height - 50 - bh);
-    ui.m_btnForward->move(center + 50, height - 50 - bh);
-    ui.m_btnNext->move(center + 100, height - 50 - bh);
+    // 屏幕
+    auto th = title_size.height() + ctrl_size.height() + prg_size.height();
+    ui.m_wndScreen->move(0, title_size.height());
+    ui.m_wndScreen->resize(event->size().width(), height - th);
 }
 
 void XPlayer::play(const std::string & url)

@@ -4,6 +4,7 @@
 #include "ui_XPlayer.h"
 
 class QMenuBar;
+class QPropertyAnimation;
 
 class XPlayer : public QMainWindow
 {
@@ -22,6 +23,7 @@ public slots:
     void onBtnClickedMaximize();
     void onBtnClickedClose();
 
+    void onBtnClickedVolume();
     void onBtnClickedVod();
     void onBtnClickedLive();
     void onBtnClickedCtrl();
@@ -43,6 +45,6 @@ private:
 
     QPoint m_lastPos;
     bool m_blPressed = false;
-
+    QPropertyAnimation * ani = nullptr;
     QMenu * m_pclsChoices = nullptr;
 };

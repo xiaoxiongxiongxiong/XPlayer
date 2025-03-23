@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1280</width>
-    <height>820</height>
+    <height>810</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -21,7 +21,7 @@
     <string notr="true">QWidget {
     font: 75 12pt;Segoe UI;
     color: white;
-    background-color: #000000;
+    background-color: #222738;
 }
 QWidget::titlebar {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
@@ -36,22 +36,22 @@ QWidget::titlebar {
    <widget class="QOpenGLWidget" name="m_wndScreen">
     <property name="geometry">
      <rect>
-      <x>-10</x>
-      <y>10</y>
+      <x>0</x>
+      <y>40</y>
       <width>1280</width>
-      <height>710</height>
+      <height>720</height>
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true"/>
+     <string notr="true">color: rgb(34, 39, 56);</string>
     </property>
    </widget>
    <widget class="QSlider" name="m_sldProgress">
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>750</y>
-      <width>1280</width>
+      <y>760</y>
+      <width>1070</width>
       <height>20</height>
      </rect>
     </property>
@@ -78,162 +78,6 @@ QSlider::sub-page:horizontal{
      <enum>Qt::Horizontal</enum>
     </property>
    </widget>
-   <widget class="QPushButton" name="m_btnCtrl">
-    <property name="geometry">
-     <rect>
-      <x>615</x>
-      <y>770</y>
-      <width>50</width>
-      <height>50</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color: rgb(0, 0, 0);</string>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="icon">
-     <iconset resource="XPlayer.qrc">
-      <normaloff>:/XPlayer/res/pause.ico</normaloff>:/XPlayer/res/pause.ico</iconset>
-    </property>
-    <property name="iconSize">
-     <size>
-      <width>50</width>
-      <height>50</height>
-     </size>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="m_btnStop">
-    <property name="geometry">
-     <rect>
-      <x>50</x>
-      <y>770</y>
-      <width>50</width>
-      <height>50</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color: rgb(0, 0, 0);</string>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="icon">
-     <iconset>
-      <normaloff>res/stop.ico</normaloff>res/stop.ico</iconset>
-    </property>
-    <property name="iconSize">
-     <size>
-      <width>50</width>
-      <height>50</height>
-     </size>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="m_btnBackward">
-    <property name="geometry">
-     <rect>
-      <x>565</x>
-      <y>770</y>
-      <width>50</width>
-      <height>50</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color: rgb(0, 0, 0);</string>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="icon">
-     <iconset resource="XPlayer.qrc">
-      <normaloff>:/XPlayer/res/backward.ico</normaloff>:/XPlayer/res/backward.ico</iconset>
-    </property>
-    <property name="iconSize">
-     <size>
-      <width>50</width>
-      <height>50</height>
-     </size>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="m_btnForward">
-    <property name="geometry">
-     <rect>
-      <x>665</x>
-      <y>770</y>
-      <width>50</width>
-      <height>50</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color: rgb(0, 0, 0);</string>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="icon">
-     <iconset resource="XPlayer.qrc">
-      <normaloff>:/XPlayer/res/forward.ico</normaloff>:/XPlayer/res/forward.ico</iconset>
-    </property>
-    <property name="iconSize">
-     <size>
-      <width>50</width>
-      <height>50</height>
-     </size>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="m_btnLast">
-    <property name="geometry">
-     <rect>
-      <x>515</x>
-      <y>770</y>
-      <width>50</width>
-      <height>50</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color: rgb(0, 0, 0);</string>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="icon">
-     <iconset resource="XPlayer.qrc">
-      <normaloff>:/XPlayer/res/last.ico</normaloff>:/XPlayer/res/last.ico</iconset>
-    </property>
-    <property name="iconSize">
-     <size>
-      <width>50</width>
-      <height>50</height>
-     </size>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="m_btnNext">
-    <property name="geometry">
-     <rect>
-      <x>715</x>
-      <y>770</y>
-      <width>50</width>
-      <height>50</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color: rgb(0, 0, 0);</string>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="icon">
-     <iconset resource="XPlayer.qrc">
-      <normaloff>:/XPlayer/res/next.ico</normaloff>:/XPlayer/res/next.ico</iconset>
-    </property>
-    <property name="iconSize">
-     <size>
-      <width>50</width>
-      <height>50</height>
-     </size>
-    </property>
-   </widget>
    <widget class="QWidget" name="m_wndTitle" native="true">
     <property name="geometry">
      <rect>
@@ -244,7 +88,7 @@ QSlider::sub-page:horizontal{
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true"/>
+     <string notr="true">color: rgb(34, 39, 56);</string>
     </property>
     <widget class="QPushButton" name="m_btnClose">
      <property name="geometry">
@@ -347,13 +191,260 @@ border-image:url(:/XPlayer/res/maximize_hover.ico);
       </rect>
      </property>
      <property name="text">
-      <string>选项</string>
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset resource="XPlayer.qrc">
+       <normaloff>:/XPlayer/res/XPlayer.ico</normaloff>:/XPlayer/res/XPlayer.ico</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>40</width>
+       <height>40</height>
+      </size>
      </property>
      <property name="popupMode">
       <enum>QToolButton::MenuButtonPopup</enum>
      </property>
     </widget>
+    <widget class="QLabel" name="m_labName">
+     <property name="geometry">
+      <rect>
+       <x>350</x>
+       <y>2</y>
+       <width>560</width>
+       <height>36</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">color: rgb(255, 255, 255);</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
    </widget>
+   <widget class="QWidget" name="m_wndCtrl" native="true">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>780</y>
+      <width>1280</width>
+      <height>60</height>
+     </rect>
+    </property>
+    <widget class="QPushButton" name="m_btnNext">
+     <property name="geometry">
+      <rect>
+       <x>760</x>
+       <y>10</y>
+       <width>50</width>
+       <height>50</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset resource="XPlayer.qrc">
+       <normaloff>:/XPlayer/res/next.ico</normaloff>:/XPlayer/res/next.ico</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>50</width>
+       <height>50</height>
+      </size>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="m_btnCtrl">
+     <property name="geometry">
+      <rect>
+       <x>610</x>
+       <y>10</y>
+       <width>50</width>
+       <height>50</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset resource="XPlayer.qrc">
+       <normaloff>:/XPlayer/res/pause.ico</normaloff>:/XPlayer/res/pause.ico</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>50</width>
+       <height>50</height>
+      </size>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="m_btnLast">
+     <property name="geometry">
+      <rect>
+       <x>510</x>
+       <y>10</y>
+       <width>50</width>
+       <height>50</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset resource="XPlayer.qrc">
+       <normaloff>:/XPlayer/res/last.ico</normaloff>:/XPlayer/res/last.ico</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>50</width>
+       <height>50</height>
+      </size>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="m_btnForward">
+     <property name="geometry">
+      <rect>
+       <x>660</x>
+       <y>10</y>
+       <width>50</width>
+       <height>50</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset resource="XPlayer.qrc">
+       <normaloff>:/XPlayer/res/forward.ico</normaloff>:/XPlayer/res/forward.ico</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>50</width>
+       <height>50</height>
+      </size>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="m_btnBackward">
+     <property name="geometry">
+      <rect>
+       <x>560</x>
+       <y>10</y>
+       <width>50</width>
+       <height>50</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset resource="XPlayer.qrc">
+       <normaloff>:/XPlayer/res/backward.ico</normaloff>:/XPlayer/res/backward.ico</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>50</width>
+       <height>50</height>
+      </size>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="m_btnStop">
+     <property name="geometry">
+      <rect>
+       <x>290</x>
+       <y>10</y>
+       <width>50</width>
+       <height>50</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset resource="XPlayer.qrc">
+       <normaloff>:/XPlayer/res/stop.ico</normaloff>:/XPlayer/res/stop.ico</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>50</width>
+       <height>50</height>
+      </size>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QPushButton" name="m_btnVolume">
+    <property name="geometry">
+     <rect>
+      <x>1080</x>
+      <y>760</y>
+      <width>20</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+    <property name="icon">
+     <iconset resource="XPlayer.qrc">
+      <normaloff>:/XPlayer/res/voice.ico</normaloff>:/XPlayer/res/voice.ico</iconset>
+    </property>
+    <property name="iconSize">
+     <size>
+      <width>20</width>
+      <height>20</height>
+     </size>
+    </property>
+   </widget>
+   <widget class="QSlider" name="m_sldVolume">
+    <property name="geometry">
+     <rect>
+      <x>1100</x>
+      <y>760</y>
+      <width>160</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QSlider::groove:horizontal { 
+	border: 1px solid gray;
+	height: 2px; 
+	left: 4px; 
+	right: 4px; 
+} 
+QSlider::handle:horizontal { 
+	border: 1px solid gray; 
+	background:white;
+	border-radius: 5px;
+	width: 10px; 
+	height: 10px; 
+	margin: -5px; 
+} 
+QSlider::sub-page:horizontal{ 
+	background: rgb(0, 100, 255); 
+}</string>
+    </property>
+    <property name="maximum">
+     <number>100</number>
+    </property>
+    <property name="pageStep">
+     <number>1</number>
+    </property>
+    <property name="value">
+     <number>50</number>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <zorder>m_wndScreen</zorder>
+   <zorder>m_sldProgress</zorder>
+   <zorder>m_wndCtrl</zorder>
+   <zorder>m_wndTitle</zorder>
+   <zorder>m_btnVolume</zorder>
+   <zorder>m_sldVolume</zorder>
   </widget>
   <action name="m_actVod">
    <property name="icon">
