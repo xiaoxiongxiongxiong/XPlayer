@@ -13,7 +13,8 @@ extern "C" {
 #include "utils/xplayer_queue.h"
 
 typedef struct AVCodecParameters AVCodecParameters;
-typedef struct AVCodecContext AVCodecContext;
+typedef struct AVFrame AVFrame;
+class CXPlayerDecoder;
 
 typedef enum _XPLAYER_DECODE_STATE
 {
@@ -47,6 +48,10 @@ public:
     // 数据包
     bool push(const AVPacket & pkt, bool over = false);
 
+    // 解码
+    bool send(bool & over);
+    bool recv(AVFrame & frm, bool & got, bool & over);
+
     // 获取状态
     XPLAYER_DECODE_STATE state() const;
 
@@ -76,6 +81,9 @@ private:
     // 索引
     int _index = -1;
 
+    // 是否使用中
+    std::atomic_bool _active = { false };
+
     // 是否运行中
     std::atomic_bool _running = { false };
     // 重置
@@ -89,7 +97,7 @@ private:
     // 编解码器参数
     AVCodecParameters * _codecpar = nullptr;
     // 解码器
-    AVCodecContext * _codec = nullptr;
+    std::shared_ptr<CXPlayerDecoder> _decoder = nullptr;
 
     // 最后一次时码
     int64_t _latest_pkt_dts = -1;

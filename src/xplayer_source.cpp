@@ -6,6 +6,8 @@ extern "C" {
 
 #include "utils/xplayer_utils.h"
 #include "demuxer/xplayer_demuxer.h"
+#include "renderer/xplayer_audio_render_sdl.h"
+#include "renderer/xplayer_video_render_sdl.h"
 #include "xplayer_stream.h"
 
 bool CXPlayerSource::open(const std::string & url, const std::string & params)
@@ -74,6 +76,11 @@ bool CXPlayerSource::play(const void * wnd, int width, int height)
 
 
     return true;
+}
+
+void CXPlayerSource::resize(int width, int height)
+{
+
 }
 
 bool CXPlayerSource::pause()
@@ -152,17 +159,18 @@ void CXPlayerSource::readPacketsThr()
 
     while (_is_running.load())
     {
+        bool over = false;
         AVPacket pkt = {};
-        int ret = _ctx->readPacket(&pkt);
-        if (0 != ret)
+        if (!_ctx->readPacket(pkt, over))
         {
-            if (1 == ret)
-            {
-                for (auto & si : _streams)
-                    si.second->push(pkt, true);
-            }
-            else
-                xpu_format_string(_err, "%s", _ctx->err());
+            xpu_format_string(_err, "%s", _ctx->err());
+            break;
+        }
+
+        if (over)
+        {
+            for (auto & si : _streams)
+                si.second->push(pkt, true);
             break;
         }
 
@@ -171,3 +179,14 @@ void CXPlayerSource::readPacketsThr()
             av_packet_unref(&pkt);
     }
 }
+
+void CXPlayerSource::audioPlayThr()
+{
+    auto render = std::make_shared<CXPlayerAudioRender>();
+}
+
+void CXPlayerSource::videoPlayThr()
+{
+    auto render = std::make_shared<CXPlayerVideoRenderSDL>();
+}
+

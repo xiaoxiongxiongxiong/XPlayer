@@ -5,6 +5,7 @@ extern "C" {
 }
 
 #include "utils/xplayer_utils.h"
+#include "decoder/xplayer_decoder.h"
 #include "renderer/xplayer_video_render_sdl.h"
 #include "renderer/xplayer_audio_render_sdl.h"
 
@@ -95,10 +96,7 @@ void CXPlayerStream::destroy()
 
 void CXPlayerStream::enable(const bool flag)
 {
-    if (flag)
-        _state.store(XPLAYER_DECODE_RUNNING);
-    else
-        _state.store(XPLAYER_DECODE_IDLE);
+    _active.store(flag);
 }
 
 void CXPlayerStream::flush()
@@ -140,6 +138,98 @@ bool CXPlayerStream::push(const AVPacket & pkt, bool over)
     return true;
 }
 
+bool CXPlayerStream::send(bool & over)
+{
+    if (_pkts.empty())
+    {
+        if (_demux_over.load())
+        {
+            over = true;
+            return true;
+        }
+        return false;
+    }
+
+    return true;
+}
+
+bool CXPlayerStream::recv(AVFrame & frm, bool & got, bool & over)
+{
+    //if (_pkts.empty())
+    //{
+    //    if (_demux_over.load())
+    //        break;
+    //    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    //    continue;
+    //}
+
+    //AVPacket pkt = {};
+    //if (!_pkts.pop(pkt))
+    //    continue;
+
+    //if (XPLAYER_DECODE_IDLE == _state.load())
+    //{
+    //    av_packet_unref(&pkt);
+    //    should_reopen_decoder = true;
+    //    continue;
+    //}
+
+    //if (!XPLAYER_DECODE_RUNNING == _state.load())
+    //    continue;
+
+    //if (should_reopen_decoder && !reopenDecoder())
+    //    break;
+    //should_reopen_decoder = false;
+
+    //bool succ = _decoder->send(&pkt);
+    //if (!succ)
+    //{
+    //    xpu_format_string(_err, "%s", _decoder->err());
+    //    _state.store(XPLAYER_DECODE_FAIL);
+    //    break;
+    //}
+
+    //do
+    //{
+    //    AVFrame frm = {};
+    //    bool got = false;
+    //    bool over = false;
+    //    succ = _decoder->recv(frm, got, over);
+    //    if (!succ)
+    //    {
+    //        xpu_format_string(_err, "%s", _decoder->err());
+    //        _state.store(XPLAYER_DECODE_FAIL);
+    //        break;
+    //    }
+
+    //    if (!got)
+    //        break;
+
+    //    if (over)
+    //    {
+    //        _demux_over.store(true);
+    //        _state.store(XPLAYER_DECODE_SUCC);
+    //        break;
+    //    }
+
+    //    // TODO 渲染
+    //    if (AVMEDIA_TYPE_AUDIO == _codecpar->codec_type)
+    //    {
+
+    //    }
+    //    else if (AVMEDIA_TYPE_VIDEO == _codecpar->codec_type)
+    //    {
+
+    //    }
+    //    av_frame_unref(&frm);
+    //} while (true);
+
+    //if (XPLAYER_DECODE_FAIL == _state.load() || XPLAYER_DECODE_SUCC == _state.load())
+    //    break;
+
+    return true;
+}
+
 XPLAYER_DECODE_STATE CXPlayerStream::state() const
 {
     return _state.load();
@@ -152,43 +242,17 @@ const char * CXPlayerStream::err() const
 
 bool CXPlayerStream::createDecoder()
 {
-    if (nullptr == _codecpar)
+    _decoder = std::make_shared<CXPlayerDecoder>();
+    if (nullptr == _decoder)
     {
-        xpu_format_string(_err, "_codecpar is nullptr");
+        xpu_format_string(_err, "Create decoder failed");
         return false;
     }
 
-    auto * codec = avcodec_find_decoder(_codecpar->codec_id);
-    if (nullptr == codec)
+    if (!_decoder->create(_codecpar))
     {
-        xpu_format_string(_err, "Find codec by id '%d' failed", _codecpar->codec_id);
-        return false;
-    }
-
-    _codec = avcodec_alloc_context3(codec);
-    if (nullptr == _codec)
-    {
-        xpu_format_string(_err, "avcodec_alloc_context3 failed");
-        return false;
-    }
-
-    int ret = avcodec_parameters_to_context(_codec, _codecpar);
-    if (ret < 0)
-    {
-        char buff[AV_ERROR_MAX_STRING_SIZE] = { 0 };
-        av_make_error_string(buff, AV_ERROR_MAX_STRING_SIZE, ret);
-        xpu_format_string(_err, "%s", buff);
-        destroyDecoder();
-        return false;
-    }
-
-    ret = avcodec_open2(_codec, codec, nullptr);
-    if (0 != ret)
-    {
-        char buff[AV_ERROR_MAX_STRING_SIZE] = { 0 };
-        av_make_error_string(buff, AV_ERROR_MAX_STRING_SIZE, ret);
-        xpu_format_string(_err, "%s", buff);
-        destroyDecoder();
+        xpu_format_string(_err, "%s", _decoder->err());
+        _decoder.reset();
         return false;
     }
 
@@ -197,21 +261,23 @@ bool CXPlayerStream::createDecoder()
 
 void CXPlayerStream::destroyDecoder()
 {
-    if (nullptr == _codec)
+    if (nullptr == _decoder)
         return;
 
-    avcodec_close(_codec);
-    avcodec_free_context(&_codec);
+    _decoder->destroy();
+    _decoder.reset();
 }
 
 bool CXPlayerStream::reopenDecoder()
 {
-    destroyDecoder();
-    return createDecoder();
+    if (nullptr == _decoder)
+        return false;
+    return _decoder->reopen();
 }
 
 bool CXPlayerStream::createRender(const void * wnd, int width, int height)
 {
+
     return true;
 }
 
@@ -270,45 +336,34 @@ void CXPlayerStream::decodeThr()
             break;
         should_reopen_decoder = false;
 
-        int ret = avcodec_send_packet(_codec, &pkt);
-        av_packet_unref(&pkt);
-        if (0 != ret)
+        bool succ = _decoder->send(&pkt);
+        if (!succ)
         {
-            if (AVERROR_EOF == ret)
-            {
-                _demux_over.store(true);
-                _state.store(XPLAYER_DECODE_SUCC);
-            }
-            else
-            {
-                char buff[AV_ERROR_MAX_STRING_SIZE] = {};
-                av_make_error_string(buff, AV_ERROR_MAX_STRING_SIZE, ret);
-                xpu_format_string(_err, "%s", buff);
-                _state.store(XPLAYER_DECODE_FAIL);
-            }
+            xpu_format_string(_err, "%s", _decoder->err());
+            _state.store(XPLAYER_DECODE_FAIL);
             break;
         }
 
-        do 
+        do
         {
             AVFrame frm = {};
-            ret = avcodec_receive_frame(_codec, &frm);
-            if (0 != ret)
+            bool got = false;
+            bool over = false;
+            succ = _decoder->recv(frm, got, over);
+            if (!succ)
             {
-                if (AVERROR_EOF == ret)
-                {
-                    _demux_over.store(true);
-                    _state.store(XPLAYER_DECODE_SUCC);
-                }
-                else if (AVERROR(EAGAIN) == ret)
-                    break;
-                else
-                {
-                    char buff[AV_ERROR_MAX_STRING_SIZE] = {};
-                    av_make_error_string(buff, AV_ERROR_MAX_STRING_SIZE, ret);
-                    xpu_format_string(_err, "%s", buff);
-                    _state.store(XPLAYER_DECODE_FAIL);
-                }
+                xpu_format_string(_err, "%s", _decoder->err());
+                _state.store(XPLAYER_DECODE_FAIL);
+                break;
+            }
+
+            if (!got)
+                break;
+
+            if (over)
+            {
+                _demux_over.store(true);
+                _state.store(XPLAYER_DECODE_SUCC);
                 break;
             }
 

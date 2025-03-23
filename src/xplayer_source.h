@@ -1,7 +1,7 @@
 ﻿#ifndef __XPLAYER_SOURCE_H__
 #define __XPLAYER_SOURCE_H__
 
-#include <cstdbool>
+#include <stdbool.h>
 #include <cstdint>
 #include <string>
 #include <thread>
@@ -13,6 +13,9 @@
 
 class CXPlayerDemuxImpl;
 class CXPlayerStream;
+
+class CXPlayerAudioRender;
+class CXPlayerVideoRenderSDL;
 
 class CXPlayerSource
 {
@@ -36,6 +39,9 @@ public:
 
     // 播放
     bool play(const void * wnd, int width, int height);
+
+    // 调整窗口大小
+    void resize(int width, int height);
 
     // 暂停
     bool pause();
@@ -68,6 +74,12 @@ private:
     // 读包线程
     void readPacketsThr();
 
+    // 音频播放线程
+    void audioPlayThr();
+
+    // 视频播放线程
+    void videoPlayThr();
+
 private:
     // 是否运行中
     std::atomic_bool _is_running = { false };
@@ -97,6 +109,11 @@ private:
     CXPlayerDemuxImpl * _ctx = nullptr;
     // 流
     std::unordered_map<int, std::shared_ptr<CXPlayerStream>> _streams;
+
+    // 音频渲染器
+    std::shared_ptr<CXPlayerAudioRender> _audio_render = nullptr;
+    // 视频渲染器
+    std::shared_ptr<CXPlayerVideoRenderSDL> _video_render = nullptr;
 
     // 错误信息
     std::string _err;
