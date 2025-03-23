@@ -103,35 +103,30 @@ int CXPlayerDemuxImpl::seek(int stream_index, int64_t timestamp)
     return ret;
 }
 
-int CXPlayerDemuxImpl::readPacket(AVPacket * pkt)
+bool CXPlayerDemuxImpl::readPacket(AVPacket & pkt, bool & over)
 {
-    int ret = -1;
     if (nullptr == _ctx)
     {
         xpu_format_string(_err, "not open yet");
-        return ret;
+        return false;
     }
 
-    if (nullptr == pkt)
-    {
-        xpu_format_string(_err, "invalid param");
-        return ret;
-    }
-
-    ret = av_read_frame(_ctx, pkt);
+    int ret = av_read_frame(_ctx, &pkt);
     if (0 != ret)
     {
         if (AVERROR_EOF == ret)
-            ret = 1;
-        else
         {
-            char buff[AV_ERROR_MAX_STRING_SIZE] = { 0 };
-            av_make_error_string(buff, AV_ERROR_MAX_STRING_SIZE, ret);
-            xpu_format_string(_err, "%s", buff);
+            over = true;
+            return true;
         }
+
+        char buff[AV_ERROR_MAX_STRING_SIZE] = { 0 };
+        av_make_error_string(buff, AV_ERROR_MAX_STRING_SIZE, ret);
+        xpu_format_string(_err, "%s", buff);
+        return false;
     }
 
-    return ret;
+    return true;
 }
 
 const char * CXPlayerDemuxImpl::err() const

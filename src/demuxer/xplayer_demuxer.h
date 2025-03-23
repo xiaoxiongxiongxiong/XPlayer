@@ -33,7 +33,7 @@ public:
     int seek(int stream_index, int64_t timestamp);
 
     // 读包
-    int readPacket(AVPacket * pkt);
+    bool readPacket(AVPacket & pkt, bool & over);
 
     // 获取错误信息
     const char * err() const;
