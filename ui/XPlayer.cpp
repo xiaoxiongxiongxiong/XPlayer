@@ -74,6 +74,8 @@ XPlayer::XPlayer(QWidget * parent)
     connect(ui.m_btnBackward, SIGNAL(clicked()), this, SLOT(onBtnClickedBackward()));
     connect(ui.m_btnForward, SIGNAL(clicked()), this, SLOT(onBtnClickedForward()));
     connect(ui.m_btnStop, SIGNAL(clicked()), this, SLOT(onBtnClickedStop()));
+
+    ui.m_lstRecord->addItem(QStringLiteral("小红帽与大灰狼"));
 }
 
 XPlayer::~XPlayer()
@@ -259,10 +261,16 @@ void XPlayer::resizeEvent(QResizeEvent * event)
     ui.m_btnVolume->move(width - val + 5, sh);
     ui.m_sldVolume->move(width - slds.width() - 5, sh);
 
+    auto record_size = ui.m_wndRecord->size();
+
     // 屏幕
     auto th = title_size.height() + ctrl_size.height() + prg_size.height();
     ui.m_wndScreen->move(0, title_size.height());
-    ui.m_wndScreen->resize(event->size().width(), height - th);
+    ui.m_wndScreen->resize(event->size().width() - record_size.width(), height - th);
+
+    ui.m_wndRecord->move(ui.m_wndScreen->size().width(), title_size.height());
+    ui.m_wndRecord->resize(record_size.width(), height - th);
+    ui.m_lstRecord->resize(ui.m_lstRecord->size().width(), height - th - 40);
 }
 
 void XPlayer::play(const std::string & url)

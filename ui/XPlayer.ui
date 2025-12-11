@@ -21,7 +21,7 @@
     <string notr="true">QWidget {
     font: 75 12pt;Segoe UI;
     color: white;
-    background-color: #222738;
+    background-color: #f1b662;
 }
 QWidget::titlebar {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
@@ -38,7 +38,7 @@ QWidget::titlebar {
      <rect>
       <x>0</x>
       <y>40</y>
-      <width>1280</width>
+      <width>1080</width>
       <height>720</height>
      </rect>
     </property>
@@ -88,15 +88,17 @@ QSlider::sub-page:horizontal{
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">color: rgb(34, 39, 56);</string>
+     <string notr="true">QWidget#m_wndTitle {
+    border-bottom: 2px solid white;
+}</string>
     </property>
     <widget class="QPushButton" name="m_btnClose">
      <property name="geometry">
       <rect>
        <x>1240</x>
-       <y>0</y>
-       <width>40</width>
-       <height>40</height>
+       <y>2</y>
+       <width>36</width>
+       <height>36</height>
       </rect>
      </property>
      <property name="styleSheet">
@@ -113,7 +115,7 @@ border-image:url(:/XPlayer/res/close_hover.ico);
       <string/>
      </property>
      <property name="icon">
-      <iconset resource="XPlayer.qrc">
+      <iconset resource="../resources/XPlayer.qrc">
        <normaloff>:/XPlayer/res/close_normal.ico</normaloff>:/XPlayer/res/close_normal.ico</iconset>
      </property>
      <property name="iconSize">
@@ -127,9 +129,9 @@ border-image:url(:/XPlayer/res/close_hover.ico);
      <property name="geometry">
       <rect>
        <x>1160</x>
-       <y>0</y>
-       <width>40</width>
-       <height>40</height>
+       <y>2</y>
+       <width>36</width>
+       <height>36</height>
       </rect>
      </property>
      <property name="styleSheet">
@@ -156,9 +158,9 @@ border-image:url(:/XPlayer/res/minimize_hover.ico);
      <property name="geometry">
       <rect>
        <x>1200</x>
-       <y>0</y>
-       <width>40</width>
-       <height>40</height>
+       <y>2</y>
+       <width>36</width>
+       <height>36</height>
       </rect>
      </property>
      <property name="styleSheet">
@@ -194,7 +196,7 @@ border-image:url(:/XPlayer/res/maximize_hover.ico);
       <string/>
      </property>
      <property name="icon">
-      <iconset resource="XPlayer.qrc">
+      <iconset resource="../resources/XPlayer.qrc">
        <normaloff>:/XPlayer/res/XPlayer.ico</normaloff>:/XPlayer/res/XPlayer.ico</iconset>
      </property>
      <property name="iconSize">
@@ -249,7 +251,7 @@ border-image:url(:/XPlayer/res/maximize_hover.ico);
       <string/>
      </property>
      <property name="icon">
-      <iconset resource="XPlayer.qrc">
+      <iconset resource="../resources/XPlayer.qrc">
        <normaloff>:/XPlayer/res/next.ico</normaloff>:/XPlayer/res/next.ico</iconset>
      </property>
      <property name="iconSize">
@@ -272,7 +274,7 @@ border-image:url(:/XPlayer/res/maximize_hover.ico);
       <string/>
      </property>
      <property name="icon">
-      <iconset resource="XPlayer.qrc">
+      <iconset resource="../resources/XPlayer.qrc">
        <normaloff>:/XPlayer/res/pause.ico</normaloff>:/XPlayer/res/pause.ico</iconset>
      </property>
      <property name="iconSize">
@@ -295,7 +297,7 @@ border-image:url(:/XPlayer/res/maximize_hover.ico);
       <string/>
      </property>
      <property name="icon">
-      <iconset resource="XPlayer.qrc">
+      <iconset resource="../resources/XPlayer.qrc">
        <normaloff>:/XPlayer/res/last.ico</normaloff>:/XPlayer/res/last.ico</iconset>
      </property>
      <property name="iconSize">
@@ -318,7 +320,7 @@ border-image:url(:/XPlayer/res/maximize_hover.ico);
       <string/>
      </property>
      <property name="icon">
-      <iconset resource="XPlayer.qrc">
+      <iconset resource="../resources/XPlayer.qrc">
        <normaloff>:/XPlayer/res/forward.ico</normaloff>:/XPlayer/res/forward.ico</iconset>
      </property>
      <property name="iconSize">
@@ -341,7 +343,7 @@ border-image:url(:/XPlayer/res/maximize_hover.ico);
       <string/>
      </property>
      <property name="icon">
-      <iconset resource="XPlayer.qrc">
+      <iconset resource="../resources/XPlayer.qrc">
        <normaloff>:/XPlayer/res/backward.ico</normaloff>:/XPlayer/res/backward.ico</iconset>
      </property>
      <property name="iconSize">
@@ -364,7 +366,7 @@ border-image:url(:/XPlayer/res/maximize_hover.ico);
       <string/>
      </property>
      <property name="icon">
-      <iconset resource="XPlayer.qrc">
+      <iconset resource="../resources/XPlayer.qrc">
        <normaloff>:/XPlayer/res/stop.ico</normaloff>:/XPlayer/res/stop.ico</iconset>
      </property>
      <property name="iconSize">
@@ -388,7 +390,7 @@ border-image:url(:/XPlayer/res/maximize_hover.ico);
      <string/>
     </property>
     <property name="icon">
-     <iconset resource="XPlayer.qrc">
+     <iconset resource="../resources/XPlayer.qrc">
       <normaloff>:/XPlayer/res/voice.ico</normaloff>:/XPlayer/res/voice.ico</iconset>
     </property>
     <property name="iconSize">
@@ -439,16 +441,79 @@ QSlider::sub-page:horizontal{
      <enum>Qt::Horizontal</enum>
     </property>
    </widget>
+   <widget class="QWidget" name="m_wndRecord" native="true">
+    <property name="geometry">
+     <rect>
+      <x>1080</x>
+      <y>40</y>
+      <width>200</width>
+      <height>720</height>
+     </rect>
+    </property>
+    <widget class="QLabel" name="m_labRecord">
+     <property name="geometry">
+      <rect>
+       <x>40</x>
+       <y>5</y>
+       <width>120</width>
+       <height>32</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>12</pointsize>
+       <weight>9</weight>
+       <italic>false</italic>
+       <bold>false</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>播放列表</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+    <widget class="QListWidget" name="m_lstRecord">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>40</y>
+       <width>180</width>
+       <height>680</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>12</pointsize>
+       <weight>9</weight>
+       <italic>false</italic>
+       <bold>false</bold>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QListWidget#m_lstRecord {
+    border-top: 2px solid white;
+    border-bottom: 2px solid white;
+    border-left: 2px solid white;
+    border-right: 2px solid white;
+    background-color: #e9d6ba;
+	color: rgb(0, 0, 0);
+}</string>
+     </property>
+    </widget>
+   </widget>
    <zorder>m_wndScreen</zorder>
    <zorder>m_sldProgress</zorder>
    <zorder>m_wndCtrl</zorder>
    <zorder>m_wndTitle</zorder>
    <zorder>m_btnVolume</zorder>
    <zorder>m_sldVolume</zorder>
+   <zorder>m_wndRecord</zorder>
   </widget>
   <action name="m_actVod">
    <property name="icon">
-    <iconset resource="XPlayer.qrc">
+    <iconset resource="../resources/XPlayer.qrc">
      <normaloff>:/XPlayer/res/vod.ico</normaloff>:/XPlayer/res/vod.ico</iconset>
    </property>
    <property name="text">
@@ -457,7 +522,7 @@ QSlider::sub-page:horizontal{
   </action>
   <action name="m_actLive">
    <property name="icon">
-    <iconset resource="XPlayer.qrc">
+    <iconset resource="../resources/XPlayer.qrc">
      <normaloff>:/XPlayer/res/live.ico</normaloff>:/XPlayer/res/live.ico</iconset>
    </property>
    <property name="text">
@@ -495,7 +560,7 @@ QSlider::sub-page:horizontal{
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources>
-  <include location="XPlayer.qrc"/>
+  <include location="../resources/XPlayer.qrc"/>
  </resources>
  <connections/>
 </ui>

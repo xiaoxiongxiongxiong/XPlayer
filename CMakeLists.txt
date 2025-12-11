@@ -6,6 +6,10 @@ include(qt.cmake)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS=1)
 add_compile_definitions(_SILENCE_CXX17_C_HEADER_DEPRECATION_WARNING)
 
@@ -33,15 +37,16 @@ file(GLOB XPLAYER_UI_FILES
 )
 
 if(QT_VERSION VERSION_LESS 6.0)
-    qt5_add_resources(QRC_FILES "ui/XPlayer.qrc")
+    qt5_add_resources(QRC_FILES "resources/XPlayer.qrc")
 else()
-    qt6_add_resources(QRC_FILES "ui/XPlayer.qrc")
+    qt6_add_resources(QRC_FILES "resources/XPlayer.qrc")
 endif()
 
 qt_add_executable(${PROJECT_NAME} 
                   ${XPLAYER_UI_FILES} 
                   ${XPLAYER_SRC_FILES}
-                  ${QRC_FILES})
+                  ${QRC_FILES}
+                  "resources/XPlayer.rc")
 
 set_target_properties(${PROJECT_NAME}
     PROPERTIES
