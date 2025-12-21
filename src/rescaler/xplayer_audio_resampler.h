@@ -10,20 +10,33 @@ extern "C" {
 #include "libswresample/swresample.h"
 }
 
-typedef struct _xplayer_audio_info_t
-{
-    AVChannelLayout layout;  // 声道排列
-    AVSampleFormat fmt;      // 采样格式
-    int sample_rate;         // 采样率
-} xplayer_audio_info_t;
-
-class CXPlayerAudioRescaler
+// 音频信息
+class CXPlayerAudioInfo
 {
 public:
-    CXPlayerAudioRescaler() = default;
-    ~CXPlayerAudioRescaler() = default;
+    CXPlayerAudioInfo(AVChannelLayout layout, enum AVSampleFormat fmt, int sample_rate);
+
+    bool operator==(const CXPlayerAudioInfo & other) const;
+
+public:
+    // 声道排列
+    AVChannelLayout _layout{};
+
+    // 采样格式
+    enum AVSampleFormat _fmt = AVSampleFormat::AV_SAMPLE_FMT_NONE;
+
+    // 采样率
+    int _sample_rate = 0;
+};
+
+class CXPlayerAudioResampler
+{
+public:
+    CXPlayerAudioResampler() = default;
+    ~CXPlayerAudioResampler() = default;
+
     // 创建转换器
-    bool create(const xplayer_audio_info_t & src, const xplayer_audio_info_t & dst, int frame_size);
+    bool create(const CXPlayerAudioInfo & src, const CXPlayerAudioInfo & dst, int frame_size);
 
     // 销毁
     void destroy();
@@ -42,21 +55,13 @@ private:
     // 是否需要转换
     bool _need_rescale = true;
 
-    // 输入声道排列
-    AVChannelLayout _in_ch_layout = {};
-    // 输入采样率
-    int _in_sample_rate = 0;
     // 输入帧大小
     int _in_nb_samples = 0;
-    // 输入采样格式
-    enum AVSampleFormat _in_sample_fmt = AV_SAMPLE_FMT_NONE;
+    // 输入音频信息
+    CXPlayerAudioInfo _in;
 
-    // 输出声道排列
-    AVChannelLayout _out_ch_layout = {};
-    // 输出采样率
-    int _out_sample_rate = 0;
-    // 输出采样格式
-    enum AVSampleFormat _out_sample_fmt = AV_SAMPLE_FMT_NONE;
+    // 输出音频信息
+    CXPlayerAudioInfo _out;
 
     int _out_max_nb_samples = 0;
 

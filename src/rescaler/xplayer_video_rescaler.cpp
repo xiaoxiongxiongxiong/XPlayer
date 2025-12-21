@@ -1,43 +1,64 @@
 ﻿#include "xplayer_video_rescaler.h"
 #include "utils/xplayer_utils.h"
 
-bool CXPlayerVideoRescaler::create(const AVPixelFormat in_fmt, const int in_width, const int in_height,
-                                   const AVPixelFormat out_fmt, const int out_width, const int out_height)
+CXPlayerVideoInfo::CXPlayerVideoInfo(enum AVPixelFormat fmt, int width, int height):
+    _fmt(fmt),
+    _width(width),
+    _height(height)
+{
+}
+
+bool CXPlayerVideoInfo::operator==(const CXPlayerVideoInfo & other) const
+{
+    if (_fmt != other._fmt)
+        return false;
+
+    if (_width != other._width)
+        return false;
+
+    if (_height != other._height)
+        return false;
+
+    return true;
+}
+
+
+bool CXPlayerVideoRescaler::create(const CXPlayerVideoInfo & src, const CXPlayerVideoInfo & dst)
 {
     if (_rescaler)
     {
-        xpu_format_string(_err, "rescaler has already opened");
+        xpu_format_string(_err, "Already opened rescaler");
         return false;
     }
 
     // 判断像素格式是否支持
-    if (!sws_isSupportedInput(in_fmt))
+    if (!sws_isSupportedInput(src._fmt))
     {
-        xpu_format_string(_err, "Input pixel:%d format is not supported", in_fmt);
+        xpu_format_string(_err, "Input pixel:%d format is not supported", src._fmt);
         return false;
     }
-    if (!sws_isSupportedOutput(out_fmt))
+    if (!sws_isSupportedOutput(dst._fmt))
     {
-        xpu_format_string(_err, "Output pixel:%d format is not supported.", out_fmt);
+        xpu_format_string(_err, "Output pixel:%d format is not supported.", dst._fmt);
         return false;
     }
 
     // 完全相同，不需要转换
-    if (in_width == out_width && in_height == out_height && in_fmt == out_fmt)
+    if (dst == src)
     {
         xpu_format_string(_err, "No need swscale!");
         _need_rescale = false;
         return true;
     }
 
-    _rescaler = sws_getContext(in_width, in_height, in_fmt, out_width, out_height, out_fmt, 0, nullptr, nullptr, nullptr);
+    _rescaler = sws_getContext(src._width, src._height, src._fmt, dst._width, dst._height, dst._fmt, 0, nullptr, nullptr, nullptr);
     if (nullptr == _rescaler)
     {
         xpu_format_string(_err, "sws_alloc_context failed!");
         return false;
     }
 
-    int ret = av_image_alloc(_out_data, _out_linesize, out_width, out_height, out_fmt, 64);
+    int ret = av_image_alloc(_out_data, _out_linesize, dst._width, dst._height, dst._fmt, 64);
     if (ret <= 0)
     {
         char buff[AV_ERROR_MAX_STRING_SIZE] = { 0 };
@@ -48,12 +69,9 @@ bool CXPlayerVideoRescaler::create(const AVPixelFormat in_fmt, const int in_widt
         return false;
     }
 
-    _in_width = in_width;
-    _in_height = in_height;
-    _in_fmt = in_fmt;
-    _out_width = out_width;
-    _out_height = out_height;
-    _out_fmt = out_fmt;
+    _src = src;
+    _dst = dst;
+
     _need_rescale = true;
 
     return true;
@@ -74,10 +92,6 @@ void CXPlayerVideoRescaler::destroy()
         memset(_out_linesize, 0, sizeof(_out_linesize));
     }
 
-    _in_width = 0;
-    _in_height = 0;
-    _out_width = 0;
-    _out_height = 0;
     _need_rescale = true;
 }
 
@@ -102,7 +116,7 @@ bool CXPlayerVideoRescaler::rescale(const AVFrame * in_frm, AVFrame * out_frm)
         return false;
     }
 
-    int ret = sws_scale(_rescaler, in_frm->data, in_frm->linesize, 0, _in_height, _out_data, _out_linesize);
+    int ret = sws_scale(_rescaler, in_frm->data, in_frm->linesize, 0, _src._height, _out_data, _out_linesize);
     if (ret <= 0)
     {
         xpu_format_string(_err, "sws_scale failed!");
@@ -132,12 +146,12 @@ void CXPlayerVideoRescaler::copyFrame(AVFrame * dst_frm, const AVFrame * src_frm
     memcpy(dst_frm->linesize, _out_linesize, sizeof(_out_linesize[0]) * AV_NUM_DATA_POINTERS);
 
     // 拷贝参数
-    dst_frm->format = static_cast<int>(_out_fmt);
+    dst_frm->format = static_cast<int>(_dst._fmt);
     dst_frm->pts = dst_frm->pts;
     dst_frm->pkt_dts = src_frm->pkt_dts;
     dst_frm->duration = src_frm->duration;
-    dst_frm->width = _out_width;
-    dst_frm->height = _out_height;
+    dst_frm->width = _src._width;
+    dst_frm->height = _src._height;
     dst_frm->color_range = src_frm->color_range;
     dst_frm->color_primaries = src_frm->color_primaries;
     dst_frm->color_trc = src_frm->color_trc;

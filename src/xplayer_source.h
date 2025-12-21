@@ -1,7 +1,7 @@
 ﻿#ifndef __XPLAYER_SOURCE_H__
 #define __XPLAYER_SOURCE_H__
 
-#include <stdbool.h>
+#include <cstdbool>
 #include <cstdint>
 #include <string>
 #include <thread>
@@ -17,9 +17,19 @@ class CXPlayerStream;
 class CXPlayerAudioRender;
 class CXPlayerVideoRenderSDL;
 
-class CXPlayerSource
+class CXPlayerSource final
 {
 public:
+    // 删除拷贝
+    CXPlayerSource(const CXPlayerSource & other) = delete;
+    // 删除赋值
+    CXPlayerSource & operator=(const CXPlayerSource &) = delete;
+    // 删除移动
+    CXPlayerSource(CXPlayerSource && other) noexcept = delete;
+    // 删除移动赋值
+    CXPlayerSource & operator=(CXPlayerSource &&) noexcept = delete;
+
+    // 全局唯一访问点
     static CXPlayerSource & getInstance()
     {
         static CXPlayerSource instance;
@@ -61,10 +71,6 @@ public:
 private:
     CXPlayerSource() = default;
     ~CXPlayerSource() = default;
-    // 删除三大默认成员函数，赋值、复制和地址运算
-    CXPlayerSource(const CXPlayerSource &) = delete;
-    CXPlayerSource & operator=(const CXPlayerSource &) = delete;
-    CXPlayerSource * operator&() = delete;
 
     // 创建流
     bool createStreams();

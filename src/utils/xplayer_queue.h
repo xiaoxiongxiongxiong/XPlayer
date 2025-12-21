@@ -53,11 +53,13 @@ public:
 
     bool empty()
     {
+        std::unique_lock<std::mutex> lock(_mutex);
         return _queue.empty();
     }
 
     size_t size()
     {
+        std::unique_lock<std::mutex> lock(_mutex);
         return _queue.size();
     }
 

@@ -27,6 +27,24 @@ bool CXPlayerSource::open(const std::string & url, const std::string & params)
         return false;
     }
 
+    if (!createStreams())
+    {
+        delete _ctx;
+        _ctx = nullptr;
+        return false;
+    }
+
+    try 
+    {
+        _thr = std::thread{ &CXPlayerSource::readPacketsThr,this };
+    }
+    catch (const std::exception & e)
+    {
+        xpu_format_string(_err, "%s", e.what());
+        close();
+        return false;
+    }
+
     return true;
 }
 
@@ -39,6 +57,8 @@ void CXPlayerSource::close()
     _cond.notify_one();
     if (_thr.joinable())
         _thr.join();
+
+    destroyStreams();
 
     _ctx->close();
     delete _ctx;
@@ -73,7 +93,6 @@ void CXPlayerSource::getStreamsInfo(std::vector<int> & ais, std::vector<int> & v
 
 bool CXPlayerSource::play(const void * wnd, int width, int height)
 {
-
 
     return true;
 }
@@ -166,17 +185,6 @@ void CXPlayerSource::readPacketsThr()
             xpu_format_string(_err, "%s", _ctx->err());
             break;
         }
-
-        if (over)
-        {
-            for (auto & si : _streams)
-                si.second->push(pkt, true);
-            break;
-        }
-
-        auto found = _streams.find(pkt.stream_index);
-        if (_streams.end() == found || !(*found).second->push(pkt))
-            av_packet_unref(&pkt);
     }
 }
 

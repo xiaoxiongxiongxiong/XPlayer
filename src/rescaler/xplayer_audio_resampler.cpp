@@ -1,38 +1,60 @@
-﻿#include "xplayer_audio_rescaler.h"
+﻿#include "xplayer_audio_resampler.h"
 #include "utils/xplayer_utils.h"
 
-bool CXPlayerAudioRescaler::create(const xplayer_audio_info_t & src, const xplayer_audio_info_t & dst, int frame_size)
+CXPlayerAudioInfo::CXPlayerAudioInfo(AVChannelLayout layout, enum AVSampleFormat fmt, int sample_rate):
+    _layout(layout),
+    _fmt(fmt),
+    _sample_rate(sample_rate)
 {
-    if (src.fmt <= AV_SAMPLE_FMT_NONE || src.fmt >= AV_SAMPLE_FMT_NB)
+}
+
+bool CXPlayerAudioInfo::operator==(const CXPlayerAudioInfo & other) const
+{
+    if (0 != av_channel_layout_compare(&_layout, &other._layout))
+        return false;
+
+    if (_fmt != other._fmt)
+        return false;
+
+    if (_sample_rate != other._sample_rate)
+        return false;
+
+    return true;
+}
+
+
+bool CXPlayerAudioResampler::create(const CXPlayerAudioInfo & src, const CXPlayerAudioInfo & dst, int frame_size)
+{
+    if (src._fmt <= AV_SAMPLE_FMT_NONE || src._fmt >= AV_SAMPLE_FMT_NB)
     {
-        xpu_format_string(_err, "Invalid input format: %d!", src.fmt);
+        xpu_format_string(_err, "Invalid input format: %d!", src._fmt);
         return false;
     }
 
-    if (dst.fmt <= AV_SAMPLE_FMT_NONE || dst.fmt >= AV_SAMPLE_FMT_NB)
+    if (dst._fmt <= AV_SAMPLE_FMT_NONE || dst._fmt >= AV_SAMPLE_FMT_NB)
     {
-        xpu_format_string(_err, "Invalid output format: %d!", dst.fmt);
+        xpu_format_string(_err, "Invalid output format: %d!", dst._fmt);
         return false;
     }
 
-    if (dst.layout.nb_channels <= 0)
+    if (dst._layout.nb_channels <= 0)
     {
-        xpu_format_string(_err, "Output channels %d is invalid.", dst.layout.nb_channels);
+        xpu_format_string(_err, "Output channels %d is invalid.", dst._layout.nb_channels);
         return false;
     }
 
-    _in_sample_fmt = src.fmt;
-    _out_sample_fmt = dst.fmt;
+    _in._fmt = src._fmt;
+    _out._fmt = dst._fmt;
 
-    if (0 == av_channel_layout_compare(&dst.layout, &src.layout) &&
-        dst.fmt == src.fmt && dst.sample_rate == src.sample_rate)
+    if (0 == av_channel_layout_compare(&dst._layout, &src._layout) &&
+        dst._fmt == src._fmt && dst._sample_rate == src._sample_rate)
     {
         _need_rescale = false;
         return true;
     }
 
-    int ret = swr_alloc_set_opts2(&_swr_ctx, &dst.layout, _out_sample_fmt, dst.sample_rate,
-                                  &src.layout, _in_sample_fmt, src.sample_rate, 0, nullptr);
+    int ret = swr_alloc_set_opts2(&_swr_ctx, &dst._layout, _out._fmt, dst._sample_rate,
+                                  &src._layout, _in._fmt, src._sample_rate, 0, nullptr);
     if (0 != ret)
     {
         char buff[AV_ERROR_MAX_STRING_SIZE] = { 0 };
@@ -52,17 +74,13 @@ bool CXPlayerAudioRescaler::create(const xplayer_audio_info_t & src, const xplay
         return false;
     }
 
-    _in_sample_rate = src.sample_rate;
-    _in_ch_layout = src.layout;
-    _in_nb_samples = frame_size;
-
-    _out_ch_layout = dst.layout;
-    _out_sample_rate = dst.sample_rate;
+    _in = src;
+    _out = dst;
 
     return true;
 }
 
-void CXPlayerAudioRescaler::destroy()
+void CXPlayerAudioResampler::destroy()
 {
     if (nullptr != _swr_ctx)
     {
@@ -79,7 +97,7 @@ void CXPlayerAudioRescaler::destroy()
     }
 }
 
-bool CXPlayerAudioRescaler::rescale(const AVFrame * in_frm, uint8_t ** out_data, int * out_len)
+bool CXPlayerAudioResampler::rescale(const AVFrame * in_frm, uint8_t ** out_data, int * out_len)
 {
     if (nullptr == in_frm)
     {
@@ -90,7 +108,7 @@ bool CXPlayerAudioRescaler::rescale(const AVFrame * in_frm, uint8_t ** out_data,
     if (!_need_rescale)
     {
         *out_data = in_frm->data[0];
-        *out_len = av_samples_get_buffer_size(_out_size, in_frm->ch_layout.nb_channels, in_frm->nb_samples, _in_sample_fmt, 0);
+        *out_len = av_samples_get_buffer_size(_out_size, in_frm->ch_layout.nb_channels, in_frm->nb_samples, _in._fmt, 0);
         return true;
     }
 
@@ -102,10 +120,10 @@ bool CXPlayerAudioRescaler::rescale(const AVFrame * in_frm, uint8_t ** out_data,
 
     int in_samples_per_channel = 0;
     int out_samples_per_channel = 0;
-    const auto out_channels = _out_ch_layout.nb_channels;
+    const auto out_channels = _out._layout.nb_channels;
 
-    in_samples_per_channel = in_frm->linesize[0] / av_get_bytes_per_sample(_in_sample_fmt);
-    if (!av_sample_fmt_is_planar(_in_sample_fmt))
+    in_samples_per_channel = in_frm->linesize[0] / av_get_bytes_per_sample(_in._fmt);
+    if (!av_sample_fmt_is_planar(_in._fmt))
         in_samples_per_channel /= in_frm->ch_layout.nb_channels;
     out_samples_per_channel = swr_get_out_samples(_swr_ctx, in_samples_per_channel);
     if (!resizeCache(out_samples_per_channel))
@@ -121,7 +139,7 @@ bool CXPlayerAudioRescaler::rescale(const AVFrame * in_frm, uint8_t ** out_data,
         return false;
     }
 
-    int buf_size = av_samples_get_buffer_size(_out_size, out_channels, ret, _out_sample_fmt, 0);
+    int buf_size = av_samples_get_buffer_size(_out_size, out_channels, ret, _out._fmt, 0);
     if (buf_size < 0)
     {
         xpu_format_string(_err, "Could not get sample buffer size!");
@@ -133,12 +151,12 @@ bool CXPlayerAudioRescaler::rescale(const AVFrame * in_frm, uint8_t ** out_data,
     return true;
 }
 
-const char * CXPlayerAudioRescaler::err() const
+const char * CXPlayerAudioResampler::err() const
 {
     return _err.c_str();
 }
 
-bool CXPlayerAudioRescaler::resizeCache(const int nb_samples)
+bool CXPlayerAudioResampler::resizeCache(const int nb_samples)
 {
     if (nb_samples <= _out_max_nb_samples)
         return true;
@@ -150,8 +168,8 @@ bool CXPlayerAudioRescaler::resizeCache(const int nb_samples)
         memset(_out_size, 0, AV_NUM_DATA_POINTERS);
     }
 
-    const auto out_channels = _out_ch_layout.nb_channels;
-    int ret = av_samples_alloc(_out_data, _out_size, out_channels, nb_samples, _out_sample_fmt, 1);
+    const auto out_channels = _out._layout.nb_channels;
+    int ret = av_samples_alloc(_out_data, _out_size, out_channels, nb_samples, _out._fmt, 1);
     if (ret < 0)
     {
         xpu_format_string(_err, "av_samples_alloc failed.");

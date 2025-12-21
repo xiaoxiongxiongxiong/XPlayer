@@ -12,6 +12,25 @@ extern "C" {
 #include "libavutil/imgutils.h"
 }
 
+// 视频信息
+class CXPlayerVideoInfo
+{
+public:
+    CXPlayerVideoInfo(enum AVPixelFormat fmt, int width, int height);
+
+    bool operator==(const CXPlayerVideoInfo & other) const;
+
+public:
+    // 像素格式
+    enum AVPixelFormat _fmt = AVPixelFormat::AV_PIX_FMT_NONE;
+
+    // 图像宽度
+    int _width = 0;
+
+    // 图像高度
+    int _height = 0;
+};
+
 class CXPlayerVideoRescaler
 {
 public:
@@ -19,7 +38,7 @@ public:
     ~CXPlayerVideoRescaler() = default;
 
     // 创建转换器
-    bool create(AVPixelFormat in_fmt, int in_width, int in_height, AVPixelFormat out_fmt, int out_width, int out_height);
+    bool create(const CXPlayerVideoInfo & src, const CXPlayerVideoInfo & dst);
 
     // 销毁
     void destroy();
@@ -38,20 +57,11 @@ private:
     // 是否需要转换
     bool _need_rescale = true;
 
-    // 输入宽度
-    int _in_width = 0;
-    // 输入高度
-    int _in_height = 0;
+    // 源
+    CXPlayerVideoInfo _src;
 
-    // 输出高度
-    int _out_width = 0;
-    // 输出宽度
-    int _out_height = 0;
-
-    // 输入像素格式
-    AVPixelFormat _in_fmt = AVPixelFormat::AV_PIX_FMT_NONE;
-    // 输出像素格式
-    AVPixelFormat _out_fmt = AVPixelFormat::AV_PIX_FMT_NONE;
+    // 目标
+    CXPlayerVideoInfo _dst;
 
     // 输出数据
     uint8_t * _out_data[AV_NUM_DATA_POINTERS] = { nullptr };

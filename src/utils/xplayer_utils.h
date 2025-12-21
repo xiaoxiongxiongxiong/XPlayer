@@ -6,5 +6,4 @@
 // 格式化字符串
 std::string xpu_format_string(std::string & msg, const char * fmt, ...);
 
-
 #endif
