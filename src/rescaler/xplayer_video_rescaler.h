@@ -16,6 +16,8 @@ extern "C" {
 class CXPlayerVideoInfo
 {
 public:
+    CXPlayerVideoInfo() = default;
+
     CXPlayerVideoInfo(enum AVPixelFormat fmt, int width, int height);
 
     bool operator==(const CXPlayerVideoInfo & other) const;

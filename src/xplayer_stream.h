@@ -6,8 +6,17 @@
 #include <atomic>
 #include <memory>
 
+extern "C" {
+#include "libavcodec/packet.h"
+}
+#include "xplayer_queue.h"
+
 typedef struct AVCodecParameters AVCodecParameters;
 class CXPlayerDecoder;
+class CXPlayerAudioResampler;
+class CXPlayerVideoRescaler;
+class CXPlayerVideoRenderSDL;
+class CXPlayerAudioRender;
 
 class CXPlayerStream
 {
@@ -20,17 +29,13 @@ public:
     // 销毁
     void destroy();
 
+    // 
+    bool pushPacket(const AVPacket & pkt);
+    // 
+    bool popPacket(AVPacket & pkt);
+
     // 准备
     bool prepare(const void * wnd, int width, int height);
-
-    // 获取解码器
-    const std::shared_ptr<CXPlayerDecoder> & decoder();
-
-    // 获取转换器
-
-
-    // 获取渲染器
-    //const std::shared_ptr<CXPlayerRenderer>
 
     // 错误信息
     const char * err() const;
@@ -40,16 +45,30 @@ private:
     bool createDecoder();
     // 销毁解码器
     void destroyDecoder();
-    // 重开解码器
-    bool reopenDecoder();
+
+    // 创建转换器
+    bool createConvertor();
+    // 销毁转换器
+    void destroyConvertor();
 
     // 创建渲染器
-    bool createRender(const void * wnd, int width, int height);
+    bool createRenderer(const void * wnd, int width, int height);
     // 销毁渲染器
-    void destroyRender();
+    void destroyRenderer();
 
-    // 重置
-    void reset();
+public:
+    // 解码器
+    std::shared_ptr<CXPlayerDecoder> _decoder = nullptr;
+
+    // 视频转换器
+    std::shared_ptr<CXPlayerVideoRescaler> _video_rescaler = nullptr;
+    // 音频重采样器
+    std::shared_ptr<CXPlayerAudioResampler> _audio_resampler = nullptr;
+
+    // 视频渲染器
+    std::shared_ptr<CXPlayerVideoRenderSDL> _video_renderer = nullptr;
+    // 音频渲染器
+    std::shared_ptr<CXPlayerAudioRender> _audio_renderer = nullptr;
 
 private:
     // 索引
@@ -67,8 +86,11 @@ private:
 
     // 编解码器参数
     AVCodecParameters * _codecpar = nullptr;
-    // 解码器
-    std::shared_ptr<CXPlayerDecoder> _decoder = nullptr;
+
+    // 最后一包时码
+    int64_t _pkt_dts = 0;
+    // 数据包队列
+    CXPlayerQueue<AVPacket> _pkts;
 
     // 错误信息
     std::string _err;

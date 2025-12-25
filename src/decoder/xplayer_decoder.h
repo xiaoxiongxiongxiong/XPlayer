@@ -4,10 +4,6 @@
 #include <cstdbool>
 #include <string>
 
-//extern "C" {
-//#include "libavutil/frame.h"
-//}
-
 typedef struct AVCodecParameters AVCodecParameters;
 typedef struct AVCodecContext AVCodecContext;
 typedef struct AVPacket AVPacket;

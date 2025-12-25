@@ -14,6 +14,8 @@ extern "C" {
 class CXPlayerAudioInfo
 {
 public:
+    CXPlayerAudioInfo() = default;
+
     CXPlayerAudioInfo(AVChannelLayout layout, enum AVSampleFormat fmt, int sample_rate);
 
     bool operator==(const CXPlayerAudioInfo & other) const;

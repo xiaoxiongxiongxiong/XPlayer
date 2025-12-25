@@ -6,12 +6,15 @@ extern "C" {
 
 #include "utils/xplayer_utils.h"
 #include "decoder/xplayer_decoder.h"
+#include "rescaler/xplayer_video_rescaler.h"
+#include "rescaler/xplayer_audio_resampler.h"
 #include "renderer/xplayer_video_render_sdl.h"
 #include "renderer/xplayer_audio_render_sdl.h"
 
 CXPlayerStream::CXPlayerStream(int index) :
     _index(index)
 {
+    _pkt_dts = AV_NOPTS_VALUE;
 }
 
 bool CXPlayerStream::create(const AVCodecParameters * codecpar)
@@ -59,15 +62,52 @@ void CXPlayerStream::destroy()
     destroyDecoder();
 }
 
-bool CXPlayerStream::prepare(const void * wnd, int width, int height)
+bool CXPlayerStream::pushPacket(const AVPacket & pkt)
 {
+    if (_index != pkt.stream_index)
+        return false;
+
+    if (AV_NOPTS_VALUE != pkt.dts && AV_NOPTS_VALUE != _pkt_dts && pkt.dts < _pkt_dts)
+    {
+        xpu_format_string(_err, "Recv non-increasing timecode");
+        return false;
+    }
+
+    if (AV_NOPTS_VALUE != pkt.dts)
+        _pkt_dts = pkt.dts;
+
+    _pkts.push(pkt);
+
     return true;
 }
 
-// 获取解码器
-const std::shared_ptr<CXPlayerDecoder> & CXPlayerStream::decoder()
+bool CXPlayerStream::popPacket(AVPacket & pkt)
 {
-    return nullptr;
+    if (_pkts.empty())
+        return false;
+
+    return _pkts.pop(pkt);
+}
+
+bool CXPlayerStream::prepare(const void * wnd, int width, int height)
+{
+    if (!createDecoder())
+        return false;
+
+    if (!createConvertor())
+    {
+        destroyDecoder();
+        return false;
+    }
+
+    if (!createRenderer(wnd, width, height))
+    {
+        destroyDecoder();
+        destroyConvertor();
+        return false;
+    }
+
+    return true;
 }
 
 const char * CXPlayerStream::err() const
@@ -103,28 +143,65 @@ void CXPlayerStream::destroyDecoder()
     _decoder.reset();
 }
 
-bool CXPlayerStream::reopenDecoder()
+bool CXPlayerStream::createConvertor()
 {
-    if (nullptr == _decoder)
-        return false;
-    return _decoder->reopen();
+    if (AVMEDIA_TYPE_VIDEO == _codecpar->codec_type)
+    {
+        _video_rescaler = std::make_shared<CXPlayerVideoRescaler>();
+        if (!_video_rescaler)
+        {
+            xpu_format_string(_err, "Create CXPlayerVideoRescaler instance failed");
+            return false;
+        }
+
+        CXPlayerVideoInfo src(static_cast<AVPixelFormat>(_codecpar->format), _codecpar->width, _codecpar->height);
+        CXPlayerVideoInfo dst(AV_PIX_FMT_YUV420P, _codecpar->width, _codecpar->height);
+
+        if (!_video_rescaler->create(src, src))
+        {
+            _video_rescaler.reset();
+            _video_rescaler = nullptr;
+            return false;
+        }
+    }
+    else
+    {
+        _audio_resampler = std::make_shared<CXPlayerAudioResampler>();
+        if (!_audio_resampler)
+        {
+            xpu_format_string(_err, "Create CXPlayerAudioResampler instance failed");
+            return false;
+        }
+
+        CXPlayerAudioInfo src(_codecpar->ch_layout, static_cast<AVSampleFormat>(_codecpar->format), _codecpar->sample_rate);
+        
+        if (!_audio_resampler->create(src, src, _codecpar->frame_size))
+        {
+            _audio_resampler.reset();
+            _audio_resampler = nullptr;
+            return false;
+        }
+    }
+
+    return true;
 }
 
-bool CXPlayerStream::createRender(const void * wnd, int width, int height)
+void CXPlayerStream::destroyConvertor()
+{
+    if (_audio_resampler)
+    {
+        _audio_resampler->destroy();
+        _audio_resampler.reset();
+        _audio_resampler = nullptr;
+    }
+}
+
+bool CXPlayerStream::createRenderer(const void * wnd, int width, int height)
 {
 
     return true;
 }
 
-void CXPlayerStream::destroyRender()
+void CXPlayerStream::destroyRenderer()
 {
-}
-
-void CXPlayerStream::reset()
-{
-    if (!_reset.load())
-        return;
-
-    reopenDecoder();
-    _reset.store(false);
 }
