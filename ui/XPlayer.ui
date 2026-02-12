@@ -33,30 +33,241 @@ QWidget::titlebar {
      margin: 2px;
 }</string>
    </property>
-   <widget class="QOpenGLWidget" name="m_wndScreen">
-    <property name="geometry">
-     <rect>
-      <x>0</x>
-      <y>40</y>
-      <width>1080</width>
-      <height>720</height>
-     </rect>
+   <layout class="QGridLayout" name="gridLayout">
+    <property name="leftMargin">
+     <number>0</number>
     </property>
-    <property name="styleSheet">
-     <string notr="true">color: rgb(34, 39, 56);</string>
+    <property name="topMargin">
+     <number>0</number>
     </property>
-   </widget>
-   <widget class="QSlider" name="m_sldProgress">
-    <property name="geometry">
-     <rect>
-      <x>0</x>
-      <y>760</y>
-      <width>1070</width>
-      <height>20</height>
-     </rect>
+    <property name="rightMargin">
+     <number>0</number>
     </property>
-    <property name="styleSheet">
-     <string notr="true">QSlider::groove:horizontal { 
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <item row="0" column="0">
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <layout class="QHBoxLayout" name="m_layoutTitle">
+        <property name="spacing">
+         <number>1</number>
+        </property>
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_3">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
+            <item>
+             <widget class="QToolButton" name="m_btnChoice">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>48</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../resources/XPlayer.qrc">
+                <normaloff>:/XPlayer/res/XPlayer.ico</normaloff>:/XPlayer/res/XPlayer.ico</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="popupMode">
+               <enum>QToolButton::ToolButtonPopupMode::MenuButtonPopup</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QLabel" name="m_labName">
+              <property name="minimumSize">
+               <size>
+                <width>560</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>560</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignmentFlag::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="m_btnMinimize">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">#m_btnMinimize{
+border-style:solid;
+background-color: rgba(255, 255, 255, 0);
+border-image:url(:/XPlayer/res/minimize_normal.ico);
+}
+#m_btnMinimize:hover{
+border-image:url(:/XPlayer/res/minimize_hover.ico);
+}</string>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="m_btnMaximize">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">#m_btnMaximize{
+border-style:solid;
+background-color: rgba(255, 255, 255, 0);
+border-image:url(:/XPlayer/res/maximize_normal.ico);
+}
+#m_btnMaximize:hover{
+border-image:url(:/XPlayer/res/maximize_hover.ico);
+}</string>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="m_btnClose">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">#m_btnClose{
+border-style:solid;
+background-color: rgba(255, 255, 255, 0);
+border-image:url(:/XPlayer/res/close_normal.ico);
+}
+#m_btnClose:hover{
+border-image:url(:/XPlayer/res/close_hover.ico);
+}</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="Line" name="line_3">
+            <property name="frameShadow">
+             <enum>QFrame::Shadow::Plain</enum>
+            </property>
+            <property name="lineWidth">
+             <number>2</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <widget class="QOpenGLWidget" name="m_wndScreen"/>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <item>
+             <widget class="QSlider" name="m_sldProgress">
+              <property name="styleSheet">
+               <string notr="true">QSlider::groove:horizontal { 
 	border: 1px solid gray;
 	height: 2px; 
 	left: 4px; 
@@ -73,426 +284,286 @@ QSlider::handle:horizontal {
 QSlider::sub-page:horizontal{ 
 	background: rgb(0, 255, 0); 
 }</string>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QWidget" name="m_wndTitle" native="true">
-    <property name="geometry">
-     <rect>
-      <x>0</x>
-      <y>0</y>
-      <width>1280</width>
-      <height>40</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">QWidget#m_wndTitle {
-    border-bottom: 2px solid white;
-}</string>
-    </property>
-    <widget class="QPushButton" name="m_btnClose">
-     <property name="geometry">
-      <rect>
-       <x>1240</x>
-       <y>2</y>
-       <width>36</width>
-       <height>36</height>
-      </rect>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">#m_btnClose{
-border-style:solid;
-background-color: rgba(255, 255, 255, 0);
-border-image:url(:/XPlayer/res/close_normal.ico);
-}
-#m_btnClose:hover{
-border-image:url(:/XPlayer/res/close_hover.ico);
-}</string>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset resource="../resources/XPlayer.qrc">
-       <normaloff>:/XPlayer/res/close_normal.ico</normaloff>:/XPlayer/res/close_normal.ico</iconset>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>40</width>
-       <height>40</height>
-      </size>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="m_btnMinimize">
-     <property name="geometry">
-      <rect>
-       <x>1160</x>
-       <y>2</y>
-       <width>36</width>
-       <height>36</height>
-      </rect>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">#m_btnMinimize{
-border-style:solid;
-background-color: rgba(255, 255, 255, 0);
-border-image:url(:/XPlayer/res/minimize_normal.ico);
-}
-#m_btnMinimize:hover{
-border-image:url(:/XPlayer/res/minimize_hover.ico);
-}</string>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>40</width>
-       <height>40</height>
-      </size>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="m_btnMaximize">
-     <property name="geometry">
-      <rect>
-       <x>1200</x>
-       <y>2</y>
-       <width>36</width>
-       <height>36</height>
-      </rect>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">#m_btnMaximize{
-border-style:solid;
-background-color: rgba(255, 255, 255, 0);
-border-image:url(:/XPlayer/res/maximize_normal.ico);
-}
-#m_btnMaximize:hover{
-border-image:url(:/XPlayer/res/maximize_hover.ico);
-}</string>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>40</width>
-       <height>40</height>
-      </size>
-     </property>
-    </widget>
-    <widget class="QToolButton" name="m_btnChoice">
-     <property name="geometry">
-      <rect>
-       <x>0</x>
-       <y>0</y>
-       <width>60</width>
-       <height>40</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset resource="../resources/XPlayer.qrc">
-       <normaloff>:/XPlayer/res/XPlayer.ico</normaloff>:/XPlayer/res/XPlayer.ico</iconset>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>40</width>
-       <height>40</height>
-      </size>
-     </property>
-     <property name="popupMode">
-      <enum>QToolButton::MenuButtonPopup</enum>
-     </property>
-    </widget>
-    <widget class="QLabel" name="m_labName">
-     <property name="geometry">
-      <rect>
-       <x>350</x>
-       <y>2</y>
-       <width>560</width>
-       <height>36</height>
-      </rect>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">color: rgb(255, 255, 255);</string>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
-     </property>
-    </widget>
-   </widget>
-   <widget class="QWidget" name="m_wndCtrl" native="true">
-    <property name="geometry">
-     <rect>
-      <x>0</x>
-      <y>780</y>
-      <width>1280</width>
-      <height>60</height>
-     </rect>
-    </property>
-    <widget class="QPushButton" name="m_btnNext">
-     <property name="geometry">
-      <rect>
-       <x>760</x>
-       <y>10</y>
-       <width>50</width>
-       <height>50</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset resource="../resources/XPlayer.qrc">
-       <normaloff>:/XPlayer/res/next.ico</normaloff>:/XPlayer/res/next.ico</iconset>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>50</width>
-       <height>50</height>
-      </size>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="m_btnCtrl">
-     <property name="geometry">
-      <rect>
-       <x>610</x>
-       <y>10</y>
-       <width>50</width>
-       <height>50</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset resource="../resources/XPlayer.qrc">
-       <normaloff>:/XPlayer/res/pause.ico</normaloff>:/XPlayer/res/pause.ico</iconset>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>50</width>
-       <height>50</height>
-      </size>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="m_btnLast">
-     <property name="geometry">
-      <rect>
-       <x>510</x>
-       <y>10</y>
-       <width>50</width>
-       <height>50</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset resource="../resources/XPlayer.qrc">
-       <normaloff>:/XPlayer/res/last.ico</normaloff>:/XPlayer/res/last.ico</iconset>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>50</width>
-       <height>50</height>
-      </size>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="m_btnForward">
-     <property name="geometry">
-      <rect>
-       <x>660</x>
-       <y>10</y>
-       <width>50</width>
-       <height>50</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset resource="../resources/XPlayer.qrc">
-       <normaloff>:/XPlayer/res/forward.ico</normaloff>:/XPlayer/res/forward.ico</iconset>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>50</width>
-       <height>50</height>
-      </size>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="m_btnBackward">
-     <property name="geometry">
-      <rect>
-       <x>560</x>
-       <y>10</y>
-       <width>50</width>
-       <height>50</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset resource="../resources/XPlayer.qrc">
-       <normaloff>:/XPlayer/res/backward.ico</normaloff>:/XPlayer/res/backward.ico</iconset>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>50</width>
-       <height>50</height>
-      </size>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="m_btnStop">
-     <property name="geometry">
-      <rect>
-       <x>290</x>
-       <y>10</y>
-       <width>50</width>
-       <height>50</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset resource="../resources/XPlayer.qrc">
-       <normaloff>:/XPlayer/res/stop.ico</normaloff>:/XPlayer/res/stop.ico</iconset>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>50</width>
-       <height>50</height>
-      </size>
-     </property>
-    </widget>
-   </widget>
-   <widget class="QPushButton" name="m_btnVolume">
-    <property name="geometry">
-     <rect>
-      <x>1080</x>
-      <y>760</y>
-      <width>20</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="icon">
-     <iconset resource="../resources/XPlayer.qrc">
-      <normaloff>:/XPlayer/res/voice.ico</normaloff>:/XPlayer/res/voice.ico</iconset>
-    </property>
-    <property name="iconSize">
-     <size>
-      <width>20</width>
-      <height>20</height>
-     </size>
-    </property>
-   </widget>
-   <widget class="QSlider" name="m_sldVolume">
-    <property name="geometry">
-     <rect>
-      <x>1100</x>
-      <y>760</y>
-      <width>160</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">QSlider::groove:horizontal { 
-	border: 1px solid gray;
-	height: 2px; 
-	left: 4px; 
-	right: 4px; 
-} 
-QSlider::handle:horizontal { 
-	border: 1px solid gray; 
-	background:white;
-	border-radius: 5px;
-	width: 10px; 
-	height: 10px; 
-	margin: -5px; 
-} 
-QSlider::sub-page:horizontal{ 
-	background: rgb(0, 100, 255); 
-}</string>
-    </property>
-    <property name="maximum">
-     <number>100</number>
-    </property>
-    <property name="pageStep">
-     <number>1</number>
-    </property>
-    <property name="value">
-     <number>50</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QWidget" name="m_wndRecord" native="true">
-    <property name="geometry">
-     <rect>
-      <x>1080</x>
-      <y>40</y>
-      <width>200</width>
-      <height>720</height>
-     </rect>
-    </property>
-    <widget class="QLabel" name="m_labRecord">
-     <property name="geometry">
-      <rect>
-       <x>40</x>
-       <y>5</y>
-       <width>120</width>
-       <height>32</height>
-      </rect>
-     </property>
-     <property name="font">
-      <font>
-       <pointsize>12</pointsize>
-       <weight>9</weight>
-       <italic>false</italic>
-       <bold>false</bold>
-      </font>
-     </property>
-     <property name="text">
-      <string>播放列表</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
-     </property>
-    </widget>
-    <widget class="QListWidget" name="m_lstRecord">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>40</y>
-       <width>180</width>
-       <height>680</height>
-      </rect>
-     </property>
-     <property name="font">
-      <font>
-       <pointsize>12</pointsize>
-       <weight>9</weight>
-       <italic>false</italic>
-       <bold>false</bold>
-      </font>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">QListWidget#m_lstRecord {
+              </property>
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="m_btnVolume">
+              <property name="maximumSize">
+               <size>
+                <width>24</width>
+                <height>24</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">border-style:solid;</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../resources/XPlayer.qrc">
+                <normaloff>:/XPlayer/res/voice.ico</normaloff>:/XPlayer/res/voice.ico</iconset>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="Line" name="line">
+            <property name="frameShadow">
+             <enum>QFrame::Shadow::Plain</enum>
+            </property>
+            <property name="lineWidth">
+             <number>2</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <property name="bottomMargin">
+             <number>6</number>
+            </property>
+            <item>
+             <spacer name="horizontalSpacer_4">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="m_btnLast">
+              <property name="minimumSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">border-style:solid;</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../resources/XPlayer.qrc">
+                <normaloff>:/XPlayer/res/last.ico</normaloff>:/XPlayer/res/last.ico</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="m_btnBackward">
+              <property name="maximumSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">border-style:solid;</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../resources/XPlayer.qrc">
+                <normaloff>:/XPlayer/res/backward.ico</normaloff>:/XPlayer/res/backward.ico</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="m_btnStop">
+              <property name="maximumSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">border-style:solid;</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../resources/XPlayer.qrc">
+                <normaloff>:/XPlayer/res/stop.ico</normaloff>:/XPlayer/res/stop.ico</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="m_btnCtrl">
+              <property name="maximumSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">border-style:solid;</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../resources/XPlayer.qrc">
+                <normaloff>:/XPlayer/res/pause.ico</normaloff>:/XPlayer/res/pause.ico</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="m_btnForward">
+              <property name="maximumSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">border-style:solid;</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../resources/XPlayer.qrc">
+                <normaloff>:/XPlayer/res/forward.ico</normaloff>:/XPlayer/res/forward.ico</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="m_btnNext">
+              <property name="maximumSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">border-style:solid;</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../resources/XPlayer.qrc">
+                <normaloff>:/XPlayer/res/next.ico</normaloff>:/XPlayer/res/next.ico</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_3">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="m_btnRecord">
+              <property name="maximumSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">border-style:solid;</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../resources/XPlayer.qrc">
+                <normaloff>:/XPlayer/res/RecordList.ico</normaloff>:/XPlayer/res/RecordList.ico</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QListWidget" name="m_lstRecord">
+          <property name="minimumSize">
+           <size>
+            <width>240</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>240</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QListWidget#m_lstRecord {
     border-top: 2px solid white;
     border-bottom: 2px solid white;
     border-left: 2px solid white;
@@ -500,16 +571,14 @@ QSlider::sub-page:horizontal{
     background-color: #e9d6ba;
 	color: rgb(0, 0, 0);
 }</string>
-     </property>
-    </widget>
-   </widget>
-   <zorder>m_wndScreen</zorder>
-   <zorder>m_sldProgress</zorder>
-   <zorder>m_wndCtrl</zorder>
-   <zorder>m_wndTitle</zorder>
-   <zorder>m_btnVolume</zorder>
-   <zorder>m_sldVolume</zorder>
-   <zorder>m_wndRecord</zorder>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+   </layout>
   </widget>
   <action name="m_actVod">
    <property name="icon">

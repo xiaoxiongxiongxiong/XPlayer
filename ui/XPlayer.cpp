@@ -6,7 +6,6 @@
 #include <QMenuBar>
 #include <QPainter>
 #include <QFileInfo>
-#include <QPropertyAnimation>
 #include <windows.h>
 
 #include "utils/xplayer_utils.h"
@@ -27,7 +26,7 @@ XPlayer::XPlayer(QWidget * parent)
     ui.m_actVod->setShortcut(QKeySequence::Open);
     ui.m_actLive->setShortcut(QKeySequence::Underline);
 
-    m_pclsChoices = new QMenu(ui.m_wndTitle);
+    m_pclsChoices = new QMenu(ui.m_btnChoice);
     m_pclsChoices->addAction(ui.m_actVod);
     m_pclsChoices->addAction(ui.m_actLive);
 
@@ -54,12 +53,6 @@ XPlayer::XPlayer(QWidget * parent)
     )");
     ui.m_btnChoice->setMenu(m_pclsChoices);
 
-    // 创建位置动画
-    ani = new QPropertyAnimation(ui.m_labName, "geometry");
-    ani->setDuration(6000); // 动画持续时间6秒
-    ani->setLoopCount(-1);
-    ani->start();
-
     connect(ui.m_actVod, &QAction::triggered, this, &XPlayer::onBtnClickedVod);
     connect(ui.m_actLive, &QAction::triggered, this, &XPlayer::onBtnClickedLive);
 
@@ -74,12 +67,19 @@ XPlayer::XPlayer(QWidget * parent)
     connect(ui.m_btnBackward, SIGNAL(clicked()), this, SLOT(onBtnClickedBackward()));
     connect(ui.m_btnForward, SIGNAL(clicked()), this, SLOT(onBtnClickedForward()));
     connect(ui.m_btnStop, SIGNAL(clicked()), this, SLOT(onBtnClickedStop()));
+    connect(ui.m_btnRecord, SIGNAL(clicked()), this, SLOT(onBtnClickedRecord()));
 
+    ui.m_lstRecord->hide();
     ui.m_lstRecord->addItem(QStringLiteral("小红帽与大灰狼"));
 }
 
 XPlayer::~XPlayer()
 {
+    if (m_pclsChoices)
+    {
+        delete m_pclsChoices;
+        m_pclsChoices = nullptr;
+    }
 }
 
 void XPlayer::mousePressEvent(QMouseEvent * event)
