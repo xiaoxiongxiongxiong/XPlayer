@@ -97,3 +97,8 @@ bool CXPlayerAudioRender::finished()
         return _cache.load()->len <= 0;
     return true;
 }
+
+const char * CXPlayerAudioRender::err() const
+{
+    return _err.c_str();
+}

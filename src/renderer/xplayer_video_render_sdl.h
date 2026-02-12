@@ -28,6 +28,9 @@ public:
 	// 渲染
 	bool renderer(uint8_t * data[8], int linesize[8]);
 
+    // 错误信息
+    const char * err() const;
+
 private:
 	// 重开纹理器
 	bool reopenTexture();

@@ -31,6 +31,9 @@ public:
     // 是否完毕
     bool finished();
 
+    // 错误信息
+    const char * err() const;
+
 private:
     std::atomic<audio_info_t *> _cache = { nullptr };
 

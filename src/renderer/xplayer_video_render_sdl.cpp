@@ -156,6 +156,12 @@ bool CXPlayerVideoRenderSDL::renderer(uint8_t * data[8], int linesize[8])
     return true;
 }
 
+// 错误信息
+const char * CXPlayerVideoRenderSDL::err() const
+{
+    return _err.c_str();
+}
+
 bool CXPlayerVideoRenderSDL::reopenTexture()
 {
     if (!_changed.load())
