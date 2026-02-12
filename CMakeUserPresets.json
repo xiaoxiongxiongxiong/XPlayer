@@ -10,7 +10,7 @@
         "CMAKE_CXX_FLAGS": "-DQT_QML_DEBUG"
       },
       "environment": {
-        "QML_DEBUG_ARGS": "-qmljsdebugger=file:{5c1ed453-290c-4cf8-9b3a-81243b1dbb72},block"
+        "QML_DEBUG_ARGS": "-qmljsdebugger=file:{a2b57960-c278-46fb-998e-b7a0321b62fb},block"
       }
     },
     {
@@ -48,11 +48,29 @@
           "checksum": "goprigO6J6ibQx7ykEI34htDCVw="
         }
       }
+    },
+    {
+      "hidden": true,
+      "name": "6.8.3_msvc2022_64",
+      "inherits": "Qt",
+      "environment": {
+        "QTDIR": "D:/Qt6.8.0/6.8.3/msvc2022_64"
+      },
+      "architecture": {
+        "strategy": "external",
+        "value": "x64"
+      },
+      "generator": "Ninja",
+      "vendor": {
+        "qt-project.org/Version": {
+          "checksum": "a3/vWLFwlmcVGMLCcUTIqpNS0gk="
+        }
+      }
     }
   ],
   "vendor": {
     "qt-project.org/Presets": {
-      "checksum": "FesxfJyLzFQHFZXwikK/7a2I4Q0="
+      "checksum": "Ep+l7PZJU6Bsp6yI+EeVVZapx3g="
     }
   }
 }
