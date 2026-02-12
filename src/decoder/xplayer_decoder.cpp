@@ -135,6 +135,8 @@ bool CXPlayerDecoder::recv(AVFrame & frm, bool & got, bool & over)
         return false;
     }
 
+    got = true;
+
     return true;
 }
 

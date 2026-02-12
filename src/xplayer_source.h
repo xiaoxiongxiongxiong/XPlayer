@@ -111,6 +111,20 @@ private:
     // 信号量
     std::condition_variable _cond;
 
+    // 音频播放线程
+    std::thread _audio_thr;
+    //
+    std::mutex _audio_mtx;
+    // 音频信号量
+    std::condition_variable _audio_cond;
+
+    // 视频播放线程
+    std::thread _video_thr;
+    //
+    std::mutex _video_mtx;
+    //
+    std::condition_variable _video_cond;
+
     // 上下文
     CXPlayerDemuxImpl * _ctx = nullptr;
     // 流
@@ -120,6 +134,13 @@ private:
     std::shared_ptr<CXPlayerAudioRender> _audio_render = nullptr;
     // 视频渲染器
     std::shared_ptr<CXPlayerVideoRenderSDL> _video_render = nullptr;
+
+    // 屏幕宽度
+    std::atomic_int _wnd_width = { 0 };
+    // 屏幕高度
+    std::atomic_int _wnd_height = { 0 };
+    // 屏幕发生改变
+    std::atomic_bool _wnd_changed = { false };
 
     // 错误信息
     std::string _err;

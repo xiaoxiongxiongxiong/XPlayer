@@ -17,7 +17,7 @@ CXPlayerStream::CXPlayerStream(int index) :
     _pkt_dts = AV_NOPTS_VALUE;
 }
 
-bool CXPlayerStream::create(const AVCodecParameters * codecpar)
+bool CXPlayerStream::init(const AVCodecParameters * codecpar)
 {
     if (nullptr == codecpar)
     {
@@ -42,30 +42,27 @@ bool CXPlayerStream::create(const AVCodecParameters * codecpar)
         return false;
     }
 
-    if (!createDecoder())
-    {
-        avcodec_parameters_free(&_codecpar);
-        return false;
-    }
-
     return true;
 }
 
-void CXPlayerStream::destroy()
+void CXPlayerStream::uninit()
 {
     if (nullptr == _codecpar)
         return;
 
-    _running.store(false);
-
     avcodec_parameters_free(&_codecpar);
     destroyDecoder();
+    destroyConvertor();
+    destroyRenderer();
 }
 
 bool CXPlayerStream::pushPacket(const AVPacket & pkt)
 {
     if (_index != pkt.stream_index)
+    {
+        xpu_format_string(_err, "Stream index mismatch");
         return false;
+    }
 
     if (AV_NOPTS_VALUE != pkt.dts && AV_NOPTS_VALUE != _pkt_dts && pkt.dts < _pkt_dts)
     {
@@ -89,24 +86,39 @@ bool CXPlayerStream::popPacket(AVPacket & pkt)
     return _pkts.pop(pkt);
 }
 
-bool CXPlayerStream::prepare(const void * wnd, int width, int height)
+bool CXPlayerStream::setup(const void * wnd, int width, int height)
 {
     if (!createDecoder())
         return false;
 
-    if (!createConvertor())
-    {
-        destroyDecoder();
-        return false;
-    }
+    if (!createConvertor(width, height))
+        goto err;
 
     if (!createRenderer(wnd, width, height))
-    {
-        destroyDecoder();
-        destroyConvertor();
-        return false;
-    }
+        goto err;
 
+    return true;
+
+err:
+    destroyDecoder();
+    destroyConvertor();
+    destroyRenderer();
+
+    return false;
+}
+
+bool CXPlayerStream::send(const AVPacket * pkt)
+{
+    return true;
+}
+
+bool CXPlayerStream::recv(uint8_t * data, int & len)
+{
+    return true;
+}
+
+bool CXPlayerStream::recv(uint8_t * data[8], int linesize[8])
+{
     return true;
 }
 
@@ -141,9 +153,10 @@ void CXPlayerStream::destroyDecoder()
 
     _decoder->destroy();
     _decoder.reset();
+    _decoder = nullptr;
 }
 
-bool CXPlayerStream::createConvertor()
+bool CXPlayerStream::createConvertor(int width, int height)
 {
     if (AVMEDIA_TYPE_VIDEO == _codecpar->codec_type)
     {
@@ -155,10 +168,11 @@ bool CXPlayerStream::createConvertor()
         }
 
         CXPlayerVideoInfo src(static_cast<AVPixelFormat>(_codecpar->format), _codecpar->width, _codecpar->height);
-        CXPlayerVideoInfo dst(AV_PIX_FMT_YUV420P, _codecpar->width, _codecpar->height);
+        CXPlayerVideoInfo dst(AV_PIX_FMT_YUV420P, width, height);
 
-        if (!_video_rescaler->create(src, src))
+        if (!_video_rescaler->create(src, dst))
         {
+            _err = _video_rescaler->err();
             _video_rescaler.reset();
             _video_rescaler = nullptr;
             return false;
@@ -174,9 +188,13 @@ bool CXPlayerStream::createConvertor()
         }
 
         CXPlayerAudioInfo src(_codecpar->ch_layout, static_cast<AVSampleFormat>(_codecpar->format), _codecpar->sample_rate);
+        AVChannelLayout dst_layout{};
+        av_channel_layout_default(&dst_layout, 2);
+        CXPlayerAudioInfo dst(dst_layout, AV_SAMPLE_FMT_S16, _codecpar->sample_rate);
         
-        if (!_audio_resampler->create(src, src, _codecpar->frame_size))
+        if (!_audio_resampler->create(src, dst, _codecpar->frame_size))
         {
+            _err = _audio_resampler->err();
             _audio_resampler.reset();
             _audio_resampler = nullptr;
             return false;
@@ -194,14 +212,68 @@ void CXPlayerStream::destroyConvertor()
         _audio_resampler.reset();
         _audio_resampler = nullptr;
     }
+
+    if (_video_rescaler)
+    {
+        _video_rescaler->destroy();
+        _video_rescaler.reset();
+        _video_rescaler = nullptr;
+    }
 }
 
 bool CXPlayerStream::createRenderer(const void * wnd, int width, int height)
 {
+    if (AVMEDIA_TYPE_VIDEO == _codecpar->codec_type)
+    {
+        _video_renderer = std::make_shared<CXPlayerVideoRenderSDL>();
+        if (nullptr == _video_renderer)
+        {
+            xpu_format_string(_err, "Create CXPlayerVideoRenderSDL instance failed");
+            return false;
+        }
+
+        if (!_video_renderer->create(wnd, width, height))
+        {
+            _err = _video_renderer->err();
+            _video_renderer.reset();
+            _video_renderer = nullptr;
+            return false;
+        }
+    }
+    else if (AVMEDIA_TYPE_AUDIO == _codecpar->codec_type)
+    {
+        _audio_renderer = std::make_shared<CXPlayerAudioRender>();
+        if (nullptr == _audio_renderer)
+        {
+            xpu_format_string(_err, "Create CXPlayerAudioRender instance failed");
+            return false;
+        }
+
+        if (!_audio_renderer->create(_codecpar->sample_rate, 2, _codecpar->frame_size, 128))
+        {
+            _err = _audio_renderer->err();
+            _audio_renderer.reset();
+            _audio_renderer = nullptr;
+            return false;
+        }
+    }
 
     return true;
 }
 
 void CXPlayerStream::destroyRenderer()
 {
+    if (_video_renderer)
+    {
+        _video_renderer->destroy();
+        _video_renderer.reset();
+        _video_renderer = nullptr;
+    }
+
+    if (_audio_renderer)
+    {
+        _audio_renderer->destroy();
+        _audio_renderer.reset();
+        _audio_renderer = nullptr;
+    }
 }

@@ -25,9 +25,9 @@ public:
     ~CXPlayerStream() = default;
 
     // 创建
-    bool create(const AVCodecParameters * codec_par);
+    bool init(const AVCodecParameters * codec_par);
     // 销毁
-    void destroy();
+    void uninit();
 
     // 
     bool pushPacket(const AVPacket & pkt);
@@ -35,7 +35,13 @@ public:
     bool popPacket(AVPacket & pkt);
 
     // 准备
-    bool prepare(const void * wnd, int width, int height);
+    bool setup(const void * wnd, int width, int height);
+
+    // 发送
+    bool send(const AVPacket * pkt);
+    // 接收为可直接送渲染器的数据
+    bool recv(uint8_t * data, int & len);
+    bool recv(uint8_t * data[8], int linesize[8]);
 
     // 错误信息
     const char * err() const;
@@ -47,7 +53,7 @@ private:
     void destroyDecoder();
 
     // 创建转换器
-    bool createConvertor();
+    bool createConvertor(int width, int height);
     // 销毁转换器
     void destroyConvertor();
 
@@ -77,8 +83,6 @@ private:
     // 是否使用中
     std::atomic_bool _active = { false };
 
-    // 是否运行中
-    std::atomic_bool _running = { false };
     // 重置
     std::atomic_bool _reset = { false };
     // 是否已结束
