@@ -8,6 +8,7 @@
 #include <QFileInfo>
 #include <windows.h>
 
+#include "CVolumeWidget.h"
 #include "utils/xplayer_utils.h"
 #include "renderer/xplayer_audio_render_sdl.h"
 #include "renderer/xplayer_video_render_sdl.h"
@@ -71,6 +72,19 @@ XPlayer::XPlayer(QWidget * parent)
 
     ui.m_lstRecord->hide();
     ui.m_lstRecord->addItem(QStringLiteral("小红帽与大灰狼"));
+
+    // 创建音量滑块（初始隐藏）
+    m_widgetVolume = new CVolumeWidget(this);
+    m_widgetVolume->hide();
+
+    ui.m_btnVolume->installEventFilter(this);
+
+    // 悬停显示逻辑：加一点延迟防止误触
+    m_tmVolume = new QTimer(this);
+    m_tmVolume->setSingleShot(true);
+    m_tmVolume->setInterval(200);
+    connect(m_tmVolume, &QTimer::timeout, this, &XPlayer::onVolumeButtonEnter);
+    connect(m_widgetVolume, &CVolumeWidget::volumeChanged, this, &XPlayer::onVolumeChanged);
 }
 
 XPlayer::~XPlayer()
@@ -79,6 +93,12 @@ XPlayer::~XPlayer()
     {
         delete m_pclsChoices;
         m_pclsChoices = nullptr;
+    }
+
+    if (nullptr != m_widgetVolume)
+    {
+        delete m_widgetVolume;
+        m_widgetVolume = nullptr;
     }
 }
 
@@ -125,34 +145,24 @@ void XPlayer::onBtnClickedMaximize()
 
 void XPlayer::onBtnClickedClose()
 {
+    CXPlayerSource::getInstance().close();
     QApplication * app;
     app->quit();
 }
 
 void XPlayer::onBtnClickedVolume()
 {
-    auto val = ui.m_sldVolume->value();
+    auto val = m_widgetVolume->getVolume();
     if (val > 0)
     {
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
-        ui.m_sldVolume->setProperty("user_id", val);
-        ui.m_sldVolume->setValue(0);
+        m_widgetVolume->setVolume(0);
     }
     else
     {
-        ui.m_sldVolume->setValue(ui.m_sldVolume->property("user_id").toInt());
+        m_widgetVolume->setVolume(50);
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
     }
-
-    //static bool flag = false;
-    //if (flag)
-    //    ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
-    //else
-    //{
-    //    ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
-    //    ui.m_sldVolume->setValue(0);
-    //}
-    //flag = !flag;
 }
 
 void XPlayer::onBtnClickedVod()
@@ -203,74 +213,78 @@ void XPlayer::onBtnClickedNext()
 {
 }
 
+void XPlayer::onBtnClickedRecord()
+{
+    static bool flag = false;
+    if (flag)
+        ui.m_lstRecord->hide();
+    else
+        ui.m_lstRecord->show();
+    flag = !flag;
+}
+
 void XPlayer::paintEvent(QPaintEvent * event)
 {
     QPainter painter(this);
     painter.fillRect(0, 0, this->height(), this->width(), QColor(34, 39, 56));
 }
 
-void XPlayer::resizeEvent(QResizeEvent * event)
+void XPlayer::onVolumeButtonEnter()
 {
-    const auto height = event->size().height();
-    const auto width = event->size().width();
+    if (!m_widgetVolume->isVisible())
+    {
+        QRect rect = ui.m_btnVolume->rect();
+        QPoint tlr = ui.m_btnVolume->mapToGlobal(rect.topLeft());
+        int height = m_widgetVolume->height();
+        QPoint pos(tlr.x(), tlr.y() - height);
+        m_widgetVolume->showVolume(pos);
+    }
+}
 
-    // 标题栏处理
-    auto title_size = ui.m_wndTitle->size();
-    title_size.setWidth(width);
-    ui.m_wndTitle->resize(title_size);
+void XPlayer::onVolumeButtonLeave()
+{
+    // 由 VolumeWidget 自己处理隐藏（通过 leaveEvent + timer）
+}
 
-    auto bw = ui.m_btnMinimize->size().width();
-    ui.m_btnMinimize->move(width - bw * 3, 0);
-    ui.m_btnMaximize->move(width - bw * 2, 0);
-    ui.m_btnClose->move(width - bw, 0);
+void XPlayer::onVolumeChanged(int vol)
+{
+    if (0 == vol)
+        ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
+    else
+        ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
+}
 
-    auto tmp = ui.m_labName->size();
-    ui.m_labName->move((width - bw * 3 - 60) / 2, 2);
-    //auto lab_pos = ui.m_labName->geometry();
-    //ani->setStartValue(ui.m_labName->geometry()); // 初始位置和大小
-    //lab_pos.setLeft(lab_pos.left() - tmp.width() / 2);
-    //lab_pos.setWidth(tmp.width());
-    //ani->setEndValue(lab_pos); // 结束位置和大小
+bool XPlayer::eventFilter(QObject * obj, QEvent * event)
+{
+    if (obj == ui.m_btnVolume)
+    {
+        if (QEvent::Enter == event->type())
+        {
+            m_tmVolume->start();
+            return true;
+        }
+        else if (QEvent::Leave == event->type())
+        {
+            m_tmVolume->stop();
+            m_widgetVolume->hideVolume();
+            return true;
+        }
+        else if (QEvent::Wheel == event->type())
+        {
+            QWheelEvent * wheel = static_cast<QWheelEvent *>(event);
+            //if (!m_isMuted) {
+            int delta = wheel->angleDelta().y();
+            int step = (delta > 0) ? 1 : -1;
+            int current = m_widgetVolume->getVolume();
+            int vol = qBound(0, current + step, 100);
 
-    // 操作栏处理
-    auto ctrl_size = ui.m_wndCtrl->size();
-    ctrl_size.setWidth(width);
-    ui.m_wndCtrl->resize(ctrl_size);
-    ui.m_wndCtrl->move(0, height - ctrl_size.height());
-
-    const auto btn_size = ui.m_btnCtrl->size();
-    bw = btn_size.width();
-    auto bh = (ctrl_size.height() - btn_size.height()) / 2;
-    const auto center = width / 2 - bw / 2;
-    ui.m_btnLast->move(center - bw * 2, bh);
-    ui.m_btnBackward->move(center - bw, bh);
-    ui.m_btnCtrl->move(center, bh);
-    ui.m_btnForward->move(center + bw, bh);
-    ui.m_btnNext->move(center + bw * 2, bh);
-    ui.m_btnStop->move(5, bh);
-
-    // 进度条 + 音量
-    auto prg_size = ui.m_sldProgress->size();
-    auto bvs = ui.m_btnVolume->size();
-    auto slds = ui.m_sldVolume->size();
-    auto val = bvs.width() + slds.width() + 10;
-    auto sh = height - ctrl_size.height() - prg_size.height();
-    prg_size.setWidth(width - val);
-    ui.m_sldProgress->resize(prg_size);
-    ui.m_sldProgress->move(0, sh);
-    ui.m_btnVolume->move(width - val + 5, sh);
-    ui.m_sldVolume->move(width - slds.width() - 5, sh);
-
-    auto record_size = ui.m_wndRecord->size();
-
-    // 屏幕
-    auto th = title_size.height() + ctrl_size.height() + prg_size.height();
-    ui.m_wndScreen->move(0, title_size.height());
-    ui.m_wndScreen->resize(event->size().width() - record_size.width(), height - th);
-
-    ui.m_wndRecord->move(ui.m_wndScreen->size().width(), title_size.height());
-    ui.m_wndRecord->resize(record_size.width(), height - th);
-    ui.m_lstRecord->resize(ui.m_lstRecord->size().width(), height - th - 40);
+            m_widgetVolume->setVolume(vol);
+            onVolumeChanged(vol);
+            //}
+            return true;
+        }
+    }
+    return QMainWindow::eventFilter(obj, event);
 }
 
 void XPlayer::play(const std::string & url)
@@ -315,4 +329,6 @@ void XPlayer::play(const std::string & url)
         act->setChecked(true);
         //ui.m_mnuVideo->addAction(act);
     }
+
+    CXPlayerSource::getInstance().play(reinterpret_cast<HWND>(ui.m_wndScreen->winId()), ui.m_wndScreen->width(), ui.m_wndScreen->height());
 }
