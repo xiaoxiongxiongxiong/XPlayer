@@ -17,13 +17,28 @@ CXPlayerStream::CXPlayerStream(int index) :
     _pkt_dts = AV_NOPTS_VALUE;
 }
 
-bool CXPlayerStream::init(const AVCodecParameters * codecpar)
+bool CXPlayerStream::init(const AVCodecParameters * codecpar, const AVRational & timebase)
 {
     if (nullptr == codecpar)
     {
         xpu_format_string(_err, "Invalid params");
         return false;
     }
+
+    if (AVMEDIA_TYPE_AUDIO == codecpar->codec_type)
+    {
+        _max_pkts = static_cast<int>(ceil(static_cast<double>(codecpar->sample_rate) / static_cast<double>(codecpar->frame_size)));
+    }
+    else if (AVMEDIA_TYPE_VIDEO == codecpar->codec_type)
+    {
+        _max_pkts = static_cast<int>(ceil(av_q2d(codecpar->framerate)));
+    }
+    else
+    {
+        xpu_format_string(_err, "Unsupported codec type: %d", codecpar->codec_type);
+        return false;
+    }
+
 
     _codecpar = avcodec_parameters_alloc();
     if (nullptr == _codecpar)
@@ -41,6 +56,8 @@ bool CXPlayerStream::init(const AVCodecParameters * codecpar)
         avcodec_parameters_free(&_codecpar);
         return false;
     }
+
+    _timebase = timebase;
 
     return true;
 }
@@ -86,6 +103,11 @@ bool CXPlayerStream::popPacket(AVPacket & pkt)
     return _pkts.pop(pkt);
 }
 
+bool CXPlayerStream::isCacheFull()
+{
+    return _max_pkts <= _pkts.size();
+}
+
 bool CXPlayerStream::setup(const void * wnd, int width, int height)
 {
     if (!createDecoder())
@@ -107,19 +129,17 @@ err:
     return false;
 }
 
-bool CXPlayerStream::send(const AVPacket * pkt)
+int64_t CXPlayerStream::timestamp(int64_t timecode)
 {
-    return true;
+    if (AV_NOPTS_VALUE == timecode)
+        return AV_NOPTS_VALUE;
+
+    return timecode * _timebase.num * 1000 / _timebase.den;
 }
 
-bool CXPlayerStream::recv(uint8_t * data, int & len)
+int64_t CXPlayerStream::frameDuration()
 {
-    return true;
-}
-
-bool CXPlayerStream::recv(uint8_t * data[8], int linesize[8])
-{
-    return true;
+    return static_cast<int64_t>(1000.0 / av_q2d(_codecpar->framerate));
 }
 
 const char * CXPlayerStream::err() const

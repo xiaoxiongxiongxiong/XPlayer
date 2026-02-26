@@ -93,11 +93,15 @@ private:
     std::atomic_bool _is_playing = { false };
     // 是否暂停中
     std::atomic_bool _is_pause = { false };
+    // 是否需要跳跃
+    std::atomic_bool _is_skip = { false };
 
     // 当前位置
     std::atomic_int64_t _cur_pos_ms = { 0 };
     // 目标位置
     std::atomic_int64_t _dst_pos_ms = { -1 };
+    // 音频时钟
+    std::atomic_int64_t _audio_clock = { 0.0 };
 
     // 音频流索引
     std::atomic_int _audio_stream_index = { -1 };

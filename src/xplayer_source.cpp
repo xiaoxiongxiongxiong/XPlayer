@@ -67,12 +67,14 @@ void CXPlayerSource::close()
     if (_thr.joinable())
         _thr.join();
 
+    _audio_cond.notify_one();
     if (_audio_thr.joinable())
     {
         _audio_thr.join();
         _audio_stream_index.store(-1);
     }
 
+    _video_cond.notify_one();
     if (_video_thr.joinable())
     {
         _video_thr.join();
@@ -199,7 +201,7 @@ bool CXPlayerSource::createStreams()
             return false;
         }
 
-        if (!si->init(stream->codecpar))
+        if (!si->init(stream->codecpar, stream->time_base))
         {
             xpu_format_string(_err, "%s", si->err());
             destroyStreams();
@@ -250,15 +252,17 @@ void CXPlayerSource::readPacketsThr()
             break;
         }
 
+        auto & stream = _streams[pkt.stream_index];
+        while (_is_playing.load() && stream->isCacheFull())
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
         if (_audio_stream_index.load() == pkt.stream_index)
         {
-            auto & stream = _streams[_audio_stream_index.load()];
             stream->pushPacket(pkt);
             _audio_cond.notify_one();
         }
         else if (_video_stream_index.load() == pkt.stream_index)
         {
-            auto & stream = _streams[_video_stream_index.load()];
             stream->pushPacket(pkt);
             _video_cond.notify_one();
         }
@@ -302,7 +306,21 @@ void CXPlayerSource::audioPlayThr()
         bool over = false;
         while (_is_running.load() && stream->_decoder->recv(frm, got, over) && got)
         {
+            if (AV_NOPTS_VALUE != frm.pts)
+                _audio_clock.store(stream->timestamp(frm.pts));
+            uint8_t * data = nullptr;
+            int len = 0;
+            if (!stream->_audio_resampler->rescale(&frm, &data, &len))
+            {
+                _err = stream->_audio_resampler->err();
+                break;
+            }
 
+            stream->_audio_renderer->renderer(data, len);
+            while (_is_running.load() && !stream->_audio_renderer->finished())
+                std::this_thread::sleep_for(std::chrono::microseconds(20));
+
+            got = false;
         }
     }
 }
@@ -345,9 +363,24 @@ void CXPlayerSource::videoPlayThr()
                 break;
             }
 
+            int64_t delay_ms = 0;
+            if (-1 != _audio_stream_index.load())
+            {
+                auto tmp = stream->timestamp(frm.pts);
+                delay_ms = tmp - _audio_clock.load();
+            }
+            else
+            {
+                if (frm.duration > 0)
+                    delay_ms = stream->timestamp(frm.duration);
+                else
+                    delay_ms = stream->frameDuration();
+            }
+            if (delay_ms > 0)
+                std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+
             stream->_video_renderer->renderer(out_frm.data, out_frm.linesize);
             got = false;
-            std::this_thread::sleep_for(std::chrono::milliseconds(30));
         }
         av_packet_unref(&pkt);
     }

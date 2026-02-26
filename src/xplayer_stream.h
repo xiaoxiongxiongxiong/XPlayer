@@ -25,7 +25,7 @@ public:
     ~CXPlayerStream() = default;
 
     // 创建
-    bool init(const AVCodecParameters * codec_par);
+    bool init(const AVCodecParameters * codec_par, const AVRational & timebase);
     // 销毁
     void uninit();
 
@@ -33,15 +33,17 @@ public:
     bool pushPacket(const AVPacket & pkt);
     // 
     bool popPacket(AVPacket & pkt);
+    // 缓冲区是否已满
+    bool isCacheFull();
 
     // 准备
     bool setup(const void * wnd, int width, int height);
 
-    // 发送
-    bool send(const AVPacket * pkt);
-    // 接收为可直接送渲染器的数据
-    bool recv(uint8_t * data, int & len);
-    bool recv(uint8_t * data[8], int linesize[8]);
+    // 时间戳
+    int64_t timestamp(int64_t timecode);
+
+    // 单帧时长
+    int64_t frameDuration();
 
     // 错误信息
     const char * err() const;
@@ -90,7 +92,11 @@ private:
 
     // 编解码器参数
     AVCodecParameters * _codecpar = nullptr;
+    // 时间基
+    AVRational _timebase = { 0,1 };
 
+    // 队列长度上限
+    int _max_pkts = 0;
     // 最后一包时码
     int64_t _pkt_dts = 0;
     // 数据包队列
