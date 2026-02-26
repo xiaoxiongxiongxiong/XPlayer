@@ -43,6 +43,8 @@ private slots:
     void onVolumeButtonLeave();
     void onVolumeChanged(int vol);
 
+    void onProgressChanged(int val);
+
 private:
     void play(const std::string & url);
 
@@ -55,4 +57,6 @@ private:
     QPoint m_lastPos;
     bool m_blPressed = false;
     QMenu * m_pclsChoices = nullptr;
+    QMenu * m_pmnuVideo = nullptr;
+    QMenu * m_pmnuAudio = nullptr;
 };

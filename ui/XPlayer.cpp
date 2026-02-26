@@ -33,11 +33,11 @@ XPlayer::XPlayer(QWidget * parent)
 
     m_pclsChoices->addSeparator();
 
-    auto * video_mnu = m_pclsChoices->addMenu(QStringLiteral("视频选项"));
-    video_mnu->addAction(ui.m_actDisableVideo);
+    m_pmnuVideo = m_pclsChoices->addMenu(QStringLiteral("视频选项"));
+    m_pmnuVideo->addAction(ui.m_actDisableVideo);
 
-    auto * audio_mnu = m_pclsChoices->addMenu(QStringLiteral("音频选项"));
-    audio_mnu->addAction(ui.m_actDisableAudio);
+    m_pmnuAudio = m_pclsChoices->addMenu(QStringLiteral("音频选项"));
+    m_pmnuAudio->addAction(ui.m_actDisableAudio);
 
     m_pclsChoices->setStyleSheet(R"(
         QMenu {
@@ -70,8 +70,17 @@ XPlayer::XPlayer(QWidget * parent)
     connect(ui.m_btnStop, SIGNAL(clicked()), this, SLOT(onBtnClickedStop()));
     connect(ui.m_btnRecord, SIGNAL(clicked()), this, SLOT(onBtnClickedRecord()));
 
+    ui.m_btnNext->setToolTip(QStringLiteral("下一个"));
+    ui.m_btnLast->setToolTip(QStringLiteral("上一个"));
+    ui.m_btnBackward->setToolTip(QStringLiteral("快退"));
+    ui.m_btnForward->setToolTip(QStringLiteral("快进"));
+    ui.m_btnStop->setToolTip(QStringLiteral("停止"));
+    ui.m_btnCtrl->setToolTip(QStringLiteral("播放"));
+
     ui.m_lstRecord->hide();
     ui.m_lstRecord->addItem(QStringLiteral("小红帽与大灰狼"));
+
+    ui.m_sldProgress->installEventFilter(this);
 
     // 创建音量滑块（初始隐藏）
     m_widgetVolume = new CVolumeWidget(this);
@@ -85,6 +94,8 @@ XPlayer::XPlayer(QWidget * parent)
     m_tmVolume->setInterval(200);
     connect(m_tmVolume, &QTimer::timeout, this, &XPlayer::onVolumeButtonEnter);
     connect(m_widgetVolume, &CVolumeWidget::volumeChanged, this, &XPlayer::onVolumeChanged);
+
+    connect(ui.m_sldProgress, &QSlider::valueChanged, this, &XPlayer::onProgressChanged);
 }
 
 XPlayer::~XPlayer()
@@ -194,7 +205,7 @@ void XPlayer::onBtnClickedCtrl()
 
 void XPlayer::onBtnClickedStop()
 {
-
+    CXPlayerSource::getInstance().close();
 }
 
 void XPlayer::onBtnClickedBackward()
@@ -254,8 +265,33 @@ void XPlayer::onVolumeChanged(int vol)
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
 }
 
+void XPlayer::onProgressChanged(int val)
+{
+    auto pos = val;
+}
+
 bool XPlayer::eventFilter(QObject * obj, QEvent * event)
 {
+    if (obj == ui.m_sldProgress && (QEvent::MouseButtonPress == event->type() || QEvent::MouseButtonRelease == event->type()))
+    {
+        auto * ev = static_cast<QMouseEvent *>(event);
+        if (Qt::LeftButton == ev->button())
+        {
+            // 获取点击位置
+            QPoint pos = ev->pos();
+
+            // 水平滑块（备用）
+            int width = ui.m_sldProgress->width();
+            double ratio = static_cast<double>(pos.x()) / width;
+            ratio = qBound(0.0, ratio, 1.0);
+
+            int range = ui.m_sldProgress->maximum() - ui.m_sldProgress->minimum();
+            int value = ui.m_sldProgress->minimum() + qRound(ratio * range);
+            ui.m_sldProgress->setValue(value);
+            return true;
+        }
+    }
+
     if (obj == ui.m_btnVolume)
     {
         if (QEvent::Enter == event->type())
@@ -316,7 +352,7 @@ void XPlayer::play(const std::string & url)
         act->setText(QStringLiteral("音轨%1").arg(index));
         act->setData(QVariant::fromValue(*iter));
         act->setObjectName(QStringLiteral("m_actAudio%d").arg(index));
-        //ui.m_mnuAudio->addAction(act);
+        m_pmnuAudio->addAction(act);
     }
 
     for (auto iter = vis.cbegin(); iter != vis.cend(); iter++)
@@ -327,8 +363,10 @@ void XPlayer::play(const std::string & url)
         act->setData(QVariant::fromValue(*iter));
         act->setObjectName(QStringLiteral("m_actVideo%d").arg(index));
         act->setChecked(true);
-        //ui.m_mnuVideo->addAction(act);
+        m_pmnuVideo->addAction(act);
     }
 
-    CXPlayerSource::getInstance().play(reinterpret_cast<HWND>(ui.m_wndScreen->winId()), ui.m_wndScreen->width(), ui.m_wndScreen->height());
+    const auto width = ui.m_wndScreen->width();
+    const auto height = ui.m_wndScreen->height();
+    CXPlayerSource::getInstance().play(reinterpret_cast<HWND>(ui.m_wndScreen->winId()), width, height);
 }
