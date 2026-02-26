@@ -76,6 +76,7 @@ bool CXPlayerAudioResampler::create(const CXPlayerAudioInfo & src, const CXPlaye
 
     _in = src;
     _out = dst;
+    _in_nb_samples = frame_size;
 
     return true;
 }
