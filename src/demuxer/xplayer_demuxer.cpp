@@ -91,7 +91,7 @@ int CXPlayerDemuxImpl::seek(int stream_index, int64_t timestamp)
     }
 
     const auto time_base = _ctx->streams[stream_index]->time_base;
-    const auto ts = static_cast<int64_t>(static_cast<double>(timestamp) * av_q2d(time_base));
+    const auto ts = static_cast<int64_t>(static_cast<double>(timestamp) / av_q2d(time_base) / 1000.0);
     int ret = av_seek_frame(_ctx, stream_index, ts, AVSEEK_FLAG_BACKWARD);
     if (ret < 0)
     {
