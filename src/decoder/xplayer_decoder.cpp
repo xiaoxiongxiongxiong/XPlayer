@@ -74,7 +74,7 @@ void CXPlayerDecoder::destroy(const bool flag)
     avcodec_close(_ctx);
     avcodec_free_context(&_ctx);
 
-    if (nullptr != _codec_par && flag)
+    if (nullptr != _codec_par && !flag)
     {
         avcodec_parameters_free(&_codec_par);
         _codec_par = nullptr;
@@ -85,6 +85,19 @@ bool CXPlayerDecoder::reopen()
 {
     destroy(true);
     return create(_codec_par, false);
+}
+
+bool CXPlayerDecoder::clear()
+{
+    if (nullptr == _ctx)
+    {
+        xpu_format_string(_err, "Decoder not open yet");
+        return false;
+    }
+
+    avcodec_flush_buffers(_ctx);
+
+    return true;
 }
 
 bool CXPlayerDecoder::send(const AVPacket * pkt)

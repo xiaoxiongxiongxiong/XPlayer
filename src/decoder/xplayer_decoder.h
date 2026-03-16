@@ -22,6 +22,8 @@ public:
 
     // 重开
     bool reopen();
+    // 清理残余数据
+    bool clear();
 
     //
     bool send(const AVPacket * pkt);
