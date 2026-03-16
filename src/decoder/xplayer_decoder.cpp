@@ -6,7 +6,7 @@ extern "C" {
 }
 #include "utils/xplayer_utils.h"
 
-bool CXPlayerDecoder::create(const AVCodecParameters * codec_par, const bool flag)
+bool CXPlayerDecoder::create(const AVCodecParameters * codec_par)
 {
     if (nullptr == codec_par)
     {
@@ -44,9 +44,6 @@ bool CXPlayerDecoder::create(const AVCodecParameters * codec_par, const bool fla
         return false;
     }
 
-    if (!flag)
-        return true;
-
     _codec_par = avcodec_parameters_alloc();
     if (nullptr == _codec_par)
     {
@@ -66,7 +63,7 @@ bool CXPlayerDecoder::create(const AVCodecParameters * codec_par, const bool fla
     return true;
 }
 
-void CXPlayerDecoder::destroy(const bool flag)
+void CXPlayerDecoder::destroy()
 {
     if (nullptr == _ctx)
         return;
@@ -74,17 +71,11 @@ void CXPlayerDecoder::destroy(const bool flag)
     avcodec_close(_ctx);
     avcodec_free_context(&_ctx);
 
-    if (nullptr != _codec_par && !flag)
+    if (nullptr != _codec_par)
     {
         avcodec_parameters_free(&_codec_par);
         _codec_par = nullptr;
     }
-}
-
-bool CXPlayerDecoder::reopen()
-{
-    destroy(true);
-    return create(_codec_par, false);
 }
 
 bool CXPlayerDecoder::clear()

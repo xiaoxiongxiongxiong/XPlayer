@@ -16,12 +16,10 @@ public:
     ~CXPlayerDecoder() = default;
 
     // 创建解码器
-    bool create(const AVCodecParameters * codec_par, bool flag = true);
+    bool create(const AVCodecParameters * codec_par);
     // 销毁解码器
-    void destroy(bool flag = false);
+    void destroy();
 
-    // 重开
-    bool reopen();
     // 清理残余数据
     bool clear();
 
