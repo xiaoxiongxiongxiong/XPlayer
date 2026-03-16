@@ -94,8 +94,6 @@ XPlayer::XPlayer(QWidget * parent)
     m_tmVolume->setInterval(200);
     connect(m_tmVolume, &QTimer::timeout, this, &XPlayer::onVolumeButtonEnter);
     connect(m_widgetVolume, &CVolumeWidget::volumeChanged, this, &XPlayer::onVolumeChanged);
-
-    connect(ui.m_sldProgress, &QSlider::valueChanged, this, &XPlayer::onProgressChanged);
 }
 
 XPlayer::~XPlayer()
@@ -111,31 +109,6 @@ XPlayer::~XPlayer()
         delete m_widgetVolume;
         m_widgetVolume = nullptr;
     }
-}
-
-void XPlayer::mousePressEvent(QMouseEvent * event)
-{
-    m_blPressed = true; // 当前鼠标按下的即是QWidget而非界面上布局的其它控件
-    m_lastPos = event->globalPos();
-}
-
-void XPlayer::mouseMoveEvent(QMouseEvent * event)
-{
-    if (m_blPressed)
-    {
-        int dx = event->globalX() - m_lastPos.x();
-        int dy = event->globalY() - m_lastPos.y();
-        m_lastPos = event->globalPos();
-        move(x() + dx, y() + dy);
-    }
-}
-
-void XPlayer::mouseReleaseEvent(QMouseEvent * event)
-{
-    int dx = event->globalX() - m_lastPos.x();
-    int dy = event->globalY() - m_lastPos.y();
-    move(x() + dx, y() + dy);
-    m_blPressed = false; // 鼠标松开时，置为false
 }
 
 void XPlayer::onBtnClickedMinimize()
@@ -206,6 +179,11 @@ void XPlayer::onBtnClickedCtrl()
 void XPlayer::onBtnClickedStop()
 {
     CXPlayerSource::getInstance().close();
+    if (m_iTid > -1)
+    {
+        killTimer(m_iTid);
+        m_iTid = -1;
+    }
 }
 
 void XPlayer::onBtnClickedBackward()
@@ -240,34 +218,98 @@ void XPlayer::paintEvent(QPaintEvent * event)
     painter.fillRect(0, 0, this->height(), this->width(), QColor(34, 39, 56));
 }
 
-void XPlayer::onVolumeButtonEnter()
+void XPlayer::mousePressEvent(QMouseEvent * event)
 {
-    if (!m_widgetVolume->isVisible())
+    if (event->button() != Qt::LeftButton)
     {
-        QRect rect = ui.m_btnVolume->rect();
-        QPoint tlr = ui.m_btnVolume->mapToGlobal(rect.topLeft());
-        int height = m_widgetVolume->height();
-        QPoint pos(tlr.x(), tlr.y() - height);
-        m_widgetVolume->showVolume(pos);
+        QMainWindow::mousePressEvent(event);
+        return;
     }
+
+    int x = event->pos().x();
+    int y = event->pos().y();
+    int w = width();
+    int h = height();
+
+    m_iEdge = 0;
+    if (x <= BORDER_WIDTH)
+        m_iEdge |= Qt::LeftEdge;
+    else if (x >= w - BORDER_WIDTH)
+        m_iEdge |= Qt::RightEdge;
+
+    if (y <= BORDER_WIDTH)
+        m_iEdge |= Qt::TopEdge;
+    else if (y >= h - BORDER_WIDTH)
+        m_iEdge |= Qt::BottomEdge;
+
+    if (m_iEdge != 0)
+    {
+        m_blResize = true;
+        m_rectStart = geometry();
+        return;
+    }
+
+    m_blPressed = true;
+    m_ptStart = event->globalPos() - frameGeometry().topLeft();
+
 }
 
-void XPlayer::onVolumeButtonLeave()
+void XPlayer::mouseMoveEvent(QMouseEvent * event)
 {
-    // 由 VolumeWidget 自己处理隐藏（通过 leaveEvent + timer）
+    if (m_blResize)
+    {
+        QRect r = m_rectStart;
+        QPoint pos = event->globalPos();
+
+        if (m_iEdge & Qt::LeftEdge)
+            r.setLeft(pos.x());     // Left
+        else if (m_iEdge & Qt::RightEdge)
+            r.setRight(pos.x()); // Right
+
+        if (m_iEdge & Qt::TopEdge)
+            r.setTop(pos.y());      // Top
+        else if (m_iEdge & Qt::BottomEdge)
+            r.setBottom(pos.y()); // Bottom
+
+        if (r.width() >= minimumWidth() && r.height() >= minimumHeight())
+            setGeometry(r.normalized());
+        return;
+    }
+
+    if (m_blPressed)
+    {
+        move(event->globalPos() - m_ptStart);
+        return;
+    }
+
+    QMainWindow::mouseMoveEvent(event);
 }
 
-void XPlayer::onVolumeChanged(int vol)
+void XPlayer::mouseReleaseEvent(QMouseEvent * event)
 {
-    if (0 == vol)
-        ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
-    else
-        ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
+    if (event->button() == Qt::LeftButton)
+    {
+        m_blPressed = false;
+        m_blResize = false;
+        m_iEdge = 0;
+    }
+    QMainWindow::mouseReleaseEvent(event);
 }
 
-void XPlayer::onProgressChanged(int val)
+void XPlayer::timerEvent(QTimerEvent * event)
 {
-    auto pos = val;
+    if (m_iTid == event->timerId() && XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
+    {
+        if (XPLAYER_STATE_OVER == CXPlayerSource::getInstance().state())
+        {
+            onBtnClickedStop();
+            return;
+        }
+
+        auto pos = static_cast<int>(CXPlayerSource::getInstance().progress());
+        if (pos > 0)
+            ui.m_sldProgress->setValue(pos);
+    }
 }
 
 bool XPlayer::eventFilter(QObject * obj, QEvent * event)
@@ -288,6 +330,7 @@ bool XPlayer::eventFilter(QObject * obj, QEvent * event)
             int range = ui.m_sldProgress->maximum() - ui.m_sldProgress->minimum();
             int value = ui.m_sldProgress->minimum() + qRound(ratio * range);
             ui.m_sldProgress->setValue(value);
+            CXPlayerSource::getInstance().seek(value);
             return true;
         }
     }
@@ -321,6 +364,26 @@ bool XPlayer::eventFilter(QObject * obj, QEvent * event)
         }
     }
     return QMainWindow::eventFilter(obj, event);
+}
+
+void XPlayer::onVolumeButtonEnter()
+{
+    if (!m_widgetVolume->isVisible())
+    {
+        QRect rect = ui.m_btnVolume->rect();
+        QPoint tlr = ui.m_btnVolume->mapToGlobal(rect.topLeft());
+        int height = m_widgetVolume->height();
+        QPoint pos(tlr.x(), tlr.y() - height);
+        m_widgetVolume->showVolume(pos);
+    }
+}
+
+void XPlayer::onVolumeChanged(int vol)
+{
+    if (0 == vol)
+        ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
+    else
+        ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
 }
 
 void XPlayer::play(const std::string & url)
@@ -368,5 +431,11 @@ void XPlayer::play(const std::string & url)
 
     const auto width = ui.m_wndScreen->width();
     const auto height = ui.m_wndScreen->height();
-    CXPlayerSource::getInstance().play(reinterpret_cast<HWND>(ui.m_wndScreen->winId()), width, height);
+    if (!CXPlayerSource::getInstance().play(reinterpret_cast<HWND>(ui.m_wndScreen->winId()), width, height))
+    {
+        auto * err = CXPlayerSource::getInstance().err();
+        QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("%1！").arg(err));
+        return;
+    }
+    m_iTid = startTimer(std::chrono::milliseconds(10));
 }

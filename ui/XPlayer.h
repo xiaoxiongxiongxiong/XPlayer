@@ -14,10 +14,6 @@ public:
     XPlayer(QWidget * parent = nullptr);
     ~XPlayer();
 
-    void mousePressEvent(QMouseEvent * event) override;   // 鼠标点击
-    void mouseMoveEvent(QMouseEvent * event) override;    // 鼠标移动
-    void mouseReleaseEvent(QMouseEvent * event) override; // 鼠标释放
-
 public slots:
     void onBtnClickedMinimize();
     void onBtnClickedMaximize();
@@ -36,14 +32,16 @@ public slots:
 
 protected:
     void paintEvent(QPaintEvent * event) override;
+
+    void mousePressEvent(QMouseEvent * event) override;   // 鼠标点击
+    void mouseMoveEvent(QMouseEvent * event) override;    // 鼠标移动
+    void mouseReleaseEvent(QMouseEvent * event) override; // 鼠标释放
+    void timerEvent(QTimerEvent * event) override;
     bool eventFilter(QObject * obj, QEvent * event) override;
 
 private slots:
     void onVolumeButtonEnter();
-    void onVolumeButtonLeave();
     void onVolumeChanged(int vol);
-
-    void onProgressChanged(int val);
 
 private:
     void play(const std::string & url);
@@ -54,8 +52,15 @@ private:
     CVolumeWidget * m_widgetVolume = nullptr;
     QTimer * m_tmVolume = nullptr;
 
-    QPoint m_lastPos;
+    QPoint m_ptStart;
     bool m_blPressed = false;
+    bool m_blResize = false;
+    int m_iEdge = 0;
+    QRect m_rectStart;
+    int m_iTid = -1;
+
+    static const int BORDER_WIDTH = 10;
+
     QMenu * m_pclsChoices = nullptr;
     QMenu * m_pmnuVideo = nullptr;
     QMenu * m_pmnuAudio = nullptr;
