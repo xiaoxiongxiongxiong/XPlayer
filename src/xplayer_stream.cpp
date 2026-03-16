@@ -103,6 +103,12 @@ bool CXPlayerStream::popPacket(AVPacket & pkt)
     return _pkts.pop(pkt);
 }
 
+void CXPlayerStream::clearPackets()
+{
+    _pkts.clear();
+    _pkt_dts = AV_NOPTS_VALUE;
+}
+
 bool CXPlayerStream::isCacheFull()
 {
     return _max_pkts <= _pkts.size();

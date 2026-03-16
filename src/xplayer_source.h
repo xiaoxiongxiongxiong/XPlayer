@@ -17,6 +17,18 @@ class CXPlayerStream;
 class CXPlayerAudioRender;
 class CXPlayerVideoRenderSDL;
 
+// 播放器状态
+typedef enum _XPLAYER_STATE
+{
+    XPLAYER_STATE_NONE,
+    XPLAYER_STATE_READY,      // 已就绪
+    XPLAYER_STATE_PAUSE,      // 暂停
+    XPLAYER_STATE_PLAYING,    // 播放中
+    XPLAYER_STATE_OVER,       // 播放完成
+    XPLAYER_STATE_ERROR,      // 播放出错
+    XPLAYER_STATE_MAX
+} XPLAYER_STATE;
+
 class CXPlayerSource final
 {
 public:
@@ -65,6 +77,9 @@ public:
     // 设置音量
     void setVolume(int volume);
 
+    // 状态
+    XPLAYER_STATE state() const;
+
     // 错误信息
     const char * err() const;
 
@@ -87,10 +102,11 @@ private:
     void videoPlayThr();
 
 private:
+    // 播放状态
+    std::atomic<XPLAYER_STATE> _state = { XPLAYER_STATE_NONE };
+
     // 是否运行中
     std::atomic_bool _is_running = { false };
-    // 是否播放中
-    std::atomic_bool _is_playing = { false };
     // 是否暂停中
     std::atomic_bool _is_pause = { false };
     // 是否需要跳跃
@@ -103,17 +119,14 @@ private:
     // 音频时钟
     std::atomic_int64_t _audio_clock = { 0.0 };
 
-    // 音频流索引
-    std::atomic_int _audio_stream_index = { -1 };
-    // 视频流索引
-    std::atomic_int _video_stream_index = { -1 };
-
     // 线程句柄
     std::thread _thr;
     // 锁
     std::mutex _mtx;
     // 信号量
     std::condition_variable _cond;
+    // 读包结束
+    std::atomic_bool _is_over = { false };
 
     // 音频播放线程
     std::thread _audio_thr;
@@ -121,13 +134,25 @@ private:
     std::mutex _audio_mtx;
     // 音频信号量
     std::condition_variable _audio_cond;
+    // 是否跳转完成
+    std::atomic_bool _audio_skip_over = { true };
+    // 是否播放完成
+    std::atomic_bool _audio_play_over = { false };
+    // 音频流索引
+    std::atomic_int _audio_stream_index = { -1 };
 
     // 视频播放线程
     std::thread _video_thr;
     //
     std::mutex _video_mtx;
-    //
+    // 视频信号量
     std::condition_variable _video_cond;
+    // 是否跳转完成
+    std::atomic_bool _video_skip_over = { true };
+    // 是否播放完成
+    std::atomic_bool _video_play_over = { false };
+    // 视频流索引
+    std::atomic_int _video_stream_index = { -1 };
 
     // 上下文
     CXPlayerDemuxImpl * _ctx = nullptr;

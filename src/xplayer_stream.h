@@ -33,6 +33,8 @@ public:
     bool pushPacket(const AVPacket & pkt);
     // 
     bool popPacket(AVPacket & pkt);
+    // 清空缓冲区
+    void clearPackets();
     // 缓冲区是否已满
     bool isCacheFull();
 
