@@ -63,7 +63,7 @@ void CXPlayerVideoRenderSDL::destroy()
         SDL_DestroyTexture(_texture);
         _texture = nullptr;
     }
-    if (nullptr != _texture)
+    if (nullptr != _renderer)
     {
         SDL_RenderClear(_renderer);
         SDL_DestroyRenderer(_renderer);
