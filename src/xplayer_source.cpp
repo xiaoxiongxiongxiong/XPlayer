@@ -148,8 +148,16 @@ void CXPlayerSource::resize(int width, int height)
     _wnd_changed.store(true);
 }
 
-bool CXPlayerSource::pause()
+bool CXPlayerSource::pause(bool flag)
 {
+    if (XPLAYER_STATE_PLAYING != _state.load() && XPLAYER_STATE_PAUSE != _state.load())
+    {
+        xpu_format_string(_err, "Unsupported operation");
+        return false;
+    }
+
+    _state.store(flag ? XPLAYER_STATE_PAUSE : XPLAYER_STATE_PLAYING);
+
     return true;
 }
 
@@ -252,7 +260,7 @@ void CXPlayerSource::readPacketsThr()
 
     while (_is_running.load())
     {
-        if (_is_skip)
+        if (_is_skip.load())
         {
             int stream_index = -1;
             if (-1 != _video_stream_index.load())
@@ -281,6 +289,9 @@ void CXPlayerSource::readPacketsThr()
             _is_skip.store(false);
         }
 
+        while (_is_running.load() && XPLAYER_STATE_PAUSE == _state.load())
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
         bool over = false;
         AVPacket pkt = {};
         if (!_ctx->readPacket(pkt, over))
@@ -297,7 +308,7 @@ void CXPlayerSource::readPacketsThr()
         }
 
         auto & stream = _streams[pkt.stream_index];
-        while (_is_running.load() && !_is_skip && stream->isCacheFull())
+        while (_is_running.load() && !_is_skip.load() && stream->isCacheFull())
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
         if (_audio_stream_index.load() == pkt.stream_index)
@@ -324,16 +335,21 @@ void CXPlayerSource::audioPlayThr()
     _audio_cond.wait(lck);
     bool flush_flag = false;
     bool mute_flag = false;
-    while (_is_running)
+    while (_is_running.load())
     {
-        while (_is_running && XPLAYER_STATE_PLAYING != _state.load())
+        while (_is_running.load() && XPLAYER_STATE_PLAYING != _state.load())
         {
+            if (XPLAYER_STATE_PAUSE == _state.load() & !mute_flag)
+            {
+                _streams[_audio_stream_index.load()]->_audio_renderer->mute(true);
+                mute_flag = true;
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
 
         const auto & stream = _streams[_audio_stream_index.load()];
 
-        if (_is_skip)
+        if (_is_skip.load())
         {
             if (!_audio_skip_over)
             {
@@ -389,6 +405,7 @@ void CXPlayerSource::audioPlayThr()
             if (!stream->_audio_resampler->rescale(&frm, &data, &len))
             {
                 _err = stream->_audio_resampler->err();
+                stream->_audio_renderer->mute(true);
                 _state.store(XPLAYER_STATE_ERROR);
                 break;
             }
@@ -408,7 +425,10 @@ void CXPlayerSource::audioPlayThr()
 
         _audio_play_over.store(over);
         if (_audio_play_over && _video_play_over)
+        {
             _state.store(XPLAYER_STATE_OVER);
+            stream->_audio_renderer->mute(true);
+        }
     }
 }
 
@@ -418,16 +438,16 @@ void CXPlayerSource::videoPlayThr()
     _video_cond.wait(lck);
     bool flush_flag = false;
 
-    while (_is_running)
+    while (_is_running.load())
     {
-        while (_is_running && XPLAYER_STATE_PLAYING != _state.load())
+        while (_is_running.load() && XPLAYER_STATE_PLAYING != _state.load())
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
 
         const auto & stream = _streams[_video_stream_index.load()];
 
-        if (_is_skip)
+        if (_is_skip.load())
         {
             if (!_video_skip_over)
             {

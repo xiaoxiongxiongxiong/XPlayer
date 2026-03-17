@@ -156,6 +156,9 @@ void XPlayer::onBtnClickedVod()
     if (strFileName.isEmpty())
         return;
 
+    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
+        CXPlayerSource::getInstance().close();
+
     QFileInfo fileInfo(strFileName);
     ui.m_labName->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
 
@@ -168,12 +171,20 @@ void XPlayer::onBtnClickedLive()
 
 void XPlayer::onBtnClickedCtrl()
 {
-    static bool flag = false;
-    if (flag)
-        ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/play.ico"));
-    else
+    const auto & state = CXPlayerSource::getInstance().state();
+    if (XPLAYER_STATE_NONE == state)
+        return;
+
+    if (XPLAYER_STATE_PLAYING == state)
+    {
         ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/pause.ico"));
-    flag = !flag;
+        CXPlayerSource::getInstance().pause(true);
+    }
+    else if (XPLAYER_STATE_PAUSE == state)
+    {
+        ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/play.ico"));
+        CXPlayerSource::getInstance().pause(false);
+    }
 }
 
 void XPlayer::onBtnClickedStop()
@@ -184,6 +195,8 @@ void XPlayer::onBtnClickedStop()
         killTimer(m_iTid);
         m_iTid = -1;
     }
+    ui.m_labName->clear();
+    ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/pause.ico"));
 }
 
 void XPlayer::onBtnClickedBackward()
@@ -431,11 +444,15 @@ void XPlayer::play(const std::string & url)
 
     const auto width = ui.m_wndScreen->width();
     const auto height = ui.m_wndScreen->height();
+    // 为了解决SDL_DestroyWindow后画面显示问题
+    ui.m_wndScreen->hide();
+    ui.m_wndScreen->show();
     if (!CXPlayerSource::getInstance().play(reinterpret_cast<HWND>(ui.m_wndScreen->winId()), width, height))
     {
         auto * err = CXPlayerSource::getInstance().err();
         QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("%1！").arg(err));
         return;
     }
+    ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/play.ico"));
     m_iTid = startTimer(std::chrono::milliseconds(10));
 }

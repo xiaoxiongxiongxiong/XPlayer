@@ -66,7 +66,7 @@ public:
     void resize(int width, int height);
 
     // 暂停
-    bool pause();
+    bool pause(bool flag);
 
     // 定位
     bool seek(int64_t pos);
@@ -107,8 +107,6 @@ private:
 
     // 是否运行中
     std::atomic_bool _is_running = { false };
-    // 是否暂停中
-    std::atomic_bool _is_pause = { false };
     // 是否需要跳跃
     std::atomic_bool _is_skip = { false };
 
