@@ -3,7 +3,6 @@
 extern "C" {
 #include "libavformat/avformat.h"
 }
-#include "SDL2/SDL.h"
 
 #include "utils/xplayer_utils.h"
 #include "demuxer/xplayer_demuxer.h"
@@ -88,8 +87,6 @@ void CXPlayerSource::close()
     _ctx->close();
     delete _ctx;
     _ctx = nullptr;
-
-    SDL_Quit();
 
     _state.store(XPLAYER_STATE_NONE);
     _dst_pos_ms.store(-1);
@@ -195,7 +192,6 @@ const char * CXPlayerSource::err() const
 
 bool CXPlayerSource::createStreams()
 {
-    uint32_t flags = 0;
     const auto cnt = _ctx->getStreamsCount();
     for (int i = 0; i < cnt; ++i)
     {
@@ -224,19 +220,17 @@ bool CXPlayerSource::createStreams()
 
         if (AVMEDIA_TYPE_AUDIO == codec_type && -1 == _audio_stream_index)
         {
+            _audio_play_over.store(false);
             _audio_stream_index.store(i);
-            flags |= SDL_INIT_AUDIO;
         }
         else if (AVMEDIA_TYPE_VIDEO == codec_type && -1 == _video_stream_index)
         {
+            _video_play_over.store(false);
             _video_stream_index.store(i);
-            flags |= SDL_INIT_VIDEO;
         }
 
         _streams.emplace(i, si);
     }
-
-    SDL_Init(flags);
 
     return true;
 }
