@@ -38,6 +38,8 @@ protected:
     void mouseReleaseEvent(QMouseEvent * event) override; // 鼠标释放
     void timerEvent(QTimerEvent * event) override;
     bool eventFilter(QObject * obj, QEvent * event) override;
+    void dragEnterEvent(QDragEnterEvent * event) override;
+    void dropEvent(QDropEvent * event) override;
 
 private slots:
     void onVolumeButtonEnter();

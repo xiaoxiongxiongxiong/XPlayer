@@ -17,6 +17,9 @@
    <string notr="true"/>
   </property>
   <widget class="QWidget" name="centralWidget">
+   <property name="acceptDrops">
+    <bool>true</bool>
+   </property>
    <property name="styleSheet">
     <string notr="true">QWidget {
     font: 75 12pt;Segoe UI;
@@ -260,7 +263,11 @@ border-image:url(:/XPlayer/res/close_hover.ico);
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_2">
           <item>
-           <widget class="QOpenGLWidget" name="m_wndScreen"/>
+           <widget class="QOpenGLWidget" name="m_wndScreen">
+            <property name="acceptDrops">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_2">

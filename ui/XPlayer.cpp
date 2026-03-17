@@ -3,6 +3,9 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QResizeEvent>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QMimeData>
 #include <QMenuBar>
 #include <QPainter>
 #include <QFileInfo>
@@ -377,6 +380,30 @@ bool XPlayer::eventFilter(QObject * obj, QEvent * event)
         }
     }
     return QMainWindow::eventFilter(obj, event);
+}
+
+void XPlayer::dragEnterEvent(QDragEnterEvent * event)
+{
+    if (!event->mimeData()->hasUrls())
+    {
+        event->ignore();
+        return;
+    }
+
+    event->acceptProposedAction();
+}
+
+void XPlayer::dropEvent(QDropEvent * event)
+{
+    const QMimeData * mime_data = event->mimeData();
+    if (!mime_data->hasUrls())
+        return;
+
+    QList<QUrl> urls = mime_data->urls();
+    if (1 != urls.size())
+        return;
+
+    play(urls[0].toLocalFile().toStdString());
 }
 
 void XPlayer::onVolumeButtonEnter()
