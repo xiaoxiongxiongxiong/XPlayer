@@ -71,7 +71,7 @@ void CXPlayerAudioRender::destroy()
 
 void CXPlayerAudioRender::setVolume(int vol)
 {
-    if (nullptr != _cache)
+    if (nullptr == _cache)
         return;
     _cache.load()->volume = vol;
 }

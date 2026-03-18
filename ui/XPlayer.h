@@ -36,6 +36,7 @@ protected:
     void mousePressEvent(QMouseEvent * event) override;   // 鼠标点击
     void mouseMoveEvent(QMouseEvent * event) override;    // 鼠标移动
     void mouseReleaseEvent(QMouseEvent * event) override; // 鼠标释放
+    void resizeEvent(QResizeEvent * event) override;
     void timerEvent(QTimerEvent * event) override;
     bool eventFilter(QObject * obj, QEvent * event) override;
     void dragEnterEvent(QDragEnterEvent * event) override;

@@ -128,7 +128,7 @@ bool CXPlayerVideoRenderSDL::renderer(uint8_t * data[8], int linesize[8])
                                    data[2], linesize[2]);
     if (0 != ret)
     {
-        xpu_format_string(_err, "SDL_UpdateYUVTexture failed");
+        xpu_format_string(_err, "SDL_UpdateYUVTexture failed: %s", SDL_GetError());
         return false;
     }
 
@@ -170,7 +170,7 @@ bool CXPlayerVideoRenderSDL::reopenTexture()
     SDL_DestroyTexture(_texture);
     _texture = nullptr;
 
-    _texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_TARGET, _width.load(), _height.load());
+    _texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING, _width.load(), _height.load());
     if (nullptr == _texture)
     {
         xpu_format_string(_err, "SDL_CreateTexture failed!");

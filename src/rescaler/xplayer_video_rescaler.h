@@ -45,6 +45,9 @@ public:
     // 销毁
     void destroy();
 
+    // 更改输出
+    bool updateParameters(const CXPlayerVideoInfo & dst);
+
     // 转换
     bool rescale(const AVFrame * in_frm, AVFrame * out_frm);
 

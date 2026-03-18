@@ -312,6 +312,19 @@ void XPlayer::mouseReleaseEvent(QMouseEvent * event)
     QMainWindow::mouseReleaseEvent(event);
 }
 
+void XPlayer::resizeEvent(QResizeEvent * event)
+{
+    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
+    {
+        const auto width = ui.m_wndScreen->width();
+        const auto height = ui.m_wndScreen->height();
+        if (0 != width % 2 || 0 != height % 2)
+            return;
+        qDebug("w: %d, h: %d", width, height);
+        CXPlayerSource::getInstance().resize(width, height);
+    }
+}
+
 void XPlayer::timerEvent(QTimerEvent * event)
 {
     if (m_iTid == event->timerId() && XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())

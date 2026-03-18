@@ -95,11 +95,53 @@ void CXPlayerVideoRescaler::destroy()
     _need_rescale = true;
 }
 
+bool CXPlayerVideoRescaler::updateParameters(const CXPlayerVideoInfo & dst)
+{
+    if (_dst == dst)
+        return true;
+
+    _rescaler = sws_getCachedContext(_rescaler,
+                                     _src._width, _src._height, _src._fmt,
+                                     dst._width, dst._height, dst._fmt,
+                                     0, nullptr, nullptr, nullptr);
+    if (nullptr == _rescaler)
+    {
+        xpu_format_string(_err, "Cannot initialize the conversion context");
+        return false;
+    }
+
+    if (nullptr != _out_data)
+    {
+        av_freep(&_out_data[0]);
+        memset(_out_data, 0, sizeof(_out_data));
+        memset(_out_linesize, 0, sizeof(_out_linesize));
+    }
+
+    int ret = av_image_alloc(_out_data, _out_linesize, dst._width, dst._height, dst._fmt, 64);
+    if (ret <= 0)
+    {
+        char buff[AV_ERROR_MAX_STRING_SIZE] = { 0 };
+        av_make_error_string(buff, AV_ERROR_MAX_STRING_SIZE, ret);
+        xpu_format_string(_err, "av_image_alloc failed, err:%s", buff);
+        return false;
+    }
+
+    _dst = dst;
+
+    return true;
+}
+
 bool CXPlayerVideoRescaler::rescale(const AVFrame * in_frm, AVFrame * out_frm)
 {
     if (nullptr == in_frm || nullptr == in_frm->data[0] || 0 >= in_frm->linesize[0] || nullptr == out_frm)
     {
         xpu_format_string(_err, "Input param is invalid!");
+        return false;
+    }
+
+    if (in_frm->width != _src._width || in_frm->height != _src._height || in_frm->format != static_cast<int>(_src._fmt))
+    {
+        xpu_format_string(_err, "Input changed!");
         return false;
     }
 
@@ -150,8 +192,8 @@ void CXPlayerVideoRescaler::copyFrame(AVFrame * dst_frm, const AVFrame * src_frm
     dst_frm->pts = dst_frm->pts;
     dst_frm->pkt_dts = src_frm->pkt_dts;
     dst_frm->duration = src_frm->duration;
-    dst_frm->width = _src._width;
-    dst_frm->height = _src._height;
+    dst_frm->width = _dst._width;
+    dst_frm->height = _dst._height;
     dst_frm->color_range = src_frm->color_range;
     dst_frm->color_primaries = src_frm->color_primaries;
     dst_frm->color_trc = src_frm->color_trc;

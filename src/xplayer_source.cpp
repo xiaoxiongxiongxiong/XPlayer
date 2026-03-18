@@ -496,8 +496,9 @@ void CXPlayerSource::videoPlayThr()
 
             if (_wnd_changed)
             {
-               // stream->_video_rescaler->rescale;
-                stream->_video_renderer->resize(_wnd_width, _wnd_height);
+                CXPlayerVideoInfo dst(AV_PIX_FMT_YUV420P, _wnd_width.load(), _wnd_height.load());
+                stream->_video_rescaler->updateParameters(dst);
+                stream->_video_renderer->resize(_wnd_width.load(), _wnd_height.load());
                 _wnd_changed.store(false);
             }
 
