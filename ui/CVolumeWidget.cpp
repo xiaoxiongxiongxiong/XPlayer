@@ -9,7 +9,7 @@ CVolumeWidget::CVolumeWidget(QWidget *parent)
     setWindowFlags(Qt::ToolTip | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
 
-    ui.m_sldVolume->setRange(0, 100);
+    ui.m_sldVolume->setRange(0, 128);
     ui.m_sldVolume->setTickPosition(QSlider::TicksBothSides);
 
     m_tmVolume = new QTimer(this);

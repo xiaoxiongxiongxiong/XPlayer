@@ -142,12 +142,14 @@ void XPlayer::onBtnClickedVolume()
     auto val = m_widgetVolume->getVolume();
     if (val > 0)
     {
-        ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
         m_widgetVolume->setVolume(0);
+        CXPlayerSource::getInstance().setVolume(0);
+        ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
     }
     else
     {
         m_widgetVolume->setVolume(50);
+        CXPlayerSource::getInstance().setVolume(64);
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
     }
 }
@@ -384,9 +386,10 @@ bool XPlayer::eventFilter(QObject * obj, QEvent * event)
             int delta = wheel->angleDelta().y();
             int step = (delta > 0) ? 1 : -1;
             int current = m_widgetVolume->getVolume();
-            int vol = qBound(0, current + step, 100);
+            int vol = qBound(0, current + step, 128);
 
             m_widgetVolume->setVolume(vol);
+            CXPlayerSource::getInstance().setVolume(vol);
             onVolumeChanged(vol);
             //}
             return true;
