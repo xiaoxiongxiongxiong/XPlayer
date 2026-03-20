@@ -28,6 +28,7 @@ file(GLOB XPLAYER_SRC_FILES
     "src/decoder/*.cpp"
     "src/renderer/*.cpp"
     "src/rescaler/*.cpp"
+    "src/record/*.cpp"
     "src/utils/*.cpp"
 )
 
@@ -60,6 +61,7 @@ target_include_directories(${PROJECT_NAME}
     src/renderer
     src/rescaler
     src/decoder
+    src/record
     src/utils
     src/)
 
@@ -79,4 +81,5 @@ target_link_libraries(${PROJECT_NAME}
         swresample
         swscale
         SDL2
+        jansson
 )

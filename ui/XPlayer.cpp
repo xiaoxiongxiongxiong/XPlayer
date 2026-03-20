@@ -15,6 +15,7 @@
 #include "utils/xplayer_utils.h"
 #include "renderer/xplayer_audio_render_sdl.h"
 #include "renderer/xplayer_video_render_sdl.h"
+#include "record/xplayer_record.h"
 #include "xplayer_source.h"
 
 XPlayer::XPlayer(QWidget * parent)
@@ -81,7 +82,6 @@ XPlayer::XPlayer(QWidget * parent)
     ui.m_btnCtrl->setToolTip(QStringLiteral("播放"));
 
     ui.m_lstRecord->hide();
-    ui.m_lstRecord->addItem(QStringLiteral("小红帽与大灰狼"));
 
     ui.m_sldProgress->installEventFilter(this);
 
@@ -97,6 +97,9 @@ XPlayer::XPlayer(QWidget * parent)
     m_tmVolume->setInterval(200);
     connect(m_tmVolume, &QTimer::timeout, this, &XPlayer::onVolumeButtonEnter);
     connect(m_widgetVolume, &CVolumeWidget::volumeChanged, this, &XPlayer::onVolumeChanged);
+    connect(ui.m_lstRecord, &QListWidget::itemDoubleClicked, this, &XPlayer::onLstDbclickedRecord);
+
+    loadPlayRecord();
 }
 
 XPlayer::~XPlayer()
@@ -112,6 +115,8 @@ XPlayer::~XPlayer()
         delete m_widgetVolume;
         m_widgetVolume = nullptr;
     }
+
+    unloadPlayRecord();
 }
 
 void XPlayer::onBtnClickedMinimize()
@@ -167,6 +172,15 @@ void XPlayer::onBtnClickedVod()
     QFileInfo fileInfo(strFileName);
     ui.m_labName->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
 
+    if (nullptr != m_pclsVod)
+    {
+        CXPlayerRecordInfo pi;
+        pi._mode = XPLAYER_MODE_VOD;
+        pi._name = fileInfo.fileName().toStdString();
+        pi._path = strFileName.toStdString();
+        if (m_pclsVod->addRecord(pi))
+            ui.m_lstRecord->addItem(fileInfo.fileName());
+    }
     play(strFileName.toStdString());
 }
 
@@ -419,6 +433,23 @@ void XPlayer::dropEvent(QDropEvent * event)
     if (1 != urls.size())
         return;
 
+    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
+        CXPlayerSource::getInstance().close();
+
+    QString strFileName = urls[0].toString();
+    QFileInfo fileInfo(strFileName);
+    ui.m_labName->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
+
+    if (nullptr != m_pclsVod)
+    {
+        CXPlayerRecordInfo pi;
+        pi._mode = XPLAYER_MODE_VOD;
+        pi._name = fileInfo.fileName().toStdString();
+        pi._path = strFileName.toStdString();
+        if (m_pclsVod->addRecord(pi))
+            ui.m_lstRecord->addItem(fileInfo.fileName());
+    }
+
     play(urls[0].toLocalFile().toStdString());
 }
 
@@ -440,6 +471,16 @@ void XPlayer::onVolumeChanged(int vol)
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
     else
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
+}
+
+void XPlayer::onLstDbclickedRecord(QListWidgetItem * item)
+{
+    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
+        CXPlayerSource::getInstance().close();
+
+    auto path = item->data(Qt::UserRole + 1).toString();
+    ui.m_labName->setText(item->text());
+    play(path.toStdString());
 }
 
 void XPlayer::play(const std::string & url)
@@ -498,4 +539,69 @@ void XPlayer::play(const std::string & url)
     }
     ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/play.ico"));
     m_iTid = startTimer(std::chrono::milliseconds(10));
+}
+
+bool XPlayer::loadPlayRecord()
+{
+    const auto path = QCoreApplication::applicationDirPath();
+    const auto strVodPath = path + "/record/vod.json";
+    const auto strLivePath = path + "/record/live.json";
+
+    m_pclsVod = new(std::nothrow) CXPlayerRecord();
+    if (nullptr == m_pclsVod)
+    {
+        QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("加载点播记录失败！"));
+        return false;
+    }
+
+    if (!m_pclsVod->loadRecordFile(strVodPath.toLocal8Bit().toStdString()))
+    {
+        QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("加载点播记录失败！"));
+        delete m_pclsVod;
+        m_pclsVod = nullptr;
+    }
+
+    m_pclsLive = new(std::nothrow) CXPlayerRecord();
+    if (nullptr == m_pclsLive)
+    {
+        QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("加载直播记录失败！"));
+        delete m_pclsVod;
+        m_pclsVod = nullptr;
+        return false;
+    }
+
+    if (!m_pclsLive->loadRecordFile(strLivePath.toLocal8Bit().toStdString()))
+    {
+        QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("加载直播记录失败！"));
+        delete m_pclsLive;
+        m_pclsLive = nullptr;
+    }
+
+    std::vector<CXPlayerRecordInfo> elems;
+    m_pclsVod->getRecordList(elems);
+    for (const auto & elem : elems)
+    {
+        auto * item = new QListWidgetItem(QString::fromStdString(elem._name));
+        item->setData(Qt::UserRole + 1, QVariant::fromValue(QString::fromStdString(elem._path)));
+        ui.m_lstRecord->addItem(item);
+    }
+
+    return true;
+}
+
+void XPlayer::unloadPlayRecord()
+{
+    if (nullptr != m_pclsLive)
+    {
+        m_pclsLive->unloadRecordFile();
+        delete m_pclsLive;
+        m_pclsLive = nullptr;
+    }
+
+    if (nullptr != m_pclsVod)
+    {
+        m_pclsVod->unloadRecordFile();
+        delete m_pclsVod;
+        m_pclsVod = nullptr;
+    }
 }

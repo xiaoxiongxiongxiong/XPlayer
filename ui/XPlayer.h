@@ -5,6 +5,7 @@
 
 class QMenuBar;
 class CVolumeWidget;
+class CXPlayerRecord;
 
 class XPlayer : public QMainWindow
 {
@@ -45,9 +46,14 @@ protected:
 private slots:
     void onVolumeButtonEnter();
     void onVolumeChanged(int vol);
+    void onLstDbclickedRecord(QListWidgetItem * item);
 
 private:
     void play(const std::string & url);
+    // 加载播放记录
+    bool loadPlayRecord();
+    // 卸载播放记录
+    void unloadPlayRecord();
 
 private:
     Ui::XPlayerClass ui;
@@ -67,4 +73,7 @@ private:
     QMenu * m_pclsChoices = nullptr;
     QMenu * m_pmnuVideo = nullptr;
     QMenu * m_pmnuAudio = nullptr;
+
+    CXPlayerRecord * m_pclsVod = nullptr;
+    CXPlayerRecord * m_pclsLive = nullptr;
 };
