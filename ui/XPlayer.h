@@ -7,6 +7,8 @@ class QMenuBar;
 class CVolumeWidget;
 class CXPlayerRecord;
 
+#define XPLAYER_BORDER_WIDTH 10
+
 class XPlayer : public QMainWindow
 {
     Q_OBJECT
@@ -67,8 +69,6 @@ private:
     int m_iEdge = 0;
     QRect m_rectStart;
     int m_iTid = -1;
-
-    static const int BORDER_WIDTH = 10;
 
     QMenu * m_pclsChoices = nullptr;
     QMenu * m_pmnuVideo = nullptr;

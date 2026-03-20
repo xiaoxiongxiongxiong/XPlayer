@@ -265,14 +265,14 @@ void XPlayer::mousePressEvent(QMouseEvent * event)
     int h = height();
 
     m_iEdge = 0;
-    if (x <= BORDER_WIDTH)
+    if (x <= XPLAYER_BORDER_WIDTH)
         m_iEdge |= Qt::LeftEdge;
-    else if (x >= w - BORDER_WIDTH)
+    else if (x >= w - XPLAYER_BORDER_WIDTH)
         m_iEdge |= Qt::RightEdge;
 
-    if (y <= BORDER_WIDTH)
+    if (y <= XPLAYER_BORDER_WIDTH)
         m_iEdge |= Qt::TopEdge;
-    else if (y >= h - BORDER_WIDTH)
+    else if (y >= h - XPLAYER_BORDER_WIDTH)
         m_iEdge |= Qt::BottomEdge;
 
     if (m_iEdge != 0)
