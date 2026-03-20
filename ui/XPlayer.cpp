@@ -24,6 +24,7 @@ XPlayer::XPlayer(QWidget * parent)
     ui.setupUi(this);
 
     this->setWindowFlags(Qt::FramelessWindowHint); // Qt::SplashScreen | Qt::FramelessWindowHint);
+    this->setAcceptDrops(true);
 
     ui.m_actVod->setIcon(QIcon(":/XPlayer/res/vod.ico"));
     ui.m_actLive->setIcon(QIcon(":/XPlayer/res/live.ico"));
