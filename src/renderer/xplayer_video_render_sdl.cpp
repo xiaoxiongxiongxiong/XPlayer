@@ -5,9 +5,9 @@
 
 #include "utils/xplayer_utils.h"
 
-bool CXPlayerVideoRenderSDL::create(const void * wnd, int width, int height)
+bool CXPlayerVideoRenderSDL::create(const void * wnd, int wnd_width, int wnd_height, int frm_width, int frm_height)
 {
-    if (nullptr == wnd || width <= 0 || height <= 0)
+    if (nullptr == wnd || wnd_width <= 0 || wnd_height <= 0 || frm_width <= 0 || frm_height <= 0)
     {
         xpu_format_string(_err, "Input param is invalid");
         return false;
@@ -26,7 +26,7 @@ bool CXPlayerVideoRenderSDL::create(const void * wnd, int width, int height)
         return false;
     }
 
-    _renderer = SDL_CreateRenderer(_wnd, -1, SDL_RENDERER_TARGETTEXTURE);
+    _renderer = SDL_CreateRenderer(_wnd, -1, SDL_RENDERER_ACCELERATED);
     if (nullptr == _renderer)
     {
         xpu_format_string(_err, "SDL_CreateRenderer failed!");
@@ -34,7 +34,7 @@ bool CXPlayerVideoRenderSDL::create(const void * wnd, int width, int height)
         return false;
     }
 
-    _texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING, width, height);
+    _texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING, frm_width, frm_height);
     if (nullptr == _texture)
     {
         xpu_format_string(_err, "SDL_CreateTexture failed!");
@@ -42,16 +42,11 @@ bool CXPlayerVideoRenderSDL::create(const void * wnd, int width, int height)
         return false;
     }
 
-    _rect = static_cast<SDL_Rect *>(calloc(1, sizeof(SDL_Rect)));
-    if (nullptr == _rect)
-    {
-        xpu_format_string(_err, "No enough memory!");
-        destroy();
-        return false;
-    }
+    _img_width.store(frm_width);
+    _img_height.store(frm_height);
 
-    _width.store(width);
-    _height.store(height);
+    _width.store(wnd_width);
+    _height.store(wnd_height);
 
     return true;
 }
@@ -74,17 +69,12 @@ void CXPlayerVideoRenderSDL::destroy()
         SDL_DestroyWindow(_wnd);
         _wnd = nullptr;
     }
-    if (nullptr != _rect)
-    {
-        free(_rect);
-        _rect = nullptr;
-    }
 
     _width.store(0);
     _height.store(0);
 }
 
-bool CXPlayerVideoRenderSDL::resize(int width, int height)
+bool CXPlayerVideoRenderSDL::resizeWindow(int width, int height)
 {
     if (width <= 0 || height <= 0)
     {
@@ -97,6 +87,24 @@ bool CXPlayerVideoRenderSDL::resize(int width, int height)
         _changed.store(true);
         _width.store(width);
         _height.store(height);
+    }
+
+    return true;
+}
+
+bool CXPlayerVideoRenderSDL::resizeImage(int width, int height)
+{
+    if (width <= 0 || height <= 0)
+    {
+        xpu_format_string(_err, "Input image size w * h(%d * %d) is invalid", width, height);
+        return false;
+    }
+
+    if (width != _img_width.load() || height != _img_height.load())
+    {
+        _changed.store(true);
+        _img_width.store(width);
+        _img_height.store(height);
     }
 
     return true;
@@ -122,7 +130,7 @@ bool CXPlayerVideoRenderSDL::renderer(uint8_t * data[8], int linesize[8])
         return false;
     }
 
-    int ret = SDL_UpdateYUVTexture(_texture, _rect,
+    int ret = SDL_UpdateYUVTexture(_texture, nullptr,
                                    data[0], linesize[0],
                                    data[1], linesize[1],
                                    data[2], linesize[2]);
@@ -132,11 +140,6 @@ bool CXPlayerVideoRenderSDL::renderer(uint8_t * data[8], int linesize[8])
         return false;
     }
 
-    _rect->x = 0;
-    _rect->y = 0;
-    _rect->w = _width.load();
-    _rect->h = _height.load();
-
     ret = SDL_RenderClear(_renderer);
     if (0 != ret)
     {
@@ -144,7 +147,9 @@ bool CXPlayerVideoRenderSDL::renderer(uint8_t * data[8], int linesize[8])
         return false;
     }
 
-    ret = SDL_RenderCopy(_renderer, _texture, nullptr, _rect);
+    SDL_Rect src_rect = { 0, 0, _img_width.load(), _img_height.load() };
+    SDL_Rect rect = { 0, 0, _width.load(), _height.load() };
+    ret = SDL_RenderCopy(_renderer, _texture, &src_rect, &rect);
     if (0 != ret)
     {
         xpu_format_string(_err, "SDL_RenderCopy failed");
@@ -167,10 +172,21 @@ bool CXPlayerVideoRenderSDL::reopenTexture()
     if (!_changed.load())
         return true;
 
+    SDL_RenderClear(_renderer);
+    SDL_DestroyRenderer(_renderer);
+    _renderer = nullptr;
+
     SDL_DestroyTexture(_texture);
     _texture = nullptr;
 
-    _texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING, _width.load(), _height.load());
+    _renderer = SDL_CreateRenderer(_wnd, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if (nullptr == _renderer)
+    {
+        xpu_format_string(_err, "SDL_CreateRenderer failed!");
+        return false;
+    }
+
+    _texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING, _img_width.load(), _img_height.load());
     if (nullptr == _texture)
     {
         xpu_format_string(_err, "SDL_CreateTexture failed!");

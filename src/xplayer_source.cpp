@@ -496,19 +496,19 @@ void CXPlayerSource::videoPlayThr()
 
             if (_wnd_changed)
             {
-                CXPlayerVideoInfo dst(AV_PIX_FMT_YUV420P, _wnd_width.load(), _wnd_height.load());
-                stream->_video_rescaler->updateParameters(dst);
-                stream->_video_renderer->resize(_wnd_width.load(), _wnd_height.load());
+                //CXPlayerVideoInfo dst(AV_PIX_FMT_YUV420P, _wnd_width.load(), _wnd_height.load());
+                //stream->_video_rescaler->updateParameters(dst);
+                stream->_video_renderer->resizeWindow(_wnd_width.load(), _wnd_height.load());
                 _wnd_changed.store(false);
             }
 
-            AVFrame out_frm{};
-            if (!stream->_video_rescaler->rescale(&frm, &out_frm))
-            {
-                _err = stream->_video_rescaler->err();
-                _state.store(XPLAYER_STATE_ERROR);
-                break;
-            }
+            //AVFrame out_frm{};
+            //if (!stream->_video_rescaler->rescale(&frm, &out_frm))
+            //{
+            //    _err = stream->_video_rescaler->err();
+            //    _state.store(XPLAYER_STATE_ERROR);
+            //    break;
+            //}
 
             int64_t delay_ms = 0;
             if (-1 != _audio_stream_index.load())
@@ -526,7 +526,7 @@ void CXPlayerSource::videoPlayThr()
             if (delay_ms > 0)
                 std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
 
-            stream->_video_renderer->renderer(out_frm.data, out_frm.linesize);
+            stream->_video_renderer->renderer(frm.data, frm.linesize);
             got = false;
         }
 

@@ -258,7 +258,7 @@ bool CXPlayerStream::createRenderer(const void * wnd, int width, int height)
             return false;
         }
 
-        if (!_video_renderer->create(wnd, width, height))
+        if (!_video_renderer->create(wnd, width, height, _codecpar->width, _codecpar->height))
         {
             _err = _video_renderer->err();
             _video_renderer.reset();

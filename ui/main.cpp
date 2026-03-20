@@ -10,6 +10,8 @@ int main(int argc, char * argv[])
     SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO);
     atexit(SDL_Quit);
 
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+
     XPlayer w;
 
     w.show();
