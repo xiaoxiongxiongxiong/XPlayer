@@ -23,7 +23,7 @@ XPlayer::XPlayer(QWidget * parent)
 {
     ui.setupUi(this);
 
-    this->setWindowFlags(Qt::FramelessWindowHint); // Qt::SplashScreen | Qt::FramelessWindowHint);
+    this->setWindowFlags(Qt::FramelessWindowHint);
     this->setAcceptDrops(true);
 
     ui.m_actVod->setIcon(QIcon(":/XPlayer/res/vod.ico"));
@@ -335,9 +335,6 @@ void XPlayer::resizeEvent(QResizeEvent * event)
     {
         const auto width = ui.m_wndScreen->width();
         const auto height = ui.m_wndScreen->height();
-        if (0 != width % 2 || 0 != height % 2)
-            return;
-        qDebug("w: %d, h: %d", width, height);
         CXPlayerSource::getInstance().resize(width, height);
     }
 }
