@@ -82,4 +82,6 @@ target_link_libraries(${PROJECT_NAME}
         swscale
         SDL2
         jansson
+        $<$<CONFIG:Debug>:FramelessHelperWidgets64d>
+        $<$<CONFIG:Release>:FramelessHelperWidgets64>
 )

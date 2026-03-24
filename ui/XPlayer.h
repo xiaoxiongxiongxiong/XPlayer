@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#include <FramelessHelper/Widgets/framelesshelperwidgets_global.h>
+#include <FramelessHelper/Widgets/framelessmainwindow.h>
+
 #include <QtWidgets/QMainWindow>
 #include "ui_XPlayer.h"
 
@@ -7,9 +10,7 @@ class QMenuBar;
 class CVolumeWidget;
 class CXPlayerRecord;
 
-#define XPLAYER_BORDER_WIDTH 10
-
-class XPlayer : public QMainWindow
+class XPlayer : public FRAMELESSHELPER_NAMESPACE::FramelessMainWindow
 {
     Q_OBJECT
 
@@ -65,9 +66,6 @@ private:
 
     QPoint m_ptStart;
     bool m_blPressed = false;
-    bool m_blResize = false;
-    int m_iEdge = 0;
-    QRect m_rectStart;
     int m_iTid = -1;
 
     QMenu * m_pclsChoices = nullptr;

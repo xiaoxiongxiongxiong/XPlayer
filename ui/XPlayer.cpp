@@ -19,11 +19,11 @@
 #include "xplayer_source.h"
 
 XPlayer::XPlayer(QWidget * parent)
-    : QMainWindow(parent)
+    : FramelessMainWindow(parent)
 {
     ui.setupUi(this);
 
-    this->setWindowFlags(Qt::FramelessWindowHint);
+    //this->setWindowFlags(Qt::FramelessWindowHint);
     this->setAcceptDrops(true);
 
     ui.m_actVod->setIcon(QIcon(":/XPlayer/res/vod.ico"));
@@ -259,56 +259,12 @@ void XPlayer::mousePressEvent(QMouseEvent * event)
         return;
     }
 
-    int x = event->pos().x();
-    int y = event->pos().y();
-    int w = width();
-    int h = height();
-
-    m_iEdge = 0;
-    if (x <= XPLAYER_BORDER_WIDTH)
-        m_iEdge |= Qt::LeftEdge;
-    else if (x >= w - XPLAYER_BORDER_WIDTH)
-        m_iEdge |= Qt::RightEdge;
-
-    if (y <= XPLAYER_BORDER_WIDTH)
-        m_iEdge |= Qt::TopEdge;
-    else if (y >= h - XPLAYER_BORDER_WIDTH)
-        m_iEdge |= Qt::BottomEdge;
-
-    if (m_iEdge != 0)
-    {
-        m_blResize = true;
-        m_rectStart = geometry();
-        return;
-    }
-
     m_blPressed = true;
     m_ptStart = event->globalPos() - frameGeometry().topLeft();
-
 }
 
 void XPlayer::mouseMoveEvent(QMouseEvent * event)
 {
-    if (m_blResize)
-    {
-        QRect r = m_rectStart;
-        QPoint pos = event->globalPos();
-
-        if (m_iEdge & Qt::LeftEdge)
-            r.setLeft(pos.x());     // Left
-        else if (m_iEdge & Qt::RightEdge)
-            r.setRight(pos.x()); // Right
-
-        if (m_iEdge & Qt::TopEdge)
-            r.setTop(pos.y());      // Top
-        else if (m_iEdge & Qt::BottomEdge)
-            r.setBottom(pos.y()); // Bottom
-
-        if (r.width() >= minimumWidth() && r.height() >= minimumHeight())
-            setGeometry(r.normalized());
-        return;
-    }
-
     if (m_blPressed)
     {
         move(event->globalPos() - m_ptStart);
@@ -323,8 +279,6 @@ void XPlayer::mouseReleaseEvent(QMouseEvent * event)
     if (event->button() == Qt::LeftButton)
     {
         m_blPressed = false;
-        m_blResize = false;
-        m_iEdge = 0;
     }
     QMainWindow::mouseReleaseEvent(event);
 }
