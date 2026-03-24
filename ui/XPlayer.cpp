@@ -1,5 +1,6 @@
 ﻿#include "XPlayer.h"
 
+#include <QScreen>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QResizeEvent>
@@ -85,6 +86,8 @@ XPlayer::XPlayer(QWidget * parent)
     ui.m_lstRecord->hide();
 
     ui.m_sldProgress->installEventFilter(this);
+    ui.m_wndScreen->installEventFilter(this);
+    ui.m_wndScreen->setFocusPolicy(Qt::StrongFocus);
 
     // 创建音量滑块（初始隐藏）
     m_widgetVolume = new CVolumeWidget(this);
@@ -138,7 +141,7 @@ void XPlayer::onBtnClickedMaximize()
 
 void XPlayer::onBtnClickedClose()
 {
-    CXPlayerSource::getInstance().close();
+    cleanup();
     QApplication * app;
     app->quit();
 }
@@ -167,8 +170,7 @@ void XPlayer::onBtnClickedVod()
     if (strFileName.isEmpty())
         return;
 
-    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
-        CXPlayerSource::getInstance().close();
+    cleanup();
 
     QFileInfo fileInfo(strFileName);
     ui.m_labName->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
@@ -209,14 +211,7 @@ void XPlayer::onBtnClickedCtrl()
 
 void XPlayer::onBtnClickedStop()
 {
-    CXPlayerSource::getInstance().close();
-    if (m_iTid > -1)
-    {
-        killTimer(m_iTid);
-        m_iTid = -1;
-    }
-    ui.m_labName->clear();
-    ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/pause.ico"));
+    cleanup();
 }
 
 void XPlayer::onBtnClickedBackward()
@@ -261,12 +256,14 @@ void XPlayer::onBtnClickedRecord()
     else
         ui.m_lstRecord->show();
     flag = !flag;
-}
+    ui.horizontalLayout->activate();
 
-void XPlayer::paintEvent(QPaintEvent * event)
-{
-    QPainter painter(this);
-    painter.fillRect(0, 0, this->height(), this->width(), QColor(34, 39, 56));
+    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
+    {
+        int width = 0, height = 0;
+        getDisplaySize(width, height);
+        CXPlayerSource::getInstance().resize(width, height);
+    }
 }
 
 void XPlayer::mousePressEvent(QMouseEvent * event)
@@ -305,8 +302,8 @@ void XPlayer::resizeEvent(QResizeEvent * event)
 {
     if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
     {
-        const auto width = ui.m_wndScreen->width();
-        const auto height = ui.m_wndScreen->height();
+        int width = 0, height = 0;
+        getDisplaySize(width, height);
         CXPlayerSource::getInstance().resize(width, height);
     }
 }
@@ -317,7 +314,7 @@ void XPlayer::timerEvent(QTimerEvent * event)
     {
         if (XPLAYER_STATE_OVER == CXPlayerSource::getInstance().state())
         {
-            onBtnClickedStop();
+            cleanup();
             return;
         }
 
@@ -379,6 +376,14 @@ bool XPlayer::eventFilter(QObject * obj, QEvent * event)
             return true;
         }
     }
+    
+    if (obj == ui.m_wndScreen && QEvent::MouseButtonDblClick == event->type())
+    {
+        toggleFullScreen();
+
+        return true;
+    }
+
     return QMainWindow::eventFilter(obj, event);
 }
 
@@ -403,10 +408,9 @@ void XPlayer::dropEvent(QDropEvent * event)
     if (1 != urls.size())
         return;
 
-    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
-        CXPlayerSource::getInstance().close();
+    cleanup();
 
-    QString strFileName = urls[0].toString();
+    QString strFileName = urls[0].toLocalFile();
     QFileInfo fileInfo(strFileName);
     ui.m_labName->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
 
@@ -499,8 +503,8 @@ void XPlayer::play(const std::string & url)
         m_pmnuVideo->addAction(act);
     }
 
-    const auto width = ui.m_wndScreen->width();
-    const auto height = ui.m_wndScreen->height();
+    int width = 0, height = 0;
+    getDisplaySize(width, height);
     // 为了解决SDL_DestroyWindow后画面显示问题
     ui.m_wndScreen->hide();
     ui.m_wndScreen->show();
@@ -512,6 +516,22 @@ void XPlayer::play(const std::string & url)
     }
     ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/play.ico"));
     m_iTid = startTimer(std::chrono::milliseconds(10));
+}
+
+void XPlayer::cleanup()
+{
+    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
+    {
+        CXPlayerSource::getInstance().close();
+    }
+
+    if (m_iTid > -1)
+    {
+        killTimer(m_iTid);
+        m_iTid = -1;
+    }
+    ui.m_labName->clear();
+    ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/pause.ico"));
 }
 
 bool XPlayer::loadPlayRecord()
@@ -577,4 +597,41 @@ void XPlayer::unloadPlayRecord()
         delete m_pclsVod;
         m_pclsVod = nullptr;
     }
+}
+
+void XPlayer::toggleFullScreen()
+{
+    if (!m_blFullScreen)
+    {
+        m_wndScreenParent = ui.m_wndScreen->parentWidget();
+        ui.m_wndScreen->setParent(nullptr);
+        this->hide();
+        ui.m_wndScreen->showFullScreen();
+        m_blFullScreen = true;
+    }
+    else
+    {
+        ui.m_wndScreen->showNormal();
+        ui.m_wndScreen->setParent(m_wndScreenParent);
+        ui.verticalLayout_2->insertWidget(0, ui.m_wndScreen);
+        this->show();
+        this->activateWindow();
+        m_blFullScreen = false;
+    }
+
+    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
+    {
+        int width = 0, height = 0;
+        getDisplaySize(width, height);
+        CXPlayerSource::getInstance().resize(width, height);
+    }
+}
+
+void XPlayer::getDisplaySize(int & width, int & height)
+{
+    auto * screen = QGuiApplication::primaryScreen();
+    auto size = ui.m_wndScreen->size();
+    auto ratio = screen->devicePixelRatio();
+    width = size.width() * ratio;
+    height = size.height() * ratio;
 }

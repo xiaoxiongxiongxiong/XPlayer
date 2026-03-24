@@ -65,13 +65,13 @@ QWidget::titlebar {
               <property name="minimumSize">
                <size>
                 <width>32</width>
-                <height>32</height>
+                <height>24</height>
                </size>
               </property>
               <property name="maximumSize">
                <size>
-                <width>48</width>
-                <height>32</height>
+                <width>32</width>
+                <height>24</height>
                </size>
               </property>
               <property name="text">
@@ -110,13 +110,13 @@ QWidget::titlebar {
               <property name="minimumSize">
                <size>
                 <width>560</width>
-                <height>32</height>
+                <height>24</height>
                </size>
               </property>
               <property name="maximumSize">
                <size>
                 <width>560</width>
-                <height>32</height>
+                <height>24</height>
                </size>
               </property>
               <property name="text">
@@ -144,14 +144,14 @@ QWidget::titlebar {
              <widget class="QPushButton" name="m_btnMinimize">
               <property name="minimumSize">
                <size>
-                <width>32</width>
-                <height>32</height>
+                <width>24</width>
+                <height>24</height>
                </size>
               </property>
               <property name="maximumSize">
                <size>
-                <width>32</width>
-                <height>32</height>
+                <width>24</width>
+                <height>24</height>
                </size>
               </property>
               <property name="styleSheet">
@@ -176,14 +176,14 @@ border-image:url(:/XPlayer/res/minimize_hover.ico);
              <widget class="QPushButton" name="m_btnMaximize">
               <property name="minimumSize">
                <size>
-                <width>32</width>
-                <height>32</height>
+                <width>24</width>
+                <height>24</height>
                </size>
               </property>
               <property name="maximumSize">
                <size>
-                <width>32</width>
-                <height>32</height>
+                <width>24</width>
+                <height>24</height>
                </size>
               </property>
               <property name="styleSheet">
@@ -208,14 +208,14 @@ border-image:url(:/XPlayer/res/maximize_hover.ico);
              <widget class="QPushButton" name="m_btnClose">
               <property name="minimumSize">
                <size>
-                <width>32</width>
-                <height>32</height>
+                <width>24</width>
+                <height>24</height>
                </size>
               </property>
               <property name="maximumSize">
                <size>
-                <width>32</width>
-                <height>32</height>
+                <width>24</width>
+                <height>24</height>
                </size>
               </property>
               <property name="styleSheet">
@@ -273,6 +273,12 @@ border-image:url(:/XPlayer/res/close_hover.ico);
            <layout class="QHBoxLayout" name="horizontalLayout_2">
             <item>
              <widget class="QSlider" name="m_sldProgress">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>16</height>
+               </size>
+              </property>
               <property name="styleSheet">
                <string notr="true">QSlider::groove:horizontal { 
 	border: 1px solid gray;
@@ -301,8 +307,8 @@ QSlider::sub-page:horizontal{
              <widget class="QPushButton" name="m_btnVolume">
               <property name="maximumSize">
                <size>
-                <width>24</width>
-                <height>24</height>
+                <width>16</width>
+                <height>16</height>
                </size>
               </property>
               <property name="styleSheet">
@@ -354,14 +360,14 @@ QSlider::sub-page:horizontal{
              <widget class="QPushButton" name="m_btnLast">
               <property name="minimumSize">
                <size>
-                <width>40</width>
-                <height>40</height>
+                <width>32</width>
+                <height>32</height>
                </size>
               </property>
               <property name="maximumSize">
                <size>
-                <width>40</width>
-                <height>40</height>
+                <width>32</width>
+                <height>32</height>
                </size>
               </property>
               <property name="styleSheet">
@@ -384,10 +390,16 @@ QSlider::sub-page:horizontal{
             </item>
             <item>
              <widget class="QPushButton" name="m_btnBackward">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
               <property name="maximumSize">
                <size>
-                <width>40</width>
-                <height>40</height>
+                <width>32</width>
+                <height>32</height>
                </size>
               </property>
               <property name="styleSheet">
@@ -410,10 +422,16 @@ QSlider::sub-page:horizontal{
             </item>
             <item>
              <widget class="QPushButton" name="m_btnStop">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
               <property name="maximumSize">
                <size>
-                <width>40</width>
-                <height>40</height>
+                <width>32</width>
+                <height>32</height>
                </size>
               </property>
               <property name="styleSheet">
@@ -436,10 +454,16 @@ QSlider::sub-page:horizontal{
             </item>
             <item>
              <widget class="QPushButton" name="m_btnCtrl">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
               <property name="maximumSize">
                <size>
-                <width>40</width>
-                <height>40</height>
+                <width>32</width>
+                <height>32</height>
                </size>
               </property>
               <property name="styleSheet">
@@ -462,10 +486,16 @@ QSlider::sub-page:horizontal{
             </item>
             <item>
              <widget class="QPushButton" name="m_btnForward">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
               <property name="maximumSize">
                <size>
-                <width>40</width>
-                <height>40</height>
+                <width>32</width>
+                <height>32</height>
                </size>
               </property>
               <property name="styleSheet">
@@ -488,10 +518,16 @@ QSlider::sub-page:horizontal{
             </item>
             <item>
              <widget class="QPushButton" name="m_btnNext">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
               <property name="maximumSize">
                <size>
-                <width>40</width>
-                <height>40</height>
+                <width>32</width>
+                <height>32</height>
                </size>
               </property>
               <property name="styleSheet">
@@ -529,8 +565,8 @@ QSlider::sub-page:horizontal{
              <widget class="QPushButton" name="m_btnRecord">
               <property name="maximumSize">
                <size>
-                <width>40</width>
-                <height>40</height>
+                <width>32</width>
+                <height>32</height>
                </size>
               </property>
               <property name="styleSheet">

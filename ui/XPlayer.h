@@ -35,8 +35,6 @@ public slots:
     void onBtnClickedRecord();
 
 protected:
-    void paintEvent(QPaintEvent * event) override;
-
     void mousePressEvent(QMouseEvent * event) override;   // 鼠标点击
     void mouseMoveEvent(QMouseEvent * event) override;    // 鼠标移动
     void mouseReleaseEvent(QMouseEvent * event) override; // 鼠标释放
@@ -53,10 +51,16 @@ private slots:
 
 private:
     void play(const std::string & url);
+    // 
+    void cleanup();
     // 加载播放记录
     bool loadPlayRecord();
     // 卸载播放记录
     void unloadPlayRecord();
+    // 全屏切换
+    void toggleFullScreen();
+    // 获取显示区域大小
+    void getDisplaySize(int & width, int & height);
 
 private:
     Ui::XPlayerClass ui;
@@ -74,4 +78,9 @@ private:
 
     CXPlayerRecord * m_pclsVod = nullptr;
     CXPlayerRecord * m_pclsLive = nullptr;
+
+    // 是否全屏
+    bool m_blFullScreen = false;
+    // 
+    QWidget * m_wndScreenParent = nullptr;
 };
