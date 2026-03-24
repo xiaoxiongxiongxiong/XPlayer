@@ -229,10 +229,28 @@ void XPlayer::onBtnClickedForward()
 
 void XPlayer::onBtnClickedLast()
 {
+    auto rows = ui.m_lstRecord->count();
+    auto row = ui.m_lstRecord->currentRow();
+    if (row <= 0)
+        row = rows - 1;
+    else
+        row--;
+    ui.m_lstRecord->setCurrentRow(row);
+    auto * item = ui.m_lstRecord->currentItem();
+    onLstDbclickedRecord(item);
 }
 
 void XPlayer::onBtnClickedNext()
 {
+    auto rows = ui.m_lstRecord->count();
+    auto row = ui.m_lstRecord->currentRow();
+    if (row + 1 >= rows)
+        row = 0;
+    else
+        row++;
+    ui.m_lstRecord->setCurrentRow(row);
+    auto * item = ui.m_lstRecord->currentItem();
+    onLstDbclickedRecord(item);
 }
 
 void XPlayer::onBtnClickedRecord()
@@ -399,7 +417,10 @@ void XPlayer::dropEvent(QDropEvent * event)
         pi._name = fileInfo.fileName().toStdString();
         pi._path = strFileName.toStdString();
         if (m_pclsVod->addRecord(pi))
+        {
             ui.m_lstRecord->addItem(fileInfo.fileName());
+            ui.m_lstRecord->setCurrentRow(ui.m_lstRecord->count() - 1);
+        }
     }
 
     play(urls[0].toLocalFile().toStdString());
