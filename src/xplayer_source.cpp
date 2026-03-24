@@ -171,7 +171,7 @@ bool CXPlayerSource::seek(const int64_t pos)
 
 int64_t CXPlayerSource::progress()
 {
-    if (_is_skip.load())
+    if (_is_skip.load() || !_ctx || _ctx->duration() <= 0)
         return -1LL;
     return _audio_clock.load();
 }
