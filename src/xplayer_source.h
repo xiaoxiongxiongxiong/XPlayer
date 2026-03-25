@@ -29,6 +29,16 @@ typedef enum _XPLAYER_STATE
     XPLAYER_STATE_MAX
 } XPLAYER_STATE;
 
+// 播放倍速
+typedef enum _XPLAYER_SPEED_MODE
+{
+    XPLAYER_SPEED_NORMAL,      // 一倍速
+    XPLAYER_SPEED_ONE_QUATER,  // 0.25
+    XPLAYER_SPEED_ONE_HALF,    // 0.5
+    XPLAYER_SPEED_DOUBLE,      // 2
+    XPLAYER_SPEED_QUADRUPLE,   // 4倍速
+} XPLAYER_SPEED_MODE;
+
 class CXPlayerSource final
 {
 public:
@@ -85,12 +95,17 @@ public:
 
 private:
     CXPlayerSource() = default;
-    ~CXPlayerSource() = default;
+    ~CXPlayerSource();
 
     // 创建流
     bool createStreams();
     // 销毁流
     void destroyStreams();
+
+    // 初始化渲染器
+    bool initRenderer(const void * wnd, int width, int height);
+    // 销毁渲染器
+    void uninitRenderer();
 
     // 读包线程
     void readPacketsThr();
@@ -123,8 +138,6 @@ private:
     std::mutex _mtx;
     // 信号量
     std::condition_variable _cond;
-    // 读包结束
-    std::atomic_bool _is_over = { false };
 
     // 音频播放线程
     std::thread _audio_thr;
@@ -158,9 +171,9 @@ private:
     std::unordered_map<int, std::shared_ptr<CXPlayerStream>> _streams;
 
     // 音频渲染器
-    std::shared_ptr<CXPlayerAudioRender> _audio_render = nullptr;
+    std::shared_ptr<CXPlayerAudioRender> _audio_renderer = nullptr;
     // 视频渲染器
-    std::shared_ptr<CXPlayerVideoRenderSDL> _video_render = nullptr;
+    std::shared_ptr<CXPlayerVideoRenderSDL> _video_renderer = nullptr;
 
     // 屏幕宽度
     std::atomic_int _wnd_width = { 0 };

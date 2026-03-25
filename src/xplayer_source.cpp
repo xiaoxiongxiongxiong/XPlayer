@@ -6,12 +6,16 @@ extern "C" {
 
 #include "utils/xplayer_utils.h"
 #include "demuxer/xplayer_demuxer.h"
-#include "decoder/xplayer_decoder.h"
 #include "rescaler/xplayer_audio_resampler.h"
 #include "rescaler/xplayer_video_rescaler.h"
 #include "renderer/xplayer_audio_render_sdl.h"
 #include "renderer/xplayer_video_render_sdl.h"
 #include "xplayer_stream.h"
+
+CXPlayerSource::~CXPlayerSource()
+{
+    uninitRenderer();
+}
 
 bool CXPlayerSource::open(const std::string & url, const std::string & params)
 {
@@ -128,12 +132,16 @@ bool CXPlayerSource::play(const void * wnd, int width, int height)
 
     for (const auto & si : _streams)
     {
-        if (!si.second->setup(wnd, width, height))
+        if (!si.second->prepare())
         {
             _err = si.second->err();
             return false;
         }
     }
+
+    _wnd_width.store(width);
+    _wnd_height.store(height);
+    initRenderer(wnd, width, height);
 
     _cond.notify_one();
     _state.store(XPLAYER_STATE_PLAYING);
@@ -178,14 +186,10 @@ int64_t CXPlayerSource::progress()
 
 void CXPlayerSource::setVolume(int volume)
 {
-    if (!_is_running.load())
-        return;
-
-    if (-1 == _audio_stream_index.load())
-        return;
-
-    if (nullptr != _streams[_audio_stream_index.load()]->_audio_renderer)
-        _streams[_audio_stream_index.load()]->_audio_renderer->setVolume(volume);
+    if (nullptr != _audio_renderer)
+    {
+        _audio_renderer->setVolume(volume);
+    }
 }
 
 XPLAYER_STATE CXPlayerSource::state() const
@@ -253,6 +257,78 @@ void CXPlayerSource::destroyStreams()
     _streams.clear();
 }
 
+bool CXPlayerSource::initRenderer(const void * wnd, int width, int height)
+{
+    auto * avs = _ctx->getStreamInfo(_audio_stream_index.load());
+    auto * codecpar = avs ? avs->codecpar : nullptr;
+    if (nullptr == _audio_renderer)
+    {
+        _audio_renderer = std::make_shared<CXPlayerAudioRender>();
+        if (nullptr == _audio_renderer)
+        {
+            xpu_format_string(_err, "Create CXPlayerAudioRender instance failed");
+            return false;
+        }
+
+        if (codecpar && !_audio_renderer->create(codecpar->sample_rate, codecpar->channels, codecpar->frame_size, 128))
+        {
+            _err = _audio_renderer->err();
+            return false;
+        }
+    }
+    else if (codecpar)
+    {
+        _audio_renderer->destroy();
+        if (!_audio_renderer->create(codecpar->sample_rate, codecpar->channels, codecpar->frame_size, 128))
+        {
+            _err = _audio_renderer->err();
+            return false;
+        }
+    }
+
+    avs = _ctx->getStreamInfo(_video_stream_index.load());
+    codecpar = avs ? avs->codecpar : nullptr;
+    if (nullptr == _video_renderer)
+    {
+        _video_renderer = std::make_shared<CXPlayerVideoRenderSDL>();
+        if (nullptr == _video_renderer)
+        {
+            xpu_format_string(_err, "Create CXPlayerVideoRenderSDL instance failed");
+            return false;
+        }
+
+        if (codecpar && !_video_renderer->create(wnd, width, height, codecpar->width, codecpar->height))
+        {
+            _err = _video_renderer->err();
+            return false;
+        }
+    }
+    else if (codecpar && !_video_renderer->resizeImage(codecpar->width, codecpar->height))
+    {
+        _err = _video_renderer->err();
+        return false;
+    }
+
+    return true;
+}
+
+void CXPlayerSource::uninitRenderer()
+{
+    if (_video_renderer)
+    {
+        _video_renderer->destroy();
+        _video_renderer.reset();
+        _video_renderer = nullptr;
+    }
+
+    if (_audio_renderer)
+    {
+        _audio_renderer->destroy();
+        _audio_renderer.reset();
+        _audio_renderer = nullptr;
+    }
+}
+
 void CXPlayerSource::readPacketsThr()
 {
     std::unique_lock<std::mutex> lck(_mtx);
@@ -303,22 +379,23 @@ void CXPlayerSource::readPacketsThr()
 
         if (over)
         {
-            _is_over.store(true);
+            for (auto & stream : _streams)
+                stream.second->send(pkt, true);
             break;
         }
 
         auto & stream = _streams[pkt.stream_index];
-        while (_is_running.load() && !_is_skip.load() && stream->isCacheFull())
+        while (_is_running.load() && !_is_skip.load() && stream->isFull())
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
         if (_audio_stream_index.load() == pkt.stream_index)
         {
-            stream->pushPacket(pkt);
+            stream->send(pkt);
             _audio_cond.notify_one();
         }
         else if (_video_stream_index.load() == pkt.stream_index)
         {
-            stream->pushPacket(pkt);
+            stream->send(pkt);
             _video_cond.notify_one();
         }
         else
@@ -341,7 +418,7 @@ void CXPlayerSource::audioPlayThr()
         {
             if (XPLAYER_STATE_PAUSE == _state.load() & !mute_flag)
             {
-                _streams[_audio_stream_index.load()]->_audio_renderer->mute(true);
+                _audio_renderer->mute(true);
                 mute_flag = true;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -353,79 +430,53 @@ void CXPlayerSource::audioPlayThr()
         {
             if (!_audio_skip_over)
             {
-                stream->_audio_renderer->mute(true);
-                stream->clearPackets();
-                stream->_decoder->clear();
+                _audio_renderer->mute(true);
+                stream->clear();
                 _audio_skip_over.store(true);
             }
             mute_flag = true;
             continue;
         }
 
-        bool succ = false;
-        AVPacket pkt{};
-        if (!stream->popPacket(pkt))
+        AVFrame frm{};
+        bool got = false;
+        bool over = false;
+        if (!stream->recv(frm, got, over))
         {
-            if (_is_over && !flush_flag)
-            {
-                flush_flag = true;
-                succ = stream->_decoder->send(nullptr);
-            }
-            else
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(20));
-                continue;
-            }
-        }
-        else
-        {
-            succ = stream->_decoder->send(&pkt);
-            av_packet_unref(&pkt);
-        }
-
-        if (!succ)
-        {
-            _err = stream->_decoder->err();
+            _err = stream->err();
             _state.store(XPLAYER_STATE_ERROR);
             break;
         }
 
-        AVFrame frm{};
-        bool got = false;
-        bool over = false;
-        while (_is_running.load() && stream->_decoder->recv(frm, got, over) && got)
+        if (!got || (_dst_pos_ms > 0 && (stream->timestamp(frm.pts) < _dst_pos_ms.load() || AV_NOPTS_VALUE == frm.pts)))
+            continue;
+
+        if (AV_NOPTS_VALUE != frm.pts)
+            _audio_clock.store(stream->timestamp(frm.pts));
+
+        uint8_t * data = nullptr;
+        int len = 0;
+        if (!stream->_audio_resampler->rescale(&frm, &data, &len))
         {
-            if (_dst_pos_ms > 0 && (stream->timestamp(frm.pts) < _dst_pos_ms.load() || AV_NOPTS_VALUE == frm.pts))
-                continue;
-
-            if (AV_NOPTS_VALUE != frm.pts)
-                _audio_clock.store(stream->timestamp(frm.pts));
-            uint8_t * data = nullptr;
-            int len = 0;
-            if (!stream->_audio_resampler->rescale(&frm, &data, &len))
-            {
-                _err = stream->_audio_resampler->err();
-                stream->_audio_renderer->mute(true);
-                _state.store(XPLAYER_STATE_ERROR);
-                break;
-            }
-
-            if (mute_flag)
-            {
-                stream->_audio_renderer->mute(false);
-                mute_flag = false;
-            }
-
-            stream->_audio_renderer->renderer(data, len);
-
-            got = false;
+            _err = stream->_audio_resampler->err();
+            _audio_renderer->mute(true);
+            _state.store(XPLAYER_STATE_ERROR);
+            break;
         }
+
+        if (mute_flag)
+        {
+            _audio_renderer->mute(false);
+            mute_flag = false;
+        }
+
+        _audio_renderer->renderer(data, len);
 
         _audio_play_over.store(over);
         if (_audio_play_over && _video_play_over)
         {
             _state.store(XPLAYER_STATE_OVER);
-            stream->_audio_renderer->mute(true);
+            _audio_renderer->mute(true);
         }
     }
 }
@@ -449,84 +500,56 @@ void CXPlayerSource::videoPlayThr()
         {
             if (!_video_skip_over)
             {
-                stream->clearPackets();
-                stream->_decoder->clear();
+                stream->clear();
                 _video_skip_over.store(true);
             }
             continue;
         }
 
-        bool succ = false;
-        AVPacket pkt{};
-        if (!stream->popPacket(pkt))
+        AVFrame frm{};
+        bool got = false;
+        bool over = false;
+        if (!stream->recv(frm, got, over))
         {
-            if (_is_over && !flush_flag)
-            {
-                flush_flag = true;
-                succ = stream->_decoder->send(nullptr);
-            }
-            else
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(20));
-                continue;
-            }
-        }
-        else
-        {
-            succ = stream->_decoder->send(&pkt);
-            av_packet_unref(&pkt);
-        }
-
-        if (!succ)
-        {
-            _err = stream->_decoder->err();
+            _err = stream->err();
             _state.store(XPLAYER_STATE_ERROR);
             break;
         }
 
-        AVFrame frm{};
-        bool got = false;
-        bool over = false;
-        while (_is_running.load() && stream->_decoder->recv(frm, got, over) && got)
+        if (!got || (_dst_pos_ms > 0 && (stream->timestamp(frm.pts) < _dst_pos_ms.load() || AV_NOPTS_VALUE == frm.pts)))
+            continue;
+
+        if (_wnd_changed)
         {
-            if (_dst_pos_ms > 0 && (stream->timestamp(frm.pts) < _dst_pos_ms.load() || AV_NOPTS_VALUE == frm.pts))
-                continue;
-
-            if (_wnd_changed)
-            {
-                //CXPlayerVideoInfo dst(AV_PIX_FMT_YUV420P, _wnd_width.load(), _wnd_height.load());
-                //stream->_video_rescaler->updateParameters(dst);
-                stream->_video_renderer->resizeWindow(_wnd_width.load(), _wnd_height.load());
-                _wnd_changed.store(false);
-            }
-
-            //AVFrame out_frm{};
-            //if (!stream->_video_rescaler->rescale(&frm, &out_frm))
-            //{
-            //    _err = stream->_video_rescaler->err();
-            //    _state.store(XPLAYER_STATE_ERROR);
-            //    break;
-            //}
-
-            int64_t delay_ms = 0;
-            if (-1 != _audio_stream_index.load())
-            {
-                auto tmp = stream->timestamp(frm.pts);
-                delay_ms = tmp - _audio_clock.load();
-            }
-            else
-            {
-                if (frm.duration > 0)
-                    delay_ms = stream->timestamp(frm.duration);
-                else
-                    delay_ms = stream->frameDuration();
-            }
-            if (delay_ms > 0)
-                std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
-
-            stream->_video_renderer->renderer(frm.data, frm.linesize);
-            got = false;
+            _video_renderer->resizeWindow(_wnd_width.load(), _wnd_height.load());
+            _wnd_changed.store(false);
         }
+
+        AVFrame out_frm{};
+        if (!stream->_video_rescaler->rescale(&frm, &out_frm))
+        {
+            _err = stream->_video_rescaler->err();
+            _state.store(XPLAYER_STATE_ERROR);
+            break;
+        }
+
+        int64_t delay_ms = 0;
+        if (-1 != _audio_stream_index.load())
+        {
+            auto tmp = stream->timestamp(out_frm.pts);
+            delay_ms = tmp - _audio_clock.load();
+        }
+        else
+        {
+            if (out_frm.duration > 0)
+                delay_ms = stream->timestamp(out_frm.duration);
+            else
+                delay_ms = stream->frameDuration();
+        }
+        if (delay_ms > 0)
+            std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+
+        _video_renderer->renderer(out_frm.data, out_frm.linesize);
 
         _video_play_over.store(over);
         if (_audio_play_over && _video_play_over)
