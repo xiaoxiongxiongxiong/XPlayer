@@ -47,6 +47,8 @@ bool CXPlayerVideoRescaler::create(const CXPlayerVideoInfo & src, const CXPlayer
     if (dst == src)
     {
         xpu_format_string(_err, "No need swscale!");
+        _src = src;
+        _dst = dst;
         _need_rescale = false;
         return true;
     }
@@ -169,6 +171,12 @@ bool CXPlayerVideoRescaler::rescale(const AVFrame * in_frm, AVFrame * out_frm)
 
     if (!_need_rescale)
     {
+        out_frm->format = static_cast<int>(_dst._fmt);
+        out_frm->pts = in_frm->pts;
+        out_frm->pkt_dts = in_frm->pkt_dts;
+        out_frm->duration = in_frm->duration;
+        out_frm->width = in_frm->width;
+        out_frm->height = in_frm->height;
         memcpy(out_frm->data, in_frm->data, sizeof(in_frm->data[0]) * AV_NUM_DATA_POINTERS);
         memcpy(out_frm->linesize, in_frm->linesize, sizeof(in_frm->linesize[0]) * AV_NUM_DATA_POINTERS);
         return true;
