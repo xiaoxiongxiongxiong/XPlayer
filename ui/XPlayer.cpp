@@ -370,7 +370,6 @@ bool XPlayer::eventFilter(QObject * obj, QEvent * event)
             int vol = qBound(0, current + step, 128);
 
             m_widgetVolume->setVolume(vol);
-            CXPlayerSource::getInstance().setVolume(vol);
             onVolumeChanged(vol);
             //}
             return true;
@@ -448,6 +447,7 @@ void XPlayer::onVolumeChanged(int vol)
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
     else
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
+    CXPlayerSource::getInstance().setVolume(vol);
 }
 
 void XPlayer::onLstDbclickedRecord(QListWidgetItem * item)
@@ -532,6 +532,7 @@ void XPlayer::cleanup()
     }
     ui.m_labName->clear();
     ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/pause.ico"));
+    ui.m_sldProgress->setValue(0);
 }
 
 bool XPlayer::loadPlayRecord()
