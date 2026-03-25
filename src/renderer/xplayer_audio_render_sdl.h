@@ -26,16 +26,16 @@ public:
     void mute(bool flag);
 
     // 渲染
-    void renderer(uint8_t * data, int len);
-
-    // 是否完毕
-    bool finished();
+    bool renderer(uint8_t * data, int len);
 
     // 错误信息
     const char * err() const;
 
 private:
-    std::atomic<audio_info_t *> _cache = { nullptr };
+    // audio device id
+    uint32_t _dev_id = 0u;
+    // 音量
+    std::atomic_int _volume = { 64 };
 
     // 错误信息
     std::string _err;

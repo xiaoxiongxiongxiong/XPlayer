@@ -417,8 +417,6 @@ void CXPlayerSource::audioPlayThr()
             }
 
             stream->_audio_renderer->renderer(data, len);
-            while (_is_running.load() && !stream->_audio_renderer->finished())
-                std::this_thread::sleep_for(std::chrono::microseconds(20));
 
             got = false;
         }
