@@ -6,8 +6,6 @@ extern "C" {
 
 #include "utils/xplayer_utils.h"
 #include "decoder/xplayer_decoder.h"
-#include "rescaler/xplayer_video_rescaler.h"
-#include "rescaler/xplayer_audio_resampler.h"
 
 CXPlayerStream::CXPlayerStream(int index) :
     _index(index)
@@ -67,7 +65,6 @@ void CXPlayerStream::uninit()
 
     avcodec_parameters_free(&_codecpar);
     destroyDecoder();
-    destroyConvertor();
 }
 
 bool CXPlayerStream::send(const AVPacket & pkt, const bool & over)
@@ -155,16 +152,7 @@ bool CXPlayerStream::isFull()
 
 bool CXPlayerStream::prepare()
 {
-    if (!createDecoder())
-        return false;
-
-    if (!createConvertor())
-    {
-        destroyDecoder();
-        return false;
-    }
-
-    return true;
+    return createDecoder();
 }
 
 int64_t CXPlayerStream::timestamp(int64_t timecode)
@@ -212,69 +200,4 @@ void CXPlayerStream::destroyDecoder()
     _decoder->destroy();
     _decoder.reset();
     _decoder = nullptr;
-}
-
-bool CXPlayerStream::createConvertor()
-{
-    if (AVMEDIA_TYPE_VIDEO == _codecpar->codec_type)
-    {
-        _video_rescaler = std::make_shared<CXPlayerVideoRescaler>();
-        if (!_video_rescaler)
-        {
-            xpu_format_string(_err, "Create CXPlayerVideoRescaler instance failed");
-            return false;
-        }
-
-        CXPlayerVideoInfo src(static_cast<AVPixelFormat>(_codecpar->format), _codecpar->width, _codecpar->height);
-        CXPlayerVideoInfo dst(AV_PIX_FMT_YUV420P, _codecpar->width, _codecpar->height);
-
-        if (!_video_rescaler->create(src, dst))
-        {
-            _err = _video_rescaler->err();
-            _video_rescaler.reset();
-            _video_rescaler = nullptr;
-            return false;
-        }
-    }
-    else
-    {
-        _audio_resampler = std::make_shared<CXPlayerAudioResampler>();
-        if (!_audio_resampler)
-        {
-            xpu_format_string(_err, "Create CXPlayerAudioResampler instance failed");
-            return false;
-        }
-
-        CXPlayerAudioInfo src(_codecpar->ch_layout, static_cast<AVSampleFormat>(_codecpar->format), _codecpar->sample_rate);
-        AVChannelLayout dst_layout{};
-        av_channel_layout_default(&dst_layout, 2);
-        CXPlayerAudioInfo dst(dst_layout, AV_SAMPLE_FMT_S16, _codecpar->sample_rate);
-        
-        if (!_audio_resampler->create(src, dst, _codecpar->frame_size))
-        {
-            _err = _audio_resampler->err();
-            _audio_resampler.reset();
-            _audio_resampler = nullptr;
-            return false;
-        }
-    }
-
-    return true;
-}
-
-void CXPlayerStream::destroyConvertor()
-{
-    if (_audio_resampler)
-    {
-        _audio_resampler->destroy();
-        _audio_resampler.reset();
-        _audio_resampler = nullptr;
-    }
-
-    if (_video_rescaler)
-    {
-        _video_rescaler->destroy();
-        _video_rescaler.reset();
-        _video_rescaler = nullptr;
-    }
 }

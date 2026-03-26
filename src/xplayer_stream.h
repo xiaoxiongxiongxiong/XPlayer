@@ -14,8 +14,6 @@ extern "C" {
 
 typedef struct AVCodecParameters AVCodecParameters;
 class CXPlayerDecoder;
-class CXPlayerAudioResampler;
-class CXPlayerVideoRescaler;
 
 class CXPlayerStream
 {
@@ -53,17 +51,6 @@ private:
     bool createDecoder();
     // 销毁解码器
     void destroyDecoder();
-
-    // 创建转换器
-    bool createConvertor();
-    // 销毁转换器
-    void destroyConvertor();
-
-public:
-    // 视频转换器
-    std::shared_ptr<CXPlayerVideoRescaler> _video_rescaler = nullptr;
-    // 音频重采样器
-    std::shared_ptr<CXPlayerAudioResampler> _audio_resampler = nullptr;
 
 private:
     // 索引

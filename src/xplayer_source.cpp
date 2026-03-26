@@ -14,6 +14,7 @@ extern "C" {
 
 CXPlayerSource::~CXPlayerSource()
 {
+    uninitConvertor();
     uninitRenderer();
 }
 
@@ -93,6 +94,7 @@ void CXPlayerSource::close()
     _ctx = nullptr;
 
     _state.store(XPLAYER_STATE_NONE);
+    _speed.store(XPLAYER_SPEED_NORMAL);
     _dst_pos_ms.store(-1);
 }
 
@@ -141,7 +143,12 @@ bool CXPlayerSource::play(const void * wnd, int width, int height)
 
     _wnd_width.store(width);
     _wnd_height.store(height);
-    initRenderer(wnd, width, height);
+
+    if (!initConvertor())
+        return false;
+
+    if (!initRenderer(wnd, width, height))
+        return false;
 
     _cond.notify_one();
     _state.store(XPLAYER_STATE_PLAYING);
@@ -186,10 +193,16 @@ int64_t CXPlayerSource::progress()
 
 void CXPlayerSource::setVolume(int volume)
 {
+    _volume.store(volume);
     if (nullptr != _audio_renderer)
     {
         _audio_renderer->setVolume(volume);
     }
+}
+
+void CXPlayerSource::setSpeed(XPLAYER_SPEED_MODE speed)
+{
+    _speed.store(speed);
 }
 
 XPLAYER_STATE CXPlayerSource::state() const
@@ -257,6 +270,80 @@ void CXPlayerSource::destroyStreams()
     _streams.clear();
 }
 
+bool CXPlayerSource::initConvertor()
+{
+    auto * avs = _ctx->getStreamInfo(_audio_stream_index.load());
+    auto * codecpar = avs ? avs->codecpar : nullptr;
+    if (nullptr == _audio_renderer)
+    {
+        _audio_resampler = std::make_shared<CXPlayerAudioResampler>();
+        if (nullptr == _audio_resampler)
+        {
+            xpu_format_string(_err, "Create CXPlayerAudioResampler instance failed");
+            return false;
+        }
+    }
+
+    if (codecpar)
+    {
+        _audio_resampler->destroy();
+        CXPlayerAudioInfo src(codecpar->ch_layout, static_cast<AVSampleFormat>(codecpar->format), codecpar->sample_rate);
+        AVChannelLayout dst_layout{};
+        av_channel_layout_default(&dst_layout, 2);
+        CXPlayerAudioInfo dst(dst_layout, AV_SAMPLE_FMT_S16, codecpar->sample_rate);
+        if (!_audio_resampler->create(src, dst, codecpar->frame_size))
+        {
+            _err = _audio_resampler->err();
+            return false;
+        }
+    }
+
+    avs = _ctx->getStreamInfo(_video_stream_index.load());
+    codecpar = avs ? avs->codecpar : nullptr;
+    if (nullptr == _video_rescaler)
+    {
+        _video_rescaler = std::make_shared<CXPlayerVideoRescaler>();
+        if (nullptr == _video_rescaler)
+        {
+            xpu_format_string(_err, "Create CXPlayerVideoRescaler instance failed");
+            return false;
+        }
+    }
+
+    if (codecpar)
+    {
+        _video_rescaler->destroy();
+        CXPlayerVideoInfo src(static_cast<AVPixelFormat>(codecpar->format), codecpar->width, codecpar->height);
+        CXPlayerVideoInfo dst(AV_PIX_FMT_YUV420P, codecpar->width, codecpar->height);
+        if (!_video_rescaler->create(src, dst))
+        {
+            _err = _video_rescaler->err();
+            _video_rescaler.reset();
+            _video_rescaler = nullptr;
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void CXPlayerSource::uninitConvertor()
+{
+    if (_audio_resampler)
+    {
+        _audio_resampler->destroy();
+        _audio_resampler.reset();
+        _audio_resampler = nullptr;
+    }
+
+    if (_video_rescaler)
+    {
+        _video_rescaler->destroy();
+        _video_rescaler.reset();
+        _video_rescaler = nullptr;
+    }
+}
+
 bool CXPlayerSource::initRenderer(const void * wnd, int width, int height)
 {
     auto * avs = _ctx->getStreamInfo(_audio_stream_index.load());
@@ -269,17 +356,12 @@ bool CXPlayerSource::initRenderer(const void * wnd, int width, int height)
             xpu_format_string(_err, "Create CXPlayerAudioRender instance failed");
             return false;
         }
-
-        if (codecpar && !_audio_renderer->create(codecpar->sample_rate, codecpar->channels, codecpar->frame_size, 128))
-        {
-            _err = _audio_renderer->err();
-            return false;
-        }
     }
-    else if (codecpar)
+
+    if (codecpar)
     {
         _audio_renderer->destroy();
-        if (!_audio_renderer->create(codecpar->sample_rate, codecpar->channels, codecpar->frame_size, 128))
+        if (!_audio_renderer->create(codecpar->sample_rate, codecpar->channels, codecpar->frame_size, _volume.load()))
         {
             _err = _audio_renderer->err();
             return false;
@@ -412,6 +494,7 @@ void CXPlayerSource::audioPlayThr()
     _audio_cond.wait(lck);
     bool flush_flag = false;
     bool mute_flag = false;
+
     while (_is_running.load())
     {
         while (_is_running.load() && XPLAYER_STATE_PLAYING != _state.load())
@@ -456,9 +539,9 @@ void CXPlayerSource::audioPlayThr()
 
         uint8_t * data = nullptr;
         int len = 0;
-        if (!stream->_audio_resampler->rescale(&frm, &data, &len))
+        if (!_audio_resampler->rescale(&frm, &data, &len))
         {
-            _err = stream->_audio_resampler->err();
+            _err = _audio_resampler->err();
             _audio_renderer->mute(true);
             _state.store(XPLAYER_STATE_ERROR);
             break;
@@ -526,9 +609,9 @@ void CXPlayerSource::videoPlayThr()
         }
 
         AVFrame out_frm{};
-        if (!stream->_video_rescaler->rescale(&frm, &out_frm))
+        if (!_video_rescaler->rescale(&frm, &out_frm))
         {
-            _err = stream->_video_rescaler->err();
+            _err = _video_rescaler->err();
             _state.store(XPLAYER_STATE_ERROR);
             break;
         }

@@ -13,7 +13,8 @@
 
 class CXPlayerDemuxImpl;
 class CXPlayerStream;
-
+class CXPlayerAudioResampler;
+class CXPlayerVideoRescaler;
 class CXPlayerAudioRender;
 class CXPlayerVideoRenderSDL;
 
@@ -87,6 +88,9 @@ public:
     // 设置音量
     void setVolume(int volume);
 
+    // 设置播放倍速
+    void setSpeed(XPLAYER_SPEED_MODE speed);
+
     // 状态
     XPLAYER_STATE state() const;
 
@@ -101,6 +105,11 @@ private:
     bool createStreams();
     // 销毁流
     void destroyStreams();
+
+    // 初始化转换器
+    bool initConvertor();
+    // 销毁转换器
+    void uninitConvertor();
 
     // 初始化渲染器
     bool initRenderer(const void * wnd, int width, int height);
@@ -119,12 +128,16 @@ private:
 private:
     // 播放状态
     std::atomic<XPLAYER_STATE> _state = { XPLAYER_STATE_NONE };
+    // 播放倍速
+    std::atomic<XPLAYER_SPEED_MODE> _speed = { XPLAYER_SPEED_NORMAL };
 
     // 是否运行中
     std::atomic_bool _is_running = { false };
     // 是否需要跳跃
     std::atomic_bool _is_skip = { false };
 
+    // 音量
+    std::atomic_int _volume = { 64 };
     // 当前位置
     std::atomic_int64_t _cur_pos_ms = { 0 };
     // 目标位置
@@ -151,6 +164,10 @@ private:
     std::atomic_bool _audio_play_over = { false };
     // 音频流索引
     std::atomic_int _audio_stream_index = { -1 };
+    // 音频重采样器
+    std::shared_ptr<CXPlayerAudioResampler> _audio_resampler = nullptr;
+    // 音频渲染器
+    std::shared_ptr<CXPlayerAudioRender> _audio_renderer = nullptr;
 
     // 视频播放线程
     std::thread _video_thr;
@@ -164,16 +181,15 @@ private:
     std::atomic_bool _video_play_over = { false };
     // 视频流索引
     std::atomic_int _video_stream_index = { -1 };
+    // 视频画幅转换器
+    std::shared_ptr<CXPlayerVideoRescaler> _video_rescaler = nullptr;
+    // 视频渲染器
+    std::shared_ptr<CXPlayerVideoRenderSDL> _video_renderer = nullptr;
 
     // 上下文
     CXPlayerDemuxImpl * _ctx = nullptr;
     // 流
     std::unordered_map<int, std::shared_ptr<CXPlayerStream>> _streams;
-
-    // 音频渲染器
-    std::shared_ptr<CXPlayerAudioRender> _audio_renderer = nullptr;
-    // 视频渲染器
-    std::shared_ptr<CXPlayerVideoRenderSDL> _video_renderer = nullptr;
 
     // 屏幕宽度
     std::atomic_int _wnd_width = { 0 };

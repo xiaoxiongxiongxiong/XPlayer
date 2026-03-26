@@ -45,6 +45,9 @@ XPlayer::XPlayer(QWidget * parent)
     m_pmnuAudio = m_pclsChoices->addMenu(QStringLiteral("音频选项"));
     m_pmnuAudio->addAction(ui.m_actDisableAudio);
 
+    ui.m_actDisableAudio->setCheckable(true);
+    ui.m_actDisableVideo->setCheckable(true);
+
     m_pclsChoices->setStyleSheet(R"(
         QMenu {
             background-color: #1f1f1f;
@@ -182,7 +185,12 @@ void XPlayer::onBtnClickedVod()
         pi._name = fileInfo.fileName().toStdString();
         pi._path = strFileName.toStdString();
         if (m_pclsVod->addRecord(pi))
-            ui.m_lstRecord->addItem(fileInfo.fileName());
+        {
+            auto * item = new QListWidgetItem(fileInfo.fileName());
+            item->setData(Qt::UserRole + 1, QVariant::fromValue(strFileName));
+            ui.m_lstRecord->addItem(item);
+            ui.m_lstRecord->setCurrentRow(ui.m_lstRecord->count() - 1);
+        }
     }
     play(strFileName.toStdString());
 }
@@ -421,7 +429,9 @@ void XPlayer::dropEvent(QDropEvent * event)
         pi._path = strFileName.toStdString();
         if (m_pclsVod->addRecord(pi))
         {
-            ui.m_lstRecord->addItem(fileInfo.fileName());
+            auto * item = new QListWidgetItem(fileInfo.fileName());
+            item->setData(Qt::UserRole + 1, QVariant::fromValue(strFileName));
+            ui.m_lstRecord->addItem(item);
             ui.m_lstRecord->setCurrentRow(ui.m_lstRecord->count() - 1);
         }
     }
@@ -486,6 +496,8 @@ void XPlayer::play(const std::string & url)
     {
         const auto index = static_cast<int>(std::distance(ais.cbegin(), iter));
         auto * act = new QAction(this);
+        act->setCheckable(true);
+        act->setChecked(true);
         act->setText(QStringLiteral("音轨%1").arg(index));
         act->setData(QVariant::fromValue(*iter));
         act->setObjectName(QStringLiteral("m_actAudio%d").arg(index));
@@ -496,6 +508,8 @@ void XPlayer::play(const std::string & url)
     {
         const auto index = static_cast<int>(std::distance(vis.cbegin(), iter));
         auto * act = new QAction(this);
+        act->setCheckable(true);
+        act->setChecked(true);
         act->setText(QStringLiteral("视轨%1").arg(index));
         act->setData(QVariant::fromValue(*iter));
         act->setObjectName(QStringLiteral("m_actVideo%d").arg(index));
@@ -505,9 +519,6 @@ void XPlayer::play(const std::string & url)
 
     int width = 0, height = 0;
     getDisplaySize(width, height);
-    // 为了解决SDL_DestroyWindow后画面显示问题
-    ui.m_wndScreen->hide();
-    ui.m_wndScreen->show();
     if (!CXPlayerSource::getInstance().play(reinterpret_cast<HWND>(ui.m_wndScreen->winId()), width, height))
     {
         auto * err = CXPlayerSource::getInstance().err();
@@ -533,6 +544,28 @@ void XPlayer::cleanup()
     ui.m_labName->clear();
     ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/pause.ico"));
     ui.m_sldProgress->setValue(0);
+
+    auto actions = m_pmnuAudio->actions();
+    for (auto & action : actions)
+    {
+        if (ui.m_actDisableAudio->objectName() == action->objectName())
+            continue;
+
+        m_pmnuAudio->removeAction(action);
+        if (nullptr == action->parent())
+            delete action;
+    }
+
+    actions = m_pmnuVideo->actions();
+    for (auto & action : actions)
+    {
+        if (ui.m_actDisableVideo->objectName() == action->objectName())
+            continue;
+
+        m_pmnuVideo->removeAction(action);
+        if (nullptr == action->parent())
+            delete action;
+    }
 }
 
 bool XPlayer::loadPlayRecord()

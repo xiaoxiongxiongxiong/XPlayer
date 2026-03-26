@@ -96,6 +96,9 @@ void CXPlayerAudioResampler::destroy()
         memset(_out_data, 0, AV_NUM_DATA_POINTERS);
         memset(_out_size, 0, AV_NUM_DATA_POINTERS);
     }
+
+    _in_nb_samples = 0;
+    _out_max_nb_samples = 0;
 }
 
 bool CXPlayerAudioResampler::rescale(const AVFrame * in_frm, uint8_t ** out_data, int * out_len)
