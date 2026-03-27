@@ -85,6 +85,9 @@ public:
     // 获取播放进度
     int64_t progress();
 
+    // 选流 -1表示禁用
+    bool selectStream(int index, bool is_video);
+
     // 设置音量
     void setVolume(int volume);
 
@@ -143,7 +146,7 @@ private:
     // 目标位置
     std::atomic_int64_t _dst_pos_ms = { -1 };
     // 音频时钟
-    std::atomic_int64_t _audio_clock = { 0.0 };
+    std::atomic_int64_t _audio_clock = { 0 };
 
     // 线程句柄
     std::thread _thr;

@@ -71,7 +71,11 @@ void CVolumeWidget::paintEvent(QPaintEvent * event)
     painter.drawRoundedRect(rect, 6, 6); // 圆角 8px
 }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+void CVolumeWidget::enterEvent(QEnterEvent * event)
+#else
 void CVolumeWidget::enterEvent(QEvent * event)
+#endif
 {
     m_tmVolume->stop(); // 鼠标进入，取消隐藏
     QWidget::enterEvent(event);

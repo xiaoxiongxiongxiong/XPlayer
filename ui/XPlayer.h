@@ -18,7 +18,17 @@ public:
     XPlayer(QWidget * parent = nullptr);
     ~XPlayer();
 
-public slots:
+protected:
+    void mousePressEvent(QMouseEvent * event) override;   // 鼠标点击
+    void mouseMoveEvent(QMouseEvent * event) override;    // 鼠标移动
+    void mouseReleaseEvent(QMouseEvent * event) override; // 鼠标释放
+    void resizeEvent(QResizeEvent * event) override;
+    void timerEvent(QTimerEvent * event) override;
+    bool eventFilter(QObject * obj, QEvent * event) override;
+    void dragEnterEvent(QDragEnterEvent * event) override;
+    void dropEvent(QDropEvent * event) override;
+
+private slots:
     void onBtnClickedMinimize();
     void onBtnClickedMaximize();
     void onBtnClickedClose();
@@ -34,20 +44,11 @@ public slots:
     void onBtnClickedNext();
     void onBtnClickedRecord();
 
-protected:
-    void mousePressEvent(QMouseEvent * event) override;   // 鼠标点击
-    void mouseMoveEvent(QMouseEvent * event) override;    // 鼠标移动
-    void mouseReleaseEvent(QMouseEvent * event) override; // 鼠标释放
-    void resizeEvent(QResizeEvent * event) override;
-    void timerEvent(QTimerEvent * event) override;
-    bool eventFilter(QObject * obj, QEvent * event) override;
-    void dragEnterEvent(QDragEnterEvent * event) override;
-    void dropEvent(QDropEvent * event) override;
-
-private slots:
     void onVolumeButtonEnter();
     void onVolumeChanged(int vol);
     void onLstDbclickedRecord(QListWidgetItem * item);
+    void onActionsVideoTriggered(QAction * action);
+    void onActionsAudioTriggered(QAction * action);
 
 private:
     void play(const std::string & url);
@@ -75,6 +76,8 @@ private:
     QMenu * m_pclsChoices = nullptr;
     QMenu * m_pmnuVideo = nullptr;
     QMenu * m_pmnuAudio = nullptr;
+    QActionGroup * m_grpAudioActions = nullptr;
+    QActionGroup * m_grpVideoActions = nullptr;
 
     CXPlayerRecord * m_pclsVod = nullptr;
     CXPlayerRecord * m_pclsLive = nullptr;

@@ -188,7 +188,17 @@ int64_t CXPlayerSource::progress()
 {
     if (_is_skip.load() || !_ctx || _ctx->duration() <= 0)
         return -1LL;
-    return _audio_clock.load();
+    return _cur_pos_ms.load();
+}
+
+bool CXPlayerSource::selectStream(int index, bool is_video)
+{
+    if (is_video)
+        _video_stream_index.store(index > -1 ? index : -1);
+    else
+        _audio_stream_index.store(index > -1 ? index : -1);
+
+    return true;
 }
 
 void CXPlayerSource::setVolume(int volume)
@@ -492,7 +502,7 @@ void CXPlayerSource::audioPlayThr()
 {
     std::unique_lock<std::mutex> lck(_audio_mtx);
     _audio_cond.wait(lck);
-    bool flush_flag = false;
+    int stream_index = _audio_stream_index.load();
     bool mute_flag = false;
 
     while (_is_running.load())
@@ -507,7 +517,20 @@ void CXPlayerSource::audioPlayThr()
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
 
-        const auto & stream = _streams[_audio_stream_index.load()];
+        if (_audio_stream_index.load() < 0)
+        {
+            if (!mute_flag)
+            {
+                _audio_renderer->mute(true);
+                _streams[stream_index]->clear();
+                _audio_clock.store(-1LL);
+                mute_flag = true;
+            }
+            continue;
+        }
+
+        stream_index = _audio_stream_index.load();
+        const auto & stream = _streams[stream_index];
 
         if (_is_skip.load())
         {
@@ -535,7 +558,10 @@ void CXPlayerSource::audioPlayThr()
             continue;
 
         if (AV_NOPTS_VALUE != frm.pts)
+        {
             _audio_clock.store(stream->timestamp(frm.pts));
+            _cur_pos_ms.store(_audio_clock.load());
+        }
 
         uint8_t * data = nullptr;
         int len = 0;
@@ -568,7 +594,8 @@ void CXPlayerSource::videoPlayThr()
 {
     std::unique_lock lck(_video_mtx);
     _video_cond.wait(lck);
-    bool flush_flag = false;
+    bool flag = false;
+    int stream_index = _video_stream_index.load();
 
     while (_is_running.load())
     {
@@ -577,7 +604,20 @@ void CXPlayerSource::videoPlayThr()
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
 
-        const auto & stream = _streams[_video_stream_index.load()];
+        if (_video_stream_index.load() < 0)
+        {
+            if (!flag)
+            {
+                _streams[stream_index]->clear();
+                _video_renderer->clear();
+                flag = true;
+            }
+
+            continue;
+        }
+
+        stream_index = _video_stream_index.load();
+        const auto & stream = _streams[stream_index];
 
         if (_is_skip.load())
         {
@@ -617,7 +657,7 @@ void CXPlayerSource::videoPlayThr()
         }
 
         int64_t delay_ms = 0;
-        if (-1 != _audio_stream_index.load())
+        if (-1 != _audio_stream_index.load() && _audio_clock.load() > 0)
         {
             auto tmp = stream->timestamp(out_frm.pts);
             delay_ms = tmp - _audio_clock.load();
@@ -628,11 +668,13 @@ void CXPlayerSource::videoPlayThr()
                 delay_ms = stream->timestamp(out_frm.duration);
             else
                 delay_ms = stream->frameDuration();
+            _cur_pos_ms.store(stream->timestamp(out_frm.pts));
         }
         if (delay_ms > 0)
             std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
 
         _video_renderer->renderer(out_frm.data, out_frm.linesize);
+        flag = false;
 
         _video_play_over.store(over);
         if (_audio_play_over && _video_play_over)

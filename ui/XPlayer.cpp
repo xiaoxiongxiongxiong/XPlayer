@@ -27,6 +27,9 @@ XPlayer::XPlayer(QWidget * parent)
     //this->setWindowFlags(Qt::FramelessWindowHint);
     this->setAcceptDrops(true);
 
+    ui.m_actDisableAudio->setData(QVariant::fromValue(-1));
+    ui.m_actDisableVideo->setData(QVariant::fromValue(-1));
+
     ui.m_actVod->setIcon(QIcon(":/XPlayer/res/vod.ico"));
     ui.m_actLive->setIcon(QIcon(":/XPlayer/res/live.ico"));
 
@@ -44,6 +47,16 @@ XPlayer::XPlayer(QWidget * parent)
 
     m_pmnuAudio = m_pclsChoices->addMenu(QStringLiteral("音频选项"));
     m_pmnuAudio->addAction(ui.m_actDisableAudio);
+
+    m_grpAudioActions = new QActionGroup(this);
+    m_grpAudioActions->setExclusive(true);
+    m_grpAudioActions->addAction(ui.m_actDisableAudio);
+    connect(m_grpAudioActions, &QActionGroup::triggered, this, &XPlayer::onActionsAudioTriggered);
+
+    m_grpVideoActions = new QActionGroup(this);
+    m_grpVideoActions->setExclusive(true);
+    m_grpVideoActions->addAction(ui.m_actDisableVideo);
+    connect(m_grpVideoActions, &QActionGroup::triggered, this, &XPlayer::onActionsVideoTriggered);
 
     ui.m_actDisableAudio->setCheckable(true);
     ui.m_actDisableVideo->setCheckable(true);
@@ -85,6 +98,7 @@ XPlayer::XPlayer(QWidget * parent)
     ui.m_btnForward->setToolTip(QStringLiteral("快进"));
     ui.m_btnStop->setToolTip(QStringLiteral("停止"));
     ui.m_btnCtrl->setToolTip(QStringLiteral("播放"));
+    ui.m_btnCtrl->setShortcut(QKeySequence(Qt::Key_Space));
 
     ui.m_lstRecord->hide();
 
@@ -124,154 +138,6 @@ XPlayer::~XPlayer()
     }
 
     unloadPlayRecord();
-}
-
-void XPlayer::onBtnClickedMinimize()
-{
-    if (Qt::WindowMinimized == this->windowState())
-        this->showNormal();
-    else
-        this->showMinimized();
-}
-
-void XPlayer::onBtnClickedMaximize()
-{
-    if (Qt::WindowMaximized == this->windowState())
-        this->showNormal();
-    else
-        this->showMaximized();
-}
-
-void XPlayer::onBtnClickedClose()
-{
-    cleanup();
-    QApplication * app;
-    app->quit();
-}
-
-void XPlayer::onBtnClickedVolume()
-{
-    auto val = m_widgetVolume->getVolume();
-    if (val > 0)
-    {
-        m_widgetVolume->setVolume(0);
-        CXPlayerSource::getInstance().setVolume(0);
-        ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
-    }
-    else
-    {
-        m_widgetVolume->setVolume(50);
-        CXPlayerSource::getInstance().setVolume(64);
-        ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
-    }
-}
-
-void XPlayer::onBtnClickedVod()
-{
-    const QString strFilter = tr("mp4(*.mp4);;mpegts(*.ts);;All Files(*.*)");
-    QString strFileName = QFileDialog::getOpenFileName(this, QStringLiteral("文件对话框"), "F:\\media", strFilter);
-    if (strFileName.isEmpty())
-        return;
-
-    cleanup();
-
-    QFileInfo fileInfo(strFileName);
-    ui.m_labName->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
-
-    if (nullptr != m_pclsVod)
-    {
-        CXPlayerRecordInfo pi;
-        pi._mode = XPLAYER_MODE_VOD;
-        pi._name = fileInfo.fileName().toStdString();
-        pi._path = strFileName.toStdString();
-        if (m_pclsVod->addRecord(pi))
-        {
-            auto * item = new QListWidgetItem(fileInfo.fileName());
-            item->setData(Qt::UserRole + 1, QVariant::fromValue(strFileName));
-            ui.m_lstRecord->addItem(item);
-            ui.m_lstRecord->setCurrentRow(ui.m_lstRecord->count() - 1);
-        }
-    }
-    play(strFileName.toStdString());
-}
-
-void XPlayer::onBtnClickedLive()
-{
-}
-
-void XPlayer::onBtnClickedCtrl()
-{
-    const auto & state = CXPlayerSource::getInstance().state();
-    if (XPLAYER_STATE_NONE == state)
-        return;
-
-    if (XPLAYER_STATE_PLAYING == state)
-    {
-        ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/pause.ico"));
-        CXPlayerSource::getInstance().pause(true);
-    }
-    else if (XPLAYER_STATE_PAUSE == state)
-    {
-        ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/play.ico"));
-        CXPlayerSource::getInstance().pause(false);
-    }
-}
-
-void XPlayer::onBtnClickedStop()
-{
-    cleanup();
-}
-
-void XPlayer::onBtnClickedBackward()
-{
-}
-
-void XPlayer::onBtnClickedForward()
-{
-}
-
-void XPlayer::onBtnClickedLast()
-{
-    auto rows = ui.m_lstRecord->count();
-    auto row = ui.m_lstRecord->currentRow();
-    if (row <= 0)
-        row = rows - 1;
-    else
-        row--;
-    ui.m_lstRecord->setCurrentRow(row);
-    auto * item = ui.m_lstRecord->currentItem();
-    onLstDbclickedRecord(item);
-}
-
-void XPlayer::onBtnClickedNext()
-{
-    auto rows = ui.m_lstRecord->count();
-    auto row = ui.m_lstRecord->currentRow();
-    if (row + 1 >= rows)
-        row = 0;
-    else
-        row++;
-    ui.m_lstRecord->setCurrentRow(row);
-    auto * item = ui.m_lstRecord->currentItem();
-    onLstDbclickedRecord(item);
-}
-
-void XPlayer::onBtnClickedRecord()
-{
-    static bool flag = false;
-    if (flag)
-        ui.m_lstRecord->hide();
-    else
-        ui.m_lstRecord->show();
-    flag = !flag;
-    ui.horizontalLayout->activate();
-
-    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
-    {
-        int width = 0, height = 0;
-        getDisplaySize(width, height);
-        CXPlayerSource::getInstance().resize(width, height);
-    }
 }
 
 void XPlayer::mousePressEvent(QMouseEvent * event)
@@ -439,6 +305,154 @@ void XPlayer::dropEvent(QDropEvent * event)
     play(urls[0].toLocalFile().toStdString());
 }
 
+void XPlayer::onBtnClickedMinimize()
+{
+    if (Qt::WindowMinimized == this->windowState())
+        this->showNormal();
+    else
+        this->showMinimized();
+}
+
+void XPlayer::onBtnClickedMaximize()
+{
+    if (Qt::WindowMaximized == this->windowState())
+        this->showNormal();
+    else
+        this->showMaximized();
+}
+
+void XPlayer::onBtnClickedClose()
+{
+    cleanup();
+    QApplication * app;
+    app->quit();
+}
+
+void XPlayer::onBtnClickedVolume()
+{
+    auto val = m_widgetVolume->getVolume();
+    if (val > 0)
+    {
+        m_widgetVolume->setVolume(0);
+        CXPlayerSource::getInstance().setVolume(0);
+        ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
+    }
+    else
+    {
+        m_widgetVolume->setVolume(50);
+        CXPlayerSource::getInstance().setVolume(64);
+        ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
+    }
+}
+
+void XPlayer::onBtnClickedVod()
+{
+    const QString strFilter = tr("mp4(*.mp4);;mpegts(*.ts);;All Files(*.*)");
+    QString strFileName = QFileDialog::getOpenFileName(this, QStringLiteral("文件对话框"), "F:\\media", strFilter);
+    if (strFileName.isEmpty())
+        return;
+
+    cleanup();
+
+    QFileInfo fileInfo(strFileName);
+    ui.m_labName->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
+
+    if (nullptr != m_pclsVod)
+    {
+        CXPlayerRecordInfo pi;
+        pi._mode = XPLAYER_MODE_VOD;
+        pi._name = fileInfo.fileName().toStdString();
+        pi._path = strFileName.toStdString();
+        if (m_pclsVod->addRecord(pi))
+        {
+            auto * item = new QListWidgetItem(fileInfo.fileName());
+            item->setData(Qt::UserRole + 1, QVariant::fromValue(strFileName));
+            ui.m_lstRecord->addItem(item);
+            ui.m_lstRecord->setCurrentRow(ui.m_lstRecord->count() - 1);
+        }
+    }
+    play(strFileName.toStdString());
+}
+
+void XPlayer::onBtnClickedLive()
+{
+}
+
+void XPlayer::onBtnClickedCtrl()
+{
+    const auto & state = CXPlayerSource::getInstance().state();
+    if (XPLAYER_STATE_NONE == state)
+        return;
+
+    if (XPLAYER_STATE_PLAYING == state)
+    {
+        ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/pause.ico"));
+        CXPlayerSource::getInstance().pause(true);
+    }
+    else if (XPLAYER_STATE_PAUSE == state)
+    {
+        ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/play.ico"));
+        CXPlayerSource::getInstance().pause(false);
+    }
+}
+
+void XPlayer::onBtnClickedStop()
+{
+    cleanup();
+}
+
+void XPlayer::onBtnClickedBackward()
+{
+}
+
+void XPlayer::onBtnClickedForward()
+{
+}
+
+void XPlayer::onBtnClickedLast()
+{
+    auto rows = ui.m_lstRecord->count();
+    auto row = ui.m_lstRecord->currentRow();
+    if (row <= 0)
+        row = rows - 1;
+    else
+        row--;
+    ui.m_lstRecord->setCurrentRow(row);
+    auto * item = ui.m_lstRecord->currentItem();
+    onLstDbclickedRecord(item);
+}
+
+void XPlayer::onBtnClickedNext()
+{
+    auto rows = ui.m_lstRecord->count();
+    auto row = ui.m_lstRecord->currentRow();
+    if (row + 1 >= rows)
+        row = 0;
+    else
+        row++;
+    ui.m_lstRecord->setCurrentRow(row);
+    auto * item = ui.m_lstRecord->currentItem();
+    onLstDbclickedRecord(item);
+}
+
+void XPlayer::onBtnClickedRecord()
+{
+    static bool flag = false;
+    if (flag)
+        ui.m_lstRecord->hide();
+    else
+        ui.m_lstRecord->show();
+    flag = !flag;
+    ui.horizontalLayout->activate();
+
+    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
+    {
+        int width = 0, height = 0;
+        getDisplaySize(width, height);
+        CXPlayerSource::getInstance().resize(width, height);
+    }
+}
+
 void XPlayer::onVolumeButtonEnter()
 {
     if (!m_widgetVolume->isVisible())
@@ -462,12 +476,23 @@ void XPlayer::onVolumeChanged(int vol)
 
 void XPlayer::onLstDbclickedRecord(QListWidgetItem * item)
 {
-    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
-        CXPlayerSource::getInstance().close();
+    cleanup();
 
     auto path = item->data(Qt::UserRole + 1).toString();
     ui.m_labName->setText(item->text());
     play(path.toStdString());
+}
+
+void XPlayer::onActionsVideoTriggered(QAction * action)
+{
+    auto index = action->data().toInt();
+    CXPlayerSource::getInstance().selectStream(index, true);
+}
+
+void XPlayer::onActionsAudioTriggered(QAction * action)
+{
+    auto index = action->data().toInt();
+    CXPlayerSource::getInstance().selectStream(index, false);
 }
 
 void XPlayer::play(const std::string & url)
@@ -497,11 +522,12 @@ void XPlayer::play(const std::string & url)
         const auto index = static_cast<int>(std::distance(ais.cbegin(), iter));
         auto * act = new QAction(this);
         act->setCheckable(true);
-        act->setChecked(true);
+        act->setChecked(0 == index);
         act->setText(QStringLiteral("音轨%1").arg(index));
         act->setData(QVariant::fromValue(*iter));
         act->setObjectName(QStringLiteral("m_actAudio%d").arg(index));
         m_pmnuAudio->addAction(act);
+        m_grpAudioActions->addAction(act);
     }
 
     for (auto iter = vis.cbegin(); iter != vis.cend(); iter++)
@@ -509,12 +535,12 @@ void XPlayer::play(const std::string & url)
         const auto index = static_cast<int>(std::distance(vis.cbegin(), iter));
         auto * act = new QAction(this);
         act->setCheckable(true);
-        act->setChecked(true);
+        act->setChecked(0 == index);
         act->setText(QStringLiteral("视轨%1").arg(index));
         act->setData(QVariant::fromValue(*iter));
         act->setObjectName(QStringLiteral("m_actVideo%d").arg(index));
-        act->setChecked(true);
         m_pmnuVideo->addAction(act);
+        m_grpVideoActions->addAction(act);
     }
 
     int width = 0, height = 0;
@@ -545,7 +571,23 @@ void XPlayer::cleanup()
     ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/pause.ico"));
     ui.m_sldProgress->setValue(0);
 
-    auto actions = m_pmnuAudio->actions();
+    auto actions = m_grpVideoActions->actions();
+    for (auto & action : actions)
+    {
+        if (ui.m_actDisableVideo->objectName() == action->objectName())
+            continue;
+        m_grpVideoActions->removeAction(action);
+    }
+
+    actions = m_grpAudioActions->actions();
+    for (auto & action : actions)
+    {
+        if (ui.m_actDisableAudio->objectName() == action->objectName())
+            continue;
+        m_grpAudioActions->removeAction(action);
+    }
+
+    actions = m_pmnuAudio->actions();
     for (auto & action : actions)
     {
         if (ui.m_actDisableAudio->objectName() == action->objectName())

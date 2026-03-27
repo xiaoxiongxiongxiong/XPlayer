@@ -30,6 +30,9 @@ public:
 	// 渲染
 	bool renderer(uint8_t * data[8], int linesize[8]);
 
+	// 清空画面
+	void clear();
+
     // 错误信息
     const char * err() const;
 

@@ -161,6 +161,16 @@ bool CXPlayerVideoRenderSDL::renderer(uint8_t * data[8], int linesize[8])
     return true;
 }
 
+void CXPlayerVideoRenderSDL::clear()
+{
+    if (nullptr == _renderer)
+        return;
+
+    SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
+    SDL_RenderClear(_renderer);
+    SDL_RenderPresent(_renderer);
+}
+
 // 错误信息
 const char * CXPlayerVideoRenderSDL::err() const
 {
