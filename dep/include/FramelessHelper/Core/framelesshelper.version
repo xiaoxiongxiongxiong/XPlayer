@@ -51,7 +51,7 @@
 [[maybe_unused]] inline constexpr const char FRAMELESSHELPER_COMPILER_NAME_STR[] = "Microsoft® Visual C/C++ Compiler";
 [[maybe_unused]] inline constexpr const char FRAMELESSHELPER_COMPILER_VERSION_STR[] = "19.29.30157.0";
 [[maybe_unused]] inline constexpr const char FRAMELESSHELPER_COMPILER_VENDOR_STR[] = "Microsoft®";
-[[maybe_unused]] inline constexpr const char FRAMELESSHELPER_BUILD_DATETIME_STR[] = "2026-03-24T06:35:22Z";
+[[maybe_unused]] inline constexpr const char FRAMELESSHELPER_BUILD_DATETIME_STR[] = "2026-03-27T02:08:03Z";
 [[maybe_unused]] inline constexpr const char FRAMELESSHELPER_ARCHITECTURE_STR[] = "x64";
 [[maybe_unused]] inline constexpr const char FRAMELESSHELPER_CMAKE_VERSION_STR[] = "3.30.3";
 [[maybe_unused]] inline constexpr const char FRAMELESSHELPER_CMAKE_GENERATOR_STR[] = "Visual Studio 16 2019";
