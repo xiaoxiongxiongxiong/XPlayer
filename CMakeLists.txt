@@ -61,6 +61,7 @@ target_include_directories(${PROJECT_NAME}
     src/renderer
     src/rescaler
     src/decoder
+    src/filter
     src/record
     src/utils
     src/)
@@ -82,6 +83,7 @@ target_link_libraries(${PROJECT_NAME}
         swscale
         SDL2
         jansson
+        SoundTouch
         $<$<CONFIG:Debug>:FramelessHelperWidgets64d>
         $<$<CONFIG:Release>:FramelessHelperWidgets64>
 )
