@@ -567,7 +567,10 @@ void CXPlayerSource::audioPlayThr()
         }
 
         if (!got || (_dst_pos_ms > 0 && (stream->timestamp(frm.pts) < _dst_pos_ms.load() || AV_NOPTS_VALUE == frm.pts)))
+        {
+            av_frame_unref(&frm);
             continue;
+        }
 
         if (AV_NOPTS_VALUE != frm.pts)
         {
@@ -581,6 +584,7 @@ void CXPlayerSource::audioPlayThr()
         {
             _err = _audio_resampler->err();
             _audio_renderer->mute(true);
+            av_frame_unref(&frm);
             _state.store(XPLAYER_STATE_ERROR);
             break;
         }
@@ -593,6 +597,7 @@ void CXPlayerSource::audioPlayThr()
 
         _audio_renderer->renderer(data, len);
 
+        av_frame_unref(&frm);
     }
 }
 
@@ -658,7 +663,10 @@ void CXPlayerSource::videoPlayThr()
         }
 
         if (!got || (_dst_pos_ms > 0 && (stream->timestamp(frm.pts) < _dst_pos_ms.load() || AV_NOPTS_VALUE == frm.pts)))
+        {
+            av_frame_unref(&frm);
             continue;
+        }
 
         if (_wnd_changed)
         {
@@ -670,6 +678,7 @@ void CXPlayerSource::videoPlayThr()
         if (!_video_rescaler->rescale(&frm, &out_frm))
         {
             _err = _video_rescaler->err();
+            av_frame_unref(&frm);
             _state.store(XPLAYER_STATE_ERROR);
             break;
         }
@@ -693,6 +702,7 @@ void CXPlayerSource::videoPlayThr()
 
         _video_renderer->renderer(out_frm.data, out_frm.linesize);
         flag = false;
+        av_frame_unref(&frm);
     }
 }
 
