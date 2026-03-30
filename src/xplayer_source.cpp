@@ -536,6 +536,7 @@ void CXPlayerSource::audioPlayThr()
         {
             if (!_audio_skip_over)
             {
+                _cur_pos_ms.store(-1LL);
                 _audio_renderer->mute(true);
                 stream->clear();
                 _audio_skip_over.store(true);
@@ -551,6 +552,17 @@ void CXPlayerSource::audioPlayThr()
         {
             _err = stream->err();
             _state.store(XPLAYER_STATE_ERROR);
+            break;
+        }
+
+        if (over)
+        {
+            _audio_play_over.store(over);
+            if (_audio_play_over && _video_play_over)
+            {
+                _audio_renderer->mute(true);
+                _state.store(XPLAYER_STATE_OVER);
+            }
             break;
         }
 
@@ -581,12 +593,6 @@ void CXPlayerSource::audioPlayThr()
 
         _audio_renderer->renderer(data, len);
 
-        _audio_play_over.store(over);
-        if (_audio_play_over && _video_play_over)
-        {
-            _state.store(XPLAYER_STATE_OVER);
-            _audio_renderer->mute(true);
-        }
     }
 }
 
@@ -623,6 +629,7 @@ void CXPlayerSource::videoPlayThr()
         {
             if (!_video_skip_over)
             {
+                _cur_pos_ms.store(-1LL);
                 stream->clear();
                 _video_skip_over.store(true);
             }
@@ -636,6 +643,17 @@ void CXPlayerSource::videoPlayThr()
         {
             _err = stream->err();
             _state.store(XPLAYER_STATE_ERROR);
+            break;
+        }
+
+        if (over)
+        {
+            _video_play_over.store(over);
+            if (_audio_play_over && _video_play_over)
+            {
+                _video_renderer->clear();
+                _state.store(XPLAYER_STATE_OVER);
+            }
             break;
         }
 
@@ -675,10 +693,6 @@ void CXPlayerSource::videoPlayThr()
 
         _video_renderer->renderer(out_frm.data, out_frm.linesize);
         flag = false;
-
-        _video_play_over.store(over);
-        if (_audio_play_over && _video_play_over)
-            _state.store(XPLAYER_STATE_OVER);
     }
 }
 
