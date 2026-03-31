@@ -110,6 +110,16 @@ bool CXPlayerAudioResampler::resampler(const AVFrame * in_frm, uint8_t ** out_da
         return false;
     }
 
+    if (in_frm->sample_rate != _in._sample_rate || in_frm->format != _in._fmt ||
+        0 != av_channel_layout_compare(&in_frm->ch_layout, &_in._layout))
+    {
+        CXPlayerAudioInfo pai(in_frm->ch_layout, static_cast<AVSampleFormat>(in_frm->format), in_frm->sample_rate);
+        destroy();
+        auto frame_size = _in_nb_samples;
+        if (!create(pai, _out, frame_size))
+            return false;
+    }
+
     if (!_need_rescale)
     {
         *out_data = in_frm->data[0];
