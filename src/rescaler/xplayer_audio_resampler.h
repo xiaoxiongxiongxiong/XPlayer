@@ -44,7 +44,7 @@ public:
     void destroy();
 
     // 转换
-    bool rescale(const AVFrame * in_frm, uint8_t ** out_data, int * out_len);
+    bool resampler(const AVFrame * in_frm, uint8_t ** out_data, int * out_len);
 
     // 错误信息
     const char * err() const;

@@ -28,6 +28,7 @@ file(GLOB XPLAYER_SRC_FILES
     "src/decoder/*.cpp"
     "src/renderer/*.cpp"
     "src/rescaler/*.cpp"
+    "src/filter/*.cpp"
     "src/record/*.cpp"
     "src/utils/*.cpp"
 )
@@ -84,6 +85,8 @@ target_link_libraries(${PROJECT_NAME}
         SDL2
         jansson
         SoundTouch
+        $<$<CONFIG:Debug>:FramelessHelperCore64d>
+        $<$<CONFIG:Release>:FramelessHelperCore64>
         $<$<CONFIG:Debug>:FramelessHelperWidgets64d>
         $<$<CONFIG:Release>:FramelessHelperWidgets64>
 )

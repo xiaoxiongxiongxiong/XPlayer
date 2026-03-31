@@ -77,6 +77,7 @@ bool CXPlayerAudioResampler::create(const CXPlayerAudioInfo & src, const CXPlaye
     _in = src;
     _out = dst;
     _in_nb_samples = frame_size;
+    _need_rescale = true;
 
     return true;
 }
@@ -101,7 +102,7 @@ void CXPlayerAudioResampler::destroy()
     _out_max_nb_samples = 0;
 }
 
-bool CXPlayerAudioResampler::rescale(const AVFrame * in_frm, uint8_t ** out_data, int * out_len)
+bool CXPlayerAudioResampler::resampler(const AVFrame * in_frm, uint8_t ** out_data, int * out_len)
 {
     if (nullptr == in_frm)
     {
