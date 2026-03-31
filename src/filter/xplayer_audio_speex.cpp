@@ -6,7 +6,7 @@
 
 bool CXPlayerAudioSpeex::create(int channels, int sample_rate, int samples)
 {
-    _ctx = std::make_unique<soundtouch::SoundTouch>();
+    _ctx = std::make_shared<soundtouch::SoundTouch>();
     if (nullptr == _ctx)
     {
         xpu_format_string(_err, "Create SoundTouch instance failed");
@@ -33,6 +33,19 @@ void CXPlayerAudioSpeex::destroy()
     }
 }
 
+void CXPlayerAudioSpeex::update(int channels, int sample_rate, int samples)
+{
+    if (nullptr == _ctx)
+        return;
+
+    _ctx->setSampleRate(sample_rate);
+    _ctx->setChannels(channels);
+
+    _channels = channels;
+    _sample_rate = sample_rate;
+    _samples = samples;
+}
+
 void CXPlayerAudioSpeex::setSpeed(double speed)
 {
     if (nullptr != _ctx)
@@ -47,29 +60,23 @@ bool CXPlayerAudioSpeex::send(const uint8_t * data, int len)
     std::vector<float> buff(samples);
     s162flt(data, len, buff.data());
 
-    _ctx->putSamples(buff.data(), samples);
+    _ctx->putSamples(buff.data(), samples / _channels);
 
     return true;
 }
 
-bool CXPlayerAudioSpeex::recv(uint8_t * data, int & len)
+int CXPlayerAudioSpeex::recv(uint8_t * data, int len)
 {
-    auto totol_samples = _samples * _channels;
-    if (len / sizeof(int16_t) < totol_samples)
-        totol_samples = len / sizeof(int16_t);
-
-    std::vector<float> buff(totol_samples);
-    uint samples = st.receiveSamples(buff.data(), totol_samples);
-    if (samples <= 0u)
-    {
-        len = 0;
-        return true;
-    }
+    const auto total_samples = len / static_cast<int>(sizeof(int16_t));
+    std::vector<float> buff(total_samples);
+    uint samples = _ctx->receiveSamples(buff.data(), total_samples / _channels);
+    if (samples < 1u)
+        return 0;
 
     len = samples * _channels * static_cast<int>(sizeof(int16_t));
     flt2s16(buff.data(), samples * _channels, data);
 
-    return true;
+    return len;
 }
 
 void CXPlayerAudioSpeex::flush()
@@ -78,6 +85,20 @@ void CXPlayerAudioSpeex::flush()
     {
         _ctx->flush();
     }
+}
+
+void CXPlayerAudioSpeex::clear()
+{
+    if (nullptr == _ctx)
+        return;
+
+    _ctx->flush();
+
+    uint samples = 0u;
+    do 
+    {
+        samples = _ctx->receiveSamples(_samples);
+    } while (samples > 0u);
 }
 
 const char * CXPlayerAudioSpeex::err() const

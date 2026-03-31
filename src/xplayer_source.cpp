@@ -8,6 +8,7 @@ extern "C" {
 #include "demuxer/xplayer_demuxer.h"
 #include "rescaler/xplayer_audio_resampler.h"
 #include "rescaler/xplayer_video_rescaler.h"
+#include "filter/xplayer_audio_speex.h"
 #include "renderer/xplayer_audio_render_sdl.h"
 #include "renderer/xplayer_video_render_sdl.h"
 #include "xplayer_stream.h"
@@ -89,12 +90,13 @@ void CXPlayerSource::close()
 
     destroyStreams();
 
+    uninitFilter();
+
     _ctx->close();
     delete _ctx;
     _ctx = nullptr;
 
     _state.store(XPLAYER_STATE_NONE);
-    _speed.store(XPLAYER_SPEED_NORMAL);
     _dst_pos_ms.store(-1);
 }
 
@@ -145,6 +147,9 @@ bool CXPlayerSource::play(const void * wnd, int width, int height)
     _wnd_height.store(height);
 
     if (!initConvertor())
+        return false;
+
+    if (!initFilter())
         return false;
 
     if (!initRenderer(wnd, width, height))
@@ -212,7 +217,12 @@ void CXPlayerSource::setVolume(int volume)
 
 void CXPlayerSource::setSpeed(XPLAYER_SPEED_MODE speed)
 {
-    _speed.store(speed);
+    if (_speed_mode.load() != speed)
+    {
+        _speed_mode.store(speed);
+        processSpeed(speed);
+        _speed_changed.store(true);
+    }
 }
 
 XPLAYER_STATE CXPlayerSource::state() const
@@ -351,6 +361,50 @@ void CXPlayerSource::uninitConvertor()
         _video_rescaler->destroy();
         _video_rescaler.reset();
         _video_rescaler = nullptr;
+    }
+}
+
+bool CXPlayerSource::initFilter()
+{
+    if (_audio_stream_index.load() < 0)
+        return true;
+
+    auto * stream = _ctx->getStreamInfo(_audio_stream_index.load());
+    if (nullptr == stream)
+    {
+        xpu_format_string(_err, "Get stream info by index '%d' failed", _audio_stream_index.load());
+        return false;
+    }
+
+    auto * codec_par = stream->codecpar;
+
+    _audio_speex = std::make_shared<CXPlayerAudioSpeex>();
+    if (nullptr == _audio_speex)
+    {
+        xpu_format_string(_err, "Create CXPlayerAudioSpeex instance failed");
+        return false;
+    }
+
+    if (!_audio_speex->create(codec_par->channels, codec_par->sample_rate, codec_par->frame_size))
+    {
+        _err = _audio_speex->err();
+        _audio_speex.reset();
+        _audio_speex = nullptr;
+        return false;
+    }
+
+    _audio_speex->setSpeed(_speed.load());
+
+    return true;
+}
+
+void CXPlayerSource::uninitFilter()
+{
+    if (nullptr != _audio_speex)
+    {
+        _audio_speex->destroy();
+        _audio_speex.reset();
+        _audio_speex = nullptr;
     }
 }
 
@@ -504,12 +558,13 @@ void CXPlayerSource::audioPlayThr()
     _audio_cond.wait(lck);
     int stream_index = _audio_stream_index.load();
     bool mute_flag = false;
+    std::vector<uint8_t> buff(8192);
 
     while (_is_running.load())
     {
         while (_is_running.load() && XPLAYER_STATE_PLAYING != _state.load())
         {
-            if (XPLAYER_STATE_PAUSE == _state.load() & !mute_flag)
+            if (XPLAYER_STATE_PAUSE == _state.load() && !mute_flag)
             {
                 _audio_renderer->mute(true);
                 mute_flag = true;
@@ -521,12 +576,16 @@ void CXPlayerSource::audioPlayThr()
         {
             if (!mute_flag)
             {
-                _audio_renderer->mute(true);
-                _streams[stream_index]->clear();
+                audioClear(stream_index);
                 _audio_clock.store(-1LL);
                 mute_flag = true;
             }
             continue;
+        }
+
+        if (stream_index != _audio_stream_index.load())
+        {
+            processAudioStream(stream_index);
         }
 
         stream_index = _audio_stream_index.load();
@@ -537,11 +596,10 @@ void CXPlayerSource::audioPlayThr()
             if (!_audio_skip_over)
             {
                 _cur_pos_ms.store(-1LL);
-                _audio_renderer->mute(true);
-                stream->clear();
+                audioClear(stream_index);
+                mute_flag = true;
                 _audio_skip_over.store(true);
             }
-            mute_flag = true;
             continue;
         }
 
@@ -557,6 +615,7 @@ void CXPlayerSource::audioPlayThr()
 
         if (over)
         {
+            audioMultiSpeedRenderer(buff, 4096, true);
             _audio_play_over.store(over);
             if (_audio_play_over && _video_play_over)
             {
@@ -580,7 +639,7 @@ void CXPlayerSource::audioPlayThr()
 
         uint8_t * data = nullptr;
         int len = 0;
-        if (!_audio_resampler->rescale(&frm, &data, &len))
+        if (!_audio_resampler->resampler(&frm, &data, &len))
         {
             _err = _audio_resampler->err();
             _audio_renderer->mute(true);
@@ -588,6 +647,7 @@ void CXPlayerSource::audioPlayThr()
             _state.store(XPLAYER_STATE_ERROR);
             break;
         }
+        av_frame_unref(&frm);
 
         if (mute_flag)
         {
@@ -595,9 +655,20 @@ void CXPlayerSource::audioPlayThr()
             mute_flag = false;
         }
 
-        _audio_renderer->renderer(data, len);
+        if (_speed_changed.load())
+        {
+            _audio_speex->setSpeed(_speed.load());
+            _speed_changed.store(false);
+        }
 
-        av_frame_unref(&frm);
+        if (XPLAYER_SPEED_NORMAL == _speed_mode.load())
+        {
+            _audio_renderer->renderer(data, len);
+            continue;
+        }
+
+        _audio_speex->send(data, len);
+        audioMultiSpeedRenderer(buff, len);
     }
 }
 
@@ -683,6 +754,8 @@ void CXPlayerSource::videoPlayThr()
             break;
         }
 
+        av_frame_unref(&frm);
+
         int64_t delay_ms = 0;
         if (-1 != _audio_stream_index.load() && _audio_clock.load() > 0)
         {
@@ -695,6 +768,7 @@ void CXPlayerSource::videoPlayThr()
                 delay_ms = stream->timestamp(out_frm.duration);
             else
                 delay_ms = stream->frameDuration();
+            delay_ms = static_cast<int64_t>(std::round(static_cast<double>(delay_ms) / _speed.load()));
             _cur_pos_ms.store(stream->timestamp(out_frm.pts));
         }
         if (delay_ms > 0)
@@ -702,7 +776,84 @@ void CXPlayerSource::videoPlayThr()
 
         _video_renderer->renderer(out_frm.data, out_frm.linesize);
         flag = false;
-        av_frame_unref(&frm);
     }
+}
+
+void CXPlayerSource::audioMultiSpeedRenderer(std::vector<std::uint8_t> & buff, int bytes, const bool & over)
+{
+    if (XPLAYER_SPEED_NORMAL == _speed_mode.load())
+        return;
+
+    if (over)
+        _audio_speex->flush();
+
+    std::vector<uint8_t> cache(bytes);
+    int len = _audio_speex->recv(cache.data(), bytes);
+    while (len > 0)
+    {
+        buff.insert(buff.end(), cache.begin(), cache.begin() + len);
+        if (buff.size() >= bytes)
+        {
+            _audio_renderer->renderer(buff.data(), bytes);
+            buff.erase(buff.begin(), buff.begin() + bytes);
+        }
+        len = _audio_speex->recv(cache.data(), bytes);
+    }
+    
+    if (over && !buff.empty())
+    {
+        _audio_renderer->renderer(buff.data(), buff.size());
+        buff.clear();
+    }
+}
+
+void CXPlayerSource::audioClear(int stream_index)
+{
+    _audio_renderer->mute(true);
+    _streams[stream_index]->clear();
+    _audio_speex->clear();
+}
+
+void CXPlayerSource::processSpeed(XPLAYER_SPEED_MODE mode)
+{
+    switch (mode)
+    {
+    case XPLAYER_SPEED_NORMAL:
+        _speed.store(1.0);
+        break;
+    case XPLAYER_SPEED_ONE_QUATER:
+        _speed.store(0.25);
+        break;
+    case XPLAYER_SPEED_ONE_HALF:
+        _speed.store(0.5);
+        break;
+    case XPLAYER_SPEED_DOUBLE:
+        _speed.store(2.0);
+        break;
+    case XPLAYER_SPEED_QUADRUPLE:
+        _speed.store(4.0);
+        break;
+    default:
+        _speed.store(1.0);
+        break;
+    }
+}
+
+bool CXPlayerSource::processAudioStream(int stream_index)
+{
+    _streams[stream_index]->clear();
+
+    const auto * stream = _ctx->getStreamInfo(_audio_stream_index.load());
+    if (nullptr == stream)
+    {
+        xpu_format_string(_err, "Find audio stream by index '%d' failed", _audio_stream_index.load());
+        return false;
+    }
+
+    const auto * codecpar = stream->codecpar;
+    _audio_speex->clear();
+    _audio_speex->update(codecpar->channels, codecpar->sample_rate, codecpar->frame_size);
+
+    return true;
 }
 

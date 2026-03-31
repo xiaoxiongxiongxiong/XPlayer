@@ -62,7 +62,8 @@ bool CXPlayerAudioRender::renderer(uint8_t * data, int len)
     do 
     {
         bytes = SDL_GetQueuedAudioSize(_dev_id);
-        SDL_Delay(1);
+        if (bytes > len)
+            SDL_Delay(1);
     } while (bytes > len && _dev_id > 0u);
 
     return true;

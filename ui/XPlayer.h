@@ -86,4 +86,7 @@ private:
     bool m_blFullScreen = false;
     // 
     QWidget * m_wndScreenParent = nullptr;
+
+    // 倍速
+    uint32_t m_uiSpeed = 0;
 };

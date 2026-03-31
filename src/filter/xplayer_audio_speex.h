@@ -3,6 +3,7 @@
 
 #include <cstdbool>
 #include <string>
+#include <memory>
 
 namespace soundtouch
 {
@@ -20,23 +21,29 @@ public:
 	// 销毁
 	void destroy();
 
+	// 更新参数
+	void update(int channels, int sample_rate, int samples);
+
 	// 设置倍速
 	void setSpeed(double speed);
 
 	// 发送
 	bool send(const uint8_t * data, int len);
 	// 接收
-	bool recv(uint8_t * data, int & len);
+	int recv(uint8_t * data, int len);
 
 	// flush
 	void flush();
+
+	// 清空
+	void clear();
 
 	// 错误信息
 	const char * err() const;
 
 private:
     // 实例
-	std::unique_ptr<soundtouch::SoundTouch> _ctx = nullptr;
+	std::shared_ptr<soundtouch::SoundTouch> _ctx = nullptr;
 
 	// 声道数
 	int _channels = 0;

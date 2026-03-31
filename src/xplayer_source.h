@@ -15,6 +15,7 @@ class CXPlayerDemuxImpl;
 class CXPlayerStream;
 class CXPlayerAudioResampler;
 class CXPlayerVideoRescaler;
+class CXPlayerAudioSpeex;
 class CXPlayerAudioRender;
 class CXPlayerVideoRenderSDL;
 
@@ -33,9 +34,9 @@ typedef enum _XPLAYER_STATE
 // 播放倍速
 typedef enum _XPLAYER_SPEED_MODE
 {
-    XPLAYER_SPEED_NORMAL,      // 一倍速
     XPLAYER_SPEED_ONE_QUATER,  // 0.25
     XPLAYER_SPEED_ONE_HALF,    // 0.5
+    XPLAYER_SPEED_NORMAL,      // 1.0
     XPLAYER_SPEED_DOUBLE,      // 2
     XPLAYER_SPEED_QUADRUPLE,   // 4倍速
 } XPLAYER_SPEED_MODE;
@@ -114,6 +115,11 @@ private:
     // 销毁转换器
     void uninitConvertor();
 
+    // 初始化过滤器
+    bool initFilter();
+    // 销毁过滤器
+    void uninitFilter();
+
     // 初始化渲染器
     bool initRenderer(const void * wnd, int width, int height);
     // 销毁渲染器
@@ -128,11 +134,27 @@ private:
     // 视频播放线程
     void videoPlayThr();
 
+    // 音频多倍速渲染
+    void audioMultiSpeedRenderer(std::vector<std::uint8_t> & buff, int bytes, const bool & over = false);
+
+    // 音频清理
+    void audioClear(int stream_index);
+
+    // 处理倍速
+    void processSpeed(XPLAYER_SPEED_MODE mode);
+
+    // 处理音频流切换
+    bool processAudioStream(int stream_index);
+
 private:
     // 播放状态
     std::atomic<XPLAYER_STATE> _state = { XPLAYER_STATE_NONE };
     // 播放倍速
-    std::atomic<XPLAYER_SPEED_MODE> _speed = { XPLAYER_SPEED_NORMAL };
+    std::atomic<XPLAYER_SPEED_MODE> _speed_mode = { XPLAYER_SPEED_NORMAL };
+    // 倍速值
+    std::atomic<double> _speed = { 1.0 };
+    // 播放倍速改变
+    std::atomic_bool _speed_changed = { false };
 
     // 是否运行中
     std::atomic_bool _is_running = { false };
@@ -171,6 +193,8 @@ private:
     std::shared_ptr<CXPlayerAudioResampler> _audio_resampler = nullptr;
     // 音频渲染器
     std::shared_ptr<CXPlayerAudioRender> _audio_renderer = nullptr;
+    // 音频倍速过滤器
+    std::shared_ptr<CXPlayerAudioSpeex> _audio_speex = nullptr;
 
     // 视频播放线程
     std::thread _video_thr;

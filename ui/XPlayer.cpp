@@ -94,7 +94,7 @@ XPlayer::XPlayer(QWidget * parent)
 
     ui.m_btnNext->setToolTip(QStringLiteral("下一个"));
     ui.m_btnLast->setToolTip(QStringLiteral("上一个"));
-    ui.m_btnBackward->setToolTip(QStringLiteral("快退"));
+    ui.m_btnBackward->setToolTip(QStringLiteral("慢进"));
     ui.m_btnForward->setToolTip(QStringLiteral("快进"));
     ui.m_btnStop->setToolTip(QStringLiteral("停止"));
     ui.m_btnCtrl->setToolTip(QStringLiteral("播放"));
@@ -121,6 +121,7 @@ XPlayer::XPlayer(QWidget * parent)
     connect(ui.m_lstRecord, &QListWidget::itemDoubleClicked, this, &XPlayer::onLstDbclickedRecord);
 
     loadPlayRecord();
+    m_uiSpeed = XPLAYER_SPEED_NORMAL;
 }
 
 XPlayer::~XPlayer()
@@ -403,10 +404,20 @@ void XPlayer::onBtnClickedStop()
 
 void XPlayer::onBtnClickedBackward()
 {
+    if (m_uiSpeed > XPLAYER_SPEED_ONE_QUATER)
+    {
+        m_uiSpeed--;
+        CXPlayerSource::getInstance().setSpeed(static_cast<XPLAYER_SPEED_MODE>(m_uiSpeed));
+    }
 }
 
 void XPlayer::onBtnClickedForward()
 {
+    if (m_uiSpeed < XPLAYER_SPEED_QUADRUPLE)
+    {
+        m_uiSpeed++;
+        CXPlayerSource::getInstance().setSpeed(static_cast<XPLAYER_SPEED_MODE>(m_uiSpeed));
+    }
 }
 
 void XPlayer::onBtnClickedLast()
