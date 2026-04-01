@@ -12,4 +12,7 @@ void s162flt(const uint8_t * data, int len, float * flt);
 // float转为s16
 void flt2s16(const float * flt, int len, uint8_t * data);
 
+// 时间转字符串
+std::string xpu_time2str(int64_t ms);
+
 #endif

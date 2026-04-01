@@ -77,3 +77,17 @@ void flt2s16(const float * flt, int len, uint8_t * data)
         data[i * 2 + 1] = static_cast<uint8_t>((sample >> 8) & 0xFF); // 高字节
     }
 }
+
+std::string xpu_time2str(int64_t ms)
+{
+    std::string str;
+
+    auto hour = ms / 1000 / 3600;
+    auto minute = ms / 1000 % 3600 / 60;
+    auto sec = ms / 1000 % 3600 % 60;
+    auto msec = ms % 1000;
+
+    xpu_format_string(str, "%02d:%02d:%02d.%03d", hour, minute, sec, msec);
+
+    return str;
+}
