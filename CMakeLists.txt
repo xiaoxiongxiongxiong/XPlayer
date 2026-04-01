@@ -83,6 +83,7 @@ target_link_libraries(${PROJECT_NAME}
         swresample
         swscale
         SDL2
+        SDL2_ttf
         jansson
         SoundTouch
         $<$<CONFIG:Debug>:FramelessHelperCore64d>

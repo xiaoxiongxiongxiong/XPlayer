@@ -2,6 +2,7 @@
 #include <QtWidgets/QApplication>
 #define SDL_MAIN_HANDLED
 #include "SDL2/SDL.h"
+#include "SDL2/SDL_ttf.h"
 
 int main(int argc, char * argv[])
 {
@@ -18,6 +19,9 @@ int main(int argc, char * argv[])
 
     SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO);
     atexit(SDL_Quit);
+
+    TTF_Init();
+    atexit(TTF_Quit);
 
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 

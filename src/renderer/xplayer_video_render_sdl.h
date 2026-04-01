@@ -9,6 +9,7 @@
 typedef struct SDL_Window SDL_Window;
 typedef struct SDL_Renderer SDL_Renderer;
 typedef struct SDL_Texture SDL_Texture;
+typedef struct TTF_Font TTF_Font;
 
 class CXPlayerVideoRenderSDL
 {
@@ -21,6 +22,12 @@ public:
 	// 销毁
 	void destroy();
 
+	// 设置字体信息
+	void setFontPath(const std::string & path);
+
+	// 设置字体大小
+	void setFontSize(int size);
+
 	// 改变窗口大小
 	bool resizeWindow(int width, int height);
 
@@ -28,7 +35,7 @@ public:
 	bool resizeImage(int width, int height);
 
 	// 渲染
-	bool renderer(uint8_t * data[8], int linesize[8]);
+	bool renderer(uint8_t * data[8], int linesize[8], const std::string & str = "");
 
 	// 清空画面
 	void clear();
@@ -37,13 +44,28 @@ public:
     const char * err() const;
 
 private:
-	// 重开纹理器
-	bool reopenTexture();
+	// 初始化文本渲染器
+	bool initTextRenderer(const std::string & font_path, int font_size);
+
+	// 渲染
+	void rendererText(const std::string & str);
+
+	// 重开渲染器
+	bool reopenRenderer();
 
 private:
 	SDL_Window * _wnd = nullptr;
 	SDL_Renderer * _renderer = nullptr;
 	SDL_Texture * _texture = nullptr;
+
+	// 文本信息
+	TTF_Font * _font = nullptr;
+	// 字体大小
+	int _font_size = 0;
+	// 字体文件路径
+	std::string _font_path;
+	// 字体改变标记
+	std::atomic_int _font_flag = { 0 };
 
 	// 画面宽度
 	std::atomic_int _img_width = { 0 };
