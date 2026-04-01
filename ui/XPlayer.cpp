@@ -100,7 +100,7 @@ XPlayer::XPlayer(QWidget * parent)
     ui.m_btnCtrl->setToolTip(QStringLiteral("播放"));
     ui.m_btnCtrl->setShortcut(QKeySequence(Qt::Key_Space));
 
-    ui.m_lstRecord->hide();
+    setLayoutVisible(ui.verticalLayout_4, false);
 
     ui.m_sldProgress->installEventFilter(this);
     ui.m_wndScreen->installEventFilter(this);
@@ -449,10 +449,8 @@ void XPlayer::onBtnClickedNext()
 void XPlayer::onBtnClickedRecord()
 {
     static bool flag = false;
-    if (flag)
-        ui.m_lstRecord->hide();
-    else
-        ui.m_lstRecord->show();
+    setLayoutVisible(ui.verticalLayout_4, flag);
+
     flag = !flag;
     ui.horizontalLayout->activate();
 
@@ -721,4 +719,20 @@ void XPlayer::getDisplaySize(int & width, int & height)
     auto ratio = screen->devicePixelRatio();
     width = size.width() * ratio;
     height = size.height() * ratio;
+}
+
+void XPlayer::setLayoutVisible(QLayout * layout, bool visible)
+{
+    if (nullptr == layout)
+        return;
+
+    auto cnt = layout->count();
+    for (int i = 0; i < cnt; i++)
+    {
+        auto * item = layout->itemAt(i);
+        if (item->widget())
+            item->widget()->setVisible(visible);
+        else if (item->layout())
+            setLayoutVisible(item->layout(), visible);
+    }
 }

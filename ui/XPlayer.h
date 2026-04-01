@@ -62,6 +62,8 @@ private:
     void toggleFullScreen();
     // 获取显示区域大小
     void getDisplaySize(int & width, int & height);
+    // 控制某个区域显示/隐藏
+    void setLayoutVisible(QLayout * layout, bool visible);
 
 private:
     Ui::XPlayerClass ui;
