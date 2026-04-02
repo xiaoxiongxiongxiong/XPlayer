@@ -31,6 +31,7 @@ file(GLOB XPLAYER_SRC_FILES
     "src/filter/*.cpp"
     "src/record/*.cpp"
     "src/utils/*.cpp"
+    "src/config/*.cpp"
 )
 
 file(GLOB XPLAYER_UI_FILES
@@ -65,6 +66,7 @@ target_include_directories(${PROJECT_NAME}
     src/filter
     src/record
     src/utils
+    src/config
     src/)
 
 target_link_directories(${PROJECT_NAME}
