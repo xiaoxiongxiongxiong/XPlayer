@@ -4,11 +4,12 @@
 #include <FramelessHelper/Widgets/framelessmainwindow.h>
 
 #include <QtWidgets/QMainWindow>
+#include <QtWidgets/QListWidget>
 #include "ui_XPlayer.h"
 
 class QMenuBar;
 class CVolumeWidget;
-class CXPlayerRecord;
+class CRecordWidget;
 
 class XPlayer : public FRAMELESSHELPER_NAMESPACE::FramelessMainWindow
 {
@@ -62,8 +63,6 @@ private:
     void toggleFullScreen();
     // 获取显示区域大小
     void getDisplaySize(int & width, int & height);
-    // 控制某个区域显示/隐藏
-    void setLayoutVisible(QLayout * layout, bool visible);
 
 private:
     Ui::XPlayerClass ui;
@@ -81,8 +80,8 @@ private:
     QActionGroup * m_grpAudioActions = nullptr;
     QActionGroup * m_grpVideoActions = nullptr;
 
-    CXPlayerRecord * m_pclsVod = nullptr;
-    CXPlayerRecord * m_pclsLive = nullptr;
+    CRecordWidget * m_pVodWidget = nullptr;
+    CRecordWidget * m_pLiveWidget = nullptr;
 
     // 是否全屏
     bool m_blFullScreen = false;

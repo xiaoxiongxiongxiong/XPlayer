@@ -12,11 +12,11 @@
 #include <QFileInfo>
 #include <windows.h>
 
+#include "RecordWidget.h"
 #include "CVolumeWidget.h"
 #include "utils/xplayer_utils.h"
 #include "renderer/xplayer_audio_render_sdl.h"
 #include "renderer/xplayer_video_render_sdl.h"
-#include "record/xplayer_record.h"
 #include "xplayer_source.h"
 
 XPlayer::XPlayer(QWidget * parent)
@@ -100,7 +100,15 @@ XPlayer::XPlayer(QWidget * parent)
     ui.m_btnCtrl->setToolTip(QStringLiteral("播放"));
     ui.m_btnCtrl->setShortcut(QKeySequence(Qt::Key_Space));
 
-    setLayoutVisible(ui.verticalLayout_4, false);
+    ui.m_tabRecord->hide();
+
+    m_pVodWidget = new CRecordWidget(this);
+    ui.m_tabRecord->addTab(m_pVodWidget, QStringLiteral("文件"));
+    connect(m_pVodWidget, &CRecordWidget::itemDbclicked, this, &XPlayer::onLstDbclickedRecord);
+
+    m_pLiveWidget = new CRecordWidget(this);
+    ui.m_tabRecord->addTab(m_pLiveWidget, QStringLiteral("链接"));
+    connect(m_pLiveWidget, &CRecordWidget::itemDbclicked, this, &XPlayer::onLstDbclickedRecord);
 
     ui.m_sldProgress->installEventFilter(this);
     ui.m_wndScreen->installEventFilter(this);
@@ -118,7 +126,6 @@ XPlayer::XPlayer(QWidget * parent)
     m_tmVolume->setInterval(200);
     connect(m_tmVolume, &QTimer::timeout, this, &XPlayer::onVolumeButtonEnter);
     connect(m_widgetVolume, &CVolumeWidget::volumeChanged, this, &XPlayer::onVolumeChanged);
-    connect(ui.m_lstRecord, &QListWidget::itemDoubleClicked, this, &XPlayer::onLstDbclickedRecord);
 
     loadPlayRecord();
     m_uiSpeed = XPLAYER_SPEED_NORMAL;
@@ -288,22 +295,9 @@ void XPlayer::dropEvent(QDropEvent * event)
     QFileInfo fileInfo(strFileName);
     ui.m_labName->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
 
-    if (nullptr != m_pclsVod)
-    {
-        CXPlayerRecordInfo pi;
-        pi._mode = XPLAYER_MODE_VOD;
-        pi._name = fileInfo.fileName().toStdString();
-        pi._path = strFileName.toStdString();
-        if (m_pclsVod->addRecord(pi))
-        {
-            auto * item = new QListWidgetItem(fileInfo.fileName());
-            item->setData(Qt::UserRole + 1, QVariant::fromValue(strFileName));
-            ui.m_lstRecord->addItem(item);
-            ui.m_lstRecord->setCurrentRow(ui.m_lstRecord->count() - 1);
-        }
-    }
+    m_pVodWidget->addRecord(fileInfo.fileName(), strFileName);
 
-    play(urls[0].toLocalFile().toStdString());
+    play(strFileName.toStdString());
 }
 
 void XPlayer::onBtnClickedMinimize()
@@ -358,20 +352,8 @@ void XPlayer::onBtnClickedVod()
     QFileInfo fileInfo(strFileName);
     ui.m_labName->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
 
-    if (nullptr != m_pclsVod)
-    {
-        CXPlayerRecordInfo pi;
-        pi._mode = XPLAYER_MODE_VOD;
-        pi._name = fileInfo.fileName().toStdString();
-        pi._path = strFileName.toStdString();
-        if (m_pclsVod->addRecord(pi))
-        {
-            auto * item = new QListWidgetItem(fileInfo.fileName());
-            item->setData(Qt::UserRole + 1, QVariant::fromValue(strFileName));
-            ui.m_lstRecord->addItem(item);
-            ui.m_lstRecord->setCurrentRow(ui.m_lstRecord->count() - 1);
-        }
-    }
+    m_pVodWidget->addRecord(fileInfo.fileName(), strFileName);
+
     play(strFileName.toStdString());
 }
 
@@ -422,34 +404,24 @@ void XPlayer::onBtnClickedForward()
 
 void XPlayer::onBtnClickedLast()
 {
-    auto rows = ui.m_lstRecord->count();
-    auto row = ui.m_lstRecord->currentRow();
-    if (row <= 0)
-        row = rows - 1;
-    else
-        row--;
-    ui.m_lstRecord->setCurrentRow(row);
-    auto * item = ui.m_lstRecord->currentItem();
-    onLstDbclickedRecord(item);
+    if (nullptr != m_pVodWidget)
+    {
+        m_pVodWidget->lastRecord();
+    }
 }
 
 void XPlayer::onBtnClickedNext()
 {
-    auto rows = ui.m_lstRecord->count();
-    auto row = ui.m_lstRecord->currentRow();
-    if (row + 1 >= rows)
-        row = 0;
-    else
-        row++;
-    ui.m_lstRecord->setCurrentRow(row);
-    auto * item = ui.m_lstRecord->currentItem();
-    onLstDbclickedRecord(item);
+    if (nullptr != m_pVodWidget)
+    {
+        m_pVodWidget->nextRecord();
+    }
 }
 
 void XPlayer::onBtnClickedRecord()
 {
-    static bool flag = false;
-    setLayoutVisible(ui.verticalLayout_4, flag);
+    static bool flag = true;
+    ui.m_tabRecord->setVisible(flag);
 
     flag = !flag;
     ui.horizontalLayout->activate();
@@ -625,62 +597,26 @@ bool XPlayer::loadPlayRecord()
     const auto strVodPath = path + "/record/vod.json";
     const auto strLivePath = path + "/record/live.json";
 
-    m_pclsVod = new(std::nothrow) CXPlayerRecord();
-    if (nullptr == m_pclsVod)
-    {
-        QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("加载点播记录失败！"));
-        return false;
-    }
-
-    if (!m_pclsVod->loadRecordFile(strVodPath.toLocal8Bit().toStdString()))
-    {
-        QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("加载点播记录失败！"));
-        delete m_pclsVod;
-        m_pclsVod = nullptr;
-    }
-
-    m_pclsLive = new(std::nothrow) CXPlayerRecord();
-    if (nullptr == m_pclsLive)
-    {
-        QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("加载直播记录失败！"));
-        delete m_pclsVod;
-        m_pclsVod = nullptr;
-        return false;
-    }
-
-    if (!m_pclsLive->loadRecordFile(strLivePath.toLocal8Bit().toStdString()))
-    {
-        QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("加载直播记录失败！"));
-        delete m_pclsLive;
-        m_pclsLive = nullptr;
-    }
-
-    std::vector<CXPlayerRecordInfo> elems;
-    m_pclsVod->getRecordList(elems);
-    for (const auto & elem : elems)
-    {
-        auto * item = new QListWidgetItem(QString::fromStdString(elem._name));
-        item->setData(Qt::UserRole + 1, QVariant::fromValue(QString::fromStdString(elem._path)));
-        ui.m_lstRecord->addItem(item);
-    }
+    m_pVodWidget->loadRecord(strVodPath);
+    m_pLiveWidget->loadRecord(strLivePath);
 
     return true;
 }
 
 void XPlayer::unloadPlayRecord()
 {
-    if (nullptr != m_pclsLive)
+    if (nullptr != m_pVodWidget)
     {
-        m_pclsLive->unloadRecordFile();
-        delete m_pclsLive;
-        m_pclsLive = nullptr;
+        m_pVodWidget->unloadRecord();
+        delete m_pVodWidget;
+        m_pVodWidget = nullptr;
     }
 
-    if (nullptr != m_pclsVod)
+    if (nullptr != m_pLiveWidget)
     {
-        m_pclsVod->unloadRecordFile();
-        delete m_pclsVod;
-        m_pclsVod = nullptr;
+        m_pLiveWidget->unloadRecord();
+        delete m_pLiveWidget;
+        m_pLiveWidget = nullptr;
     }
 }
 
@@ -719,20 +655,4 @@ void XPlayer::getDisplaySize(int & width, int & height)
     auto ratio = screen->devicePixelRatio();
     width = size.width() * ratio;
     height = size.height() * ratio;
-}
-
-void XPlayer::setLayoutVisible(QLayout * layout, bool visible)
-{
-    if (nullptr == layout)
-        return;
-
-    auto cnt = layout->count();
-    for (int i = 0; i < cnt; i++)
-    {
-        auto * item = layout->itemAt(i);
-        if (item->widget())
-            item->widget()->setVisible(visible);
-        else if (item->layout())
-            setLayoutVisible(item->layout(), visible);
-    }
 }
