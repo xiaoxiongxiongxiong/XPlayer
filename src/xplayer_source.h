@@ -45,11 +45,11 @@ class CXPlayerSource final
 {
 public:
     // 删除拷贝
-    CXPlayerSource(const CXPlayerSource & other) = delete;
+    CXPlayerSource(const CXPlayerSource &) = delete;
     // 删除赋值
     CXPlayerSource & operator=(const CXPlayerSource &) = delete;
     // 删除移动
-    CXPlayerSource(CXPlayerSource && other) noexcept = delete;
+    CXPlayerSource(CXPlayerSource &&) noexcept = delete;
     // 删除移动赋值
     CXPlayerSource & operator=(CXPlayerSource &&) noexcept = delete;
 
@@ -59,6 +59,11 @@ public:
         static CXPlayerSource instance;
         return instance;
     }
+
+    // 设置字体路径 需在open之前调用
+    void setFontPath(const std::string & path);
+    // 设置字体大小 需在open之前调用
+    void setFontSize(int size);
 
     // 打开
     bool open(const std::string & url, const std::string & params = "");
@@ -94,6 +99,9 @@ public:
 
     // 设置播放倍速
     void setSpeed(XPLAYER_SPEED_MODE speed);
+
+    // 显示详细信息
+    void showDetail(bool flag);
 
     // 状态
     XPLAYER_STATE state() const;
@@ -146,6 +154,9 @@ private:
     // 处理音频流切换
     bool processAudioStream(int stream_index);
 
+    // 格式化详细信息
+    std::string formatDetailString();
+
 private:
     // 播放状态
     std::atomic<XPLAYER_STATE> _state = { XPLAYER_STATE_NONE };
@@ -155,6 +166,8 @@ private:
     std::atomic<double> _speed = { 1.0 };
     // 播放倍速改变
     std::atomic_bool _speed_changed = { false };
+    // 是否显示详细信息
+    std::atomic_bool _show = { false };
 
     // 是否运行中
     std::atomic_bool _is_running = { false };
@@ -213,6 +226,11 @@ private:
     // 视频渲染器
     std::shared_ptr<CXPlayerVideoRenderSDL> _video_renderer = nullptr;
 
+    // 字体路径
+    std::string _font_path;
+    // 字体大小
+    int _font_size;
+
     // 上下文
     CXPlayerDemuxImpl * _ctx = nullptr;
     // 流
@@ -224,6 +242,9 @@ private:
     std::atomic_int _wnd_height = { 0 };
     // 屏幕发生改变
     std::atomic_bool _wnd_changed = { false };
+
+    // 文件名
+    std::string _name;
 
     // 错误信息
     std::string _err;

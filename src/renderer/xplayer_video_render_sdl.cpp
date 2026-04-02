@@ -208,8 +208,7 @@ bool CXPlayerVideoRenderSDL::initTextRenderer(const std::string & font_path, int
 {
     if (_font_path.empty() || _font_size < 1)
     {
-        xpu_format_string(_err, "Invalid params");
-        return false;
+        return true;
     }
 
     _font = TTF_OpenFont(font_path.c_str(), font_size);
@@ -224,7 +223,7 @@ bool CXPlayerVideoRenderSDL::initTextRenderer(const std::string & font_path, int
 
 void CXPlayerVideoRenderSDL::rendererText(const std::string & str)
 {
-    if (str.empty())
+    if (str.empty() || nullptr == _font)
         return;
 
     SDL_Color white = { 255, 255, 255, 255 };

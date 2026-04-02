@@ -1,5 +1,7 @@
 ﻿#include "xplayer_source.h"
 
+#include <filesystem>
+
 extern "C" {
 #include "libavformat/avformat.h"
 }
@@ -17,6 +19,16 @@ CXPlayerSource::~CXPlayerSource()
 {
     uninitConvertor();
     uninitRenderer();
+}
+
+void CXPlayerSource::setFontPath(const std::string & path)
+{
+    _font_path = path;
+}
+
+void CXPlayerSource::setFontSize(int size)
+{
+    _font_size = size;
 }
 
 bool CXPlayerSource::open(const std::string & url, const std::string & params)
@@ -60,6 +72,9 @@ bool CXPlayerSource::open(const std::string & url, const std::string & params)
     }
 
     _state.store(XPLAYER_STATE_READY);
+
+    std::filesystem::path tmp(url);
+    _name = tmp.filename().string();
 
     return true;
 }
@@ -223,6 +238,11 @@ void CXPlayerSource::setSpeed(XPLAYER_SPEED_MODE speed)
         processSpeed(speed);
         _speed_changed.store(true);
     }
+}
+
+void CXPlayerSource::showDetail(bool flag)
+{
+    _show.store(flag);
 }
 
 XPLAYER_STATE CXPlayerSource::state() const
@@ -443,6 +463,8 @@ bool CXPlayerSource::initRenderer(const void * wnd, int width, int height)
             return false;
         }
 
+        _video_renderer->setFontPath(_font_path);
+        _video_renderer->setFontSize(_font_size);
         if (codecpar && !_video_renderer->create(wnd, width, height, codecpar->width, codecpar->height))
         {
             _err = _video_renderer->err();
@@ -774,7 +796,8 @@ void CXPlayerSource::videoPlayThr()
         if (delay_ms > 0)
             std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
 
-        _video_renderer->renderer(out_frm.data, out_frm.linesize);
+        auto str = formatDetailString();
+        _video_renderer->renderer(out_frm.data, out_frm.linesize, str);
         flag = false;
     }
 }
@@ -855,5 +878,42 @@ bool CXPlayerSource::processAudioStream(int stream_index)
     _audio_speex->update(codecpar->channels, codecpar->sample_rate, codecpar->frame_size);
 
     return true;
+}
+
+std::string CXPlayerSource::formatDetailString()
+{
+    std::string str;
+
+    if (!_show.load() || nullptr == _ctx)
+    {
+        return str;
+    }
+
+    xpu_format_string(
+        str,
+        "%s\r\n"
+        "%s / %s, %d / %d \r\n",
+        _name.c_str(),
+        xpu_time2str(_cur_pos_ms).c_str(),
+        xpu_time2str(_ctx->duration()).c_str(),
+        0, 0
+    );
+
+    //xpu_format_string(
+    //    str,
+    //    "文件名: %s\n"
+    //    "时间轴: %s / %s 帧数: %d / %d \n"
+    //    "视频: %s, %d * %d, %s, %.2f ==> %.2f \n"
+    //    "音频: %s, %d Hz, %s, %s",
+    //    _url.c_str(),
+    //    xpu_time2str(_play_ms).c_str(),
+    //    xpu_time2str(_duration_ms).c_str(),
+    //    _play_frames, _total_frames,
+    //    _video_codec.c_str(), _width, _height,
+    //    _pixel_format.c_str(), _fps, _real_fps,
+    //    _audio_codec.c_str(), _sample_rate,
+    //    _channels, _sample_format.c_str());
+
+    return str;
 }
 

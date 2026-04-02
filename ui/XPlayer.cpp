@@ -129,6 +129,10 @@ XPlayer::XPlayer(QWidget * parent)
 
     loadPlayRecord();
     m_uiSpeed = XPLAYER_SPEED_NORMAL;
+
+    const QString font_path = QStringLiteral("test.ttc");
+    CXPlayerSource::getInstance().setFontPath(font_path.toUtf8().toStdString());
+    CXPlayerSource::getInstance().setFontSize(28);
 }
 
 XPlayer::~XPlayer()
@@ -146,6 +150,23 @@ XPlayer::~XPlayer()
     }
 
     unloadPlayRecord();
+}
+
+void XPlayer::keyPressEvent(QKeyEvent * event)
+{
+    QWidget::keyPressEvent(event);
+}
+
+void XPlayer::keyReleaseEvent(QKeyEvent * event)
+{
+    if (Qt::Key_Tab == event->key())
+    {
+        static bool flag = true;
+        CXPlayerSource::getInstance().showDetail(flag);
+        flag = !flag;
+    }
+
+    QWidget::keyReleaseEvent(event);
 }
 
 void XPlayer::mousePressEvent(QMouseEvent * event)

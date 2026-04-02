@@ -20,6 +20,8 @@ public:
     ~XPlayer();
 
 protected:
+    void keyPressEvent(QKeyEvent * event) override;
+    void keyReleaseEvent(QKeyEvent * event) override;
     void mousePressEvent(QMouseEvent * event) override;   // 鼠标点击
     void mouseMoveEvent(QMouseEvent * event) override;    // 鼠标移动
     void mouseReleaseEvent(QMouseEvent * event) override; // 鼠标释放
