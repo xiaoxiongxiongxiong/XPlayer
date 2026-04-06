@@ -18,7 +18,18 @@ extern "C" {
 CXPlayerSource::~CXPlayerSource()
 {
     uninitConvertor();
-    uninitRenderer();
+
+    if (nullptr != _video_renderer)
+    {
+        _video_renderer.reset();
+        _video_renderer = nullptr;
+    }
+
+    if (nullptr != _audio_renderer)
+    {
+        _audio_renderer.reset();
+        _audio_renderer = nullptr;
+    }
 }
 
 void CXPlayerSource::setFontPath(const std::string & path)
@@ -106,6 +117,7 @@ void CXPlayerSource::close()
     destroyStreams();
 
     uninitFilter();
+    uninitRenderer();
 
     _ctx->close();
     delete _ctx;
@@ -442,14 +454,11 @@ bool CXPlayerSource::initRenderer(const void * wnd, int width, int height)
         }
     }
 
-    if (codecpar)
+    if (nullptr != codecpar && 
+        !_audio_renderer->create(codecpar->sample_rate, codecpar->channels, codecpar->frame_size, _volume.load()))
     {
-        _audio_renderer->destroy();
-        if (!_audio_renderer->create(codecpar->sample_rate, codecpar->channels, codecpar->frame_size, _volume.load()))
-        {
-            _err = _audio_renderer->err();
-            return false;
-        }
+        _err = _audio_renderer->err();
+        return false;
     }
 
     avs = _ctx->getStreamInfo(_video_stream_index.load());
@@ -465,13 +474,9 @@ bool CXPlayerSource::initRenderer(const void * wnd, int width, int height)
 
         _video_renderer->setFontPath(_font_path);
         _video_renderer->setFontSize(_font_size);
-        if (codecpar && !_video_renderer->create(wnd, width, height, codecpar->width, codecpar->height))
-        {
-            _err = _video_renderer->err();
-            return false;
-        }
     }
-    else if (codecpar && !_video_renderer->resizeImage(codecpar->width, codecpar->height))
+
+    if (codecpar && !_video_renderer->create(wnd, width, height, codecpar->width, codecpar->height))
     {
         _err = _video_renderer->err();
         return false;
@@ -485,15 +490,11 @@ void CXPlayerSource::uninitRenderer()
     if (_video_renderer)
     {
         _video_renderer->destroy();
-        _video_renderer.reset();
-        _video_renderer = nullptr;
     }
 
     if (_audio_renderer)
     {
         _audio_renderer->destroy();
-        _audio_renderer.reset();
-        _audio_renderer = nullptr;
     }
 }
 
@@ -641,7 +642,6 @@ void CXPlayerSource::audioPlayThr()
             _audio_play_over.store(over);
             if (_audio_play_over && _video_play_over)
             {
-                _audio_renderer->mute(true);
                 _state.store(XPLAYER_STATE_OVER);
             }
             break;
@@ -664,7 +664,6 @@ void CXPlayerSource::audioPlayThr()
         if (!_audio_resampler->resampler(&frm, &data, &len))
         {
             _err = _audio_resampler->err();
-            _audio_renderer->mute(true);
             av_frame_unref(&frm);
             _state.store(XPLAYER_STATE_ERROR);
             break;
@@ -692,6 +691,8 @@ void CXPlayerSource::audioPlayThr()
         _audio_speex->send(data, len);
         audioMultiSpeedRenderer(buff, len);
     }
+
+    _audio_renderer->mute(true);
 }
 
 void CXPlayerSource::videoPlayThr()
@@ -716,7 +717,6 @@ void CXPlayerSource::videoPlayThr()
                 _video_renderer->clear();
                 flag = true;
             }
-
             continue;
         }
 
@@ -727,7 +727,9 @@ void CXPlayerSource::videoPlayThr()
         {
             if (!_video_skip_over)
             {
+                _dst_pos_ms;
                 _cur_pos_ms.store(-1LL);
+                _cur_frames.store(-1LL);
                 stream->clear();
                 _video_skip_over.store(true);
             }
@@ -749,7 +751,6 @@ void CXPlayerSource::videoPlayThr()
             _video_play_over.store(over);
             if (_audio_play_over && _video_play_over)
             {
-                _video_renderer->clear();
                 _state.store(XPLAYER_STATE_OVER);
             }
             break;
@@ -798,8 +799,13 @@ void CXPlayerSource::videoPlayThr()
 
         auto str = formatDetailString();
         _video_renderer->renderer(out_frm.data, out_frm.linesize, str);
+        _cur_frames++;
         flag = false;
     }
+
+    _video_renderer->clear();
+    _cur_frames.store(0);
+    _cur_fps.store(0.0);
 }
 
 void CXPlayerSource::audioMultiSpeedRenderer(std::vector<std::uint8_t> & buff, int bytes, const bool & over)
@@ -884,6 +890,16 @@ std::string CXPlayerSource::formatDetailString()
 {
     std::string str;
 
+    if (_cur_frames.load() < 0 && -1 != _video_stream_index.load())
+    {
+        const auto * stream = _ctx->getStreamInfo(_video_stream_index.load());
+        const auto * codecpar = stream->codecpar;
+
+        auto duration_ms = static_cast<double>(stream->duration) * av_q2d(stream->time_base) * 1000.0;
+        auto tmp = static_cast<double>(_dst_pos_ms.load()) / duration_ms * static_cast<double>(stream->nb_frames);
+        _cur_frames.store(static_cast<int64_t>(std::round(tmp)));
+    }
+
     if (!_show.load() || nullptr == _ctx)
     {
         return str;
@@ -891,28 +907,46 @@ std::string CXPlayerSource::formatDetailString()
 
     xpu_format_string(
         str,
-        "%s\r\n"
-        "%s / %s, %d / %d \r\n",
+        "%s\n"
+        "%s / %s",
         _name.c_str(),
         xpu_time2str(_cur_pos_ms).c_str(),
-        xpu_time2str(_ctx->duration()).c_str(),
-        0, 0
+        xpu_time2str(_ctx->duration()).c_str()
     );
 
-    //xpu_format_string(
-    //    str,
-    //    "文件名: %s\n"
-    //    "时间轴: %s / %s 帧数: %d / %d \n"
-    //    "视频: %s, %d * %d, %s, %.2f ==> %.2f \n"
-    //    "音频: %s, %d Hz, %s, %s",
-    //    _url.c_str(),
-    //    xpu_time2str(_play_ms).c_str(),
-    //    xpu_time2str(_duration_ms).c_str(),
-    //    _play_frames, _total_frames,
-    //    _video_codec.c_str(), _width, _height,
-    //    _pixel_format.c_str(), _fps, _real_fps,
-    //    _audio_codec.c_str(), _sample_rate,
-    //    _channels, _sample_format.c_str());
+    if (-1 != _video_stream_index.load())
+    {
+        const auto * stream = _ctx->getStreamInfo(_video_stream_index.load());
+        const auto * codecpar = stream->codecpar;
+
+        std::string video_info;
+        xpu_format_string(
+            video_info,
+            ", %" PRId64 " / %" PRId64 "\nVideo: %s, %d * %d, %s, %.2f ( %.2f )",
+            _cur_frames.load(), stream->nb_frames,
+            avcodec_get_name(codecpar->codec_id),
+            codecpar->width, codecpar->height,
+            av_get_pix_fmt_name(static_cast<AVPixelFormat>(codecpar->format)),
+            av_q2d(codecpar->framerate), _cur_fps.load()
+        );
+        str.append(video_info);
+    }
+
+    if (-1 != _audio_stream_index.load())
+    {
+        const auto * stream = _ctx->getStreamInfo(_audio_stream_index.load());
+        const auto * codecpar = stream->codecpar;
+        std::string audio_info;
+        xpu_format_string(
+            audio_info,
+            "\nAudio: %s, %d Hz, %d channels, %s",
+            avcodec_get_name(codecpar->codec_id),
+            codecpar->sample_rate,
+            codecpar->channels,
+            av_get_sample_fmt_name(static_cast<AVSampleFormat>(codecpar->format))
+        );
+        str.append(audio_info);
+    }
 
     return str;
 }

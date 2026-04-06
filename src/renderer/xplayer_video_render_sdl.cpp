@@ -1,5 +1,6 @@
 ﻿#include "xplayer_video_render_sdl.h"
 
+#include <sstream>
 #include "SDL2/SDL_video.h"
 #include "SDL2/SDL_render.h"
 #include "SDL2/SDL_ttf.h"
@@ -23,14 +24,14 @@ bool CXPlayerVideoRenderSDL::create(const void * wnd, int wnd_width, int wnd_hei
     _wnd = SDL_CreateWindowFrom(wnd);
     if (nullptr == _wnd)
     {
-        xpu_format_string(_err, "SDL_CreateWindowFrom failed!");
+        xpu_format_string(_err, "SDL_CreateWindowFrom failed: %s", SDL_GetError());
         return false;
     }
 
     _renderer = SDL_CreateRenderer(_wnd, -1, SDL_RENDERER_ACCELERATED);
     if (nullptr == _renderer)
     {
-        xpu_format_string(_err, "SDL_CreateRenderer failed!");
+        xpu_format_string(_err, "SDL_CreateRenderer failed: %s", SDL_GetError());
         destroy();
         return false;
     }
@@ -38,13 +39,7 @@ bool CXPlayerVideoRenderSDL::create(const void * wnd, int wnd_width, int wnd_hei
     _texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING, frm_width, frm_height);
     if (nullptr == _texture)
     {
-        xpu_format_string(_err, "SDL_CreateTexture failed!");
-        destroy();
-        return false;
-    }
-
-    if (!initTextRenderer(_font_path, _font_size))
-    {
+        xpu_format_string(_err, "SDL_CreateTexture failed: %s", SDL_GetError());
         destroy();
         return false;
     }
@@ -54,6 +49,17 @@ bool CXPlayerVideoRenderSDL::create(const void * wnd, int wnd_width, int wnd_hei
 
     _width.store(wnd_width);
     _height.store(wnd_height);
+
+    if (_font_path.empty() || _font_size < 1)
+        return true;
+
+    _font = TTF_OpenFont(_font_path.c_str(), _font_size);
+    if (nullptr == _font)
+    {
+        xpu_format_string(_err, "TTF_OpenFont error: %s", TTF_GetError());
+        destroy();
+        return false;
+    }
 
     return true;
 }
@@ -65,17 +71,28 @@ void CXPlayerVideoRenderSDL::destroy()
         SDL_DestroyTexture(_texture);
         _texture = nullptr;
     }
+
     if (nullptr != _renderer)
     {
         SDL_RenderClear(_renderer);
         SDL_DestroyRenderer(_renderer);
         _renderer = nullptr;
     }
+
     if (nullptr != _wnd)
     {
         SDL_DestroyWindow(_wnd);
         _wnd = nullptr;
     }
+
+    if (nullptr != _font)
+    {
+        TTF_CloseFont(_font);
+        _font = nullptr;
+    }
+
+    _img_width.store(0);
+    _img_height.store(0);
 
     _width.store(0);
     _height.store(0);
@@ -83,7 +100,7 @@ void CXPlayerVideoRenderSDL::destroy()
 
 void CXPlayerVideoRenderSDL::setFontPath(const std::string & path)
 {
-    if (_font_path == path)
+    if (_font_path == path || path.empty())
         return;
 
     _font_path = path;
@@ -92,7 +109,7 @@ void CXPlayerVideoRenderSDL::setFontPath(const std::string & path)
 
 void CXPlayerVideoRenderSDL::setFontSize(int size)
 {
-    if (_font_size == size)
+    if (_font_size == size || size < 1)
         return;
 
     _font_size = size;
@@ -137,23 +154,20 @@ bool CXPlayerVideoRenderSDL::resizeImage(int width, int height)
 
 bool CXPlayerVideoRenderSDL::renderer(uint8_t * data[8], int linesize[8], const std::string & str)
 {
+    if (nullptr == _renderer)
+    {
+        xpu_format_string(_err, "SDL2 renderer not create yet");
+        return false;
+    }
+
     if (nullptr == data[0] || linesize[0] <= 0)
     {
         xpu_format_string(_err, "Input param is invalid!");
         return false;
     }
 
-    if (nullptr == _wnd)
-    {
-        xpu_format_string(_err, "SDL renderer hasn't created yet!");
-        return false;
-    }
-
     if (!reopenRenderer())
-    {
-        xpu_format_string(_err, "Resize renderer failed!");
         return false;
-    }
 
     int ret = SDL_UpdateYUVTexture(_texture, nullptr,
                                    data[0], linesize[0],
@@ -168,7 +182,7 @@ bool CXPlayerVideoRenderSDL::renderer(uint8_t * data[8], int linesize[8], const 
     ret = SDL_RenderClear(_renderer);
     if (0 != ret)
     {
-        xpu_format_string(_err, "SDL_RenderClear failed");
+        xpu_format_string(_err, "SDL_RenderClear failed: %s", SDL_GetError());
         return false;
     }
 
@@ -177,11 +191,12 @@ bool CXPlayerVideoRenderSDL::renderer(uint8_t * data[8], int linesize[8], const 
     ret = SDL_RenderCopy(_renderer, _texture, &src_rect, &rect);
     if (0 != ret)
     {
-        xpu_format_string(_err, "SDL_RenderCopy failed");
+        xpu_format_string(_err, "SDL_RenderCopy failed: %s", SDL_GetError());
         return false;
     }
 
-    rendererText(str);
+    if (!rendererText(str))
+        return false;
 
     SDL_RenderPresent(_renderer);
 
@@ -204,41 +219,57 @@ const char * CXPlayerVideoRenderSDL::err() const
     return _err.c_str();
 }
 
-bool CXPlayerVideoRenderSDL::initTextRenderer(const std::string & font_path, int font_size)
+bool CXPlayerVideoRenderSDL::rendererText(const std::string & str)
 {
-    if (_font_path.empty() || _font_size < 1)
-    {
+    if (str.empty() || nullptr == _font)
         return true;
-    }
 
-    _font = TTF_OpenFont(font_path.c_str(), font_size);
-    if (nullptr == _font)
-    {
-        xpu_format_string(_err, "TTF_OpenFont error: %s", TTF_GetError());
+    if (!reopenFont())
         return false;
+
+    int font_height = TTF_FontHeight(_font);
+    const int line_space = 12;
+    int y = 10;
+
+    std::string val;
+    std::istringstream iss(str);
+    while (getline(iss, val, '\n'))
+    {
+        if (val.empty())
+            continue;
+
+        SDL_Color font_color = { 255, 0, 0, 255 };
+        SDL_Surface * surface = TTF_RenderUTF8_Blended(_font, val.c_str(), font_color);
+        if (nullptr == surface)
+        {
+            xpu_format_string(_err, "TTF_RenderUTF8_Blended error: %s", TTF_GetError());
+            return false;
+        }
+
+        SDL_Texture * text = SDL_CreateTextureFromSurface(_renderer, surface);
+        if (nullptr == text)
+        {
+            xpu_format_string(_err, "SDL_CreateTextureFromSurface error: %s", SDL_GetError());
+            SDL_FreeSurface(surface);
+            return false;
+        }
+
+        bool succ = true;
+        SDL_Rect text_rect = { 10, y, surface->w, surface->h };
+        if (0 != SDL_RenderCopy(_renderer, text, nullptr, &text_rect))
+        {
+            xpu_format_string(_err, "SDL_RenderCopy failed: %s", SDL_GetError());
+            succ = false;
+        }
+
+        SDL_DestroyTexture(text);
+        SDL_FreeSurface(surface);
+        if (!succ)
+            return false;
+        y += (font_height + line_space);
     }
 
     return true;
-}
-
-void CXPlayerVideoRenderSDL::rendererText(const std::string & str)
-{
-    if (str.empty() || nullptr == _font)
-        return;
-
-    SDL_Color white = { 255, 255, 255, 255 };
-    SDL_Surface * surface = TTF_RenderUTF8_Blended(_font, str.c_str(), white);
-    if (nullptr == surface)
-        return;
-
-    SDL_Texture * text = SDL_CreateTextureFromSurface(_renderer, surface);
-    if (nullptr != text)
-    {
-        SDL_Rect text_rect = { 10, 10, surface->w, surface->h };
-        SDL_RenderCopy(_renderer, text, nullptr, &text_rect);
-        SDL_DestroyTexture(text);
-    }
-    SDL_FreeSurface(surface);
 }
 
 bool CXPlayerVideoRenderSDL::reopenRenderer()
@@ -256,18 +287,61 @@ bool CXPlayerVideoRenderSDL::reopenRenderer()
     _renderer = SDL_CreateRenderer(_wnd, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (nullptr == _renderer)
     {
-        xpu_format_string(_err, "SDL_CreateRenderer failed!");
+        xpu_format_string(_err, "SDL_CreateRenderer failed: %s", SDL_GetError());
         return false;
     }
 
     _texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING, _img_width.load(), _img_height.load());
     if (nullptr == _texture)
     {
-        xpu_format_string(_err, "SDL_CreateTexture failed!");
+        xpu_format_string(_err, "SDL_CreateTexture failed: %s", SDL_GetError());
         return false;
     }
 
     _changed.store(false);
+
+    return true;
+}
+
+bool CXPlayerVideoRenderSDL::reopenFont()
+{
+    if (0 == _font_flag.load())
+        return true;
+
+    if (_font_path.empty() || _font_size < 1)
+    {
+        xpu_format_string(_err, "Invalid params");
+        _font_flag.store(0);
+        return false;
+    }
+
+    if (0b10 == _font_flag.load() && nullptr != _font)
+    {
+        _font_flag.store(0);
+
+        if (0 != TTF_SetFontSize(_font, _font_size))
+        {
+            xpu_format_string(_err, "TTF_SetFontSize error: %s", TTF_GetError());
+            return false;
+        }
+
+        return true;
+    }
+
+    _font_flag.store(0);
+
+    if (nullptr != _font)
+    {
+        TTF_CloseFont(_font);
+        _font = nullptr;
+    }
+
+    _font = TTF_OpenFont(_font_path.c_str(), _font_size);
+    if (nullptr == _font)
+    {
+        xpu_format_string(_err, "TTF_OpenFont error: %s", TTF_GetError());
+        return false;
+    }
 
     return true;
 }

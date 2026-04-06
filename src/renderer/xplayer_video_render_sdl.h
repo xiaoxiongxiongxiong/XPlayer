@@ -44,14 +44,14 @@ public:
     const char * err() const;
 
 private:
-	// 初始化文本渲染器
-	bool initTextRenderer(const std::string & font_path, int font_size);
-
 	// 渲染
-	void rendererText(const std::string & str);
+	bool rendererText(const std::string & str);
 
 	// 重开渲染器
 	bool reopenRenderer();
+
+	// 重开字体
+	bool reopenFont();
 
 private:
 	SDL_Window * _wnd = nullptr;

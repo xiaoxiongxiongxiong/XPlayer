@@ -54,7 +54,7 @@ public:
     CXPlayerSource & operator=(CXPlayerSource &&) noexcept = delete;
 
     // 全局唯一访问点
-    static CXPlayerSource & getInstance()
+    static CXPlayerSource & uniqueInstance()
     {
         static CXPlayerSource instance;
         return instance;
@@ -182,6 +182,11 @@ private:
     std::atomic_int64_t _dst_pos_ms = { -1 };
     // 音频时钟
     std::atomic_int64_t _audio_clock = { 0 };
+
+    // 当前帧数
+    std::atomic_int64_t _cur_frames = { 0 };
+    // 实时帧率
+    std::atomic<double> _cur_fps = { 0.0 };
 
     // 线程句柄
     std::thread _thr;
