@@ -370,6 +370,9 @@ QSlider::sub-page:horizontal{
                 <height>32</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>上一个</string>
+              </property>
               <property name="styleSheet">
                <string notr="true">border-style:solid;</string>
               </property>
@@ -401,6 +404,9 @@ QSlider::sub-page:horizontal{
                 <width>32</width>
                 <height>32</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>慢进</string>
               </property>
               <property name="styleSheet">
                <string notr="true">border-style:solid;</string>
@@ -434,6 +440,9 @@ QSlider::sub-page:horizontal{
                 <height>32</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>停止</string>
+              </property>
               <property name="styleSheet">
                <string notr="true">border-style:solid;</string>
               </property>
@@ -466,6 +475,9 @@ QSlider::sub-page:horizontal{
                 <height>32</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>播放</string>
+              </property>
               <property name="styleSheet">
                <string notr="true">border-style:solid;</string>
               </property>
@@ -482,6 +494,9 @@ QSlider::sub-page:horizontal{
                 <height>40</height>
                </size>
               </property>
+              <property name="shortcut">
+               <string>Space</string>
+              </property>
              </widget>
             </item>
             <item>
@@ -497,6 +512,9 @@ QSlider::sub-page:horizontal{
                 <width>32</width>
                 <height>32</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>快进</string>
               </property>
               <property name="styleSheet">
                <string notr="true">border-style:solid;</string>
@@ -529,6 +547,9 @@ QSlider::sub-page:horizontal{
                 <width>32</width>
                 <height>32</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>下一个</string>
               </property>
               <property name="styleSheet">
                <string notr="true">border-style:solid;</string>

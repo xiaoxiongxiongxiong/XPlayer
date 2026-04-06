@@ -95,14 +95,6 @@ XPlayer::XPlayer(QWidget * parent)
     connect(ui.m_btnStop, SIGNAL(clicked()), this, SLOT(onBtnClickedStop()));
     connect(ui.m_btnRecord, SIGNAL(clicked()), this, SLOT(onBtnClickedRecord()));
 
-    ui.m_btnNext->setToolTip(QStringLiteral("下一个"));
-    ui.m_btnLast->setToolTip(QStringLiteral("上一个"));
-    ui.m_btnBackward->setToolTip(QStringLiteral("慢进"));
-    ui.m_btnForward->setToolTip(QStringLiteral("快进"));
-    ui.m_btnStop->setToolTip(QStringLiteral("停止"));
-    ui.m_btnCtrl->setToolTip(QStringLiteral("播放"));
-    ui.m_btnCtrl->setShortcut(QKeySequence(Qt::Key_Space));
-
     ui.m_tabRecord->hide();
 
     m_pVodWidget = new CRecordWidget(this);
