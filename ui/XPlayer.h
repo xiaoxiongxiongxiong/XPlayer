@@ -54,6 +54,9 @@ private slots:
     void onActionsAudioTriggered(QAction * action);
 
 private:
+    // 居中
+    void moveCenter();
+    // 播放
     void play(const std::string & url);
     // 
     void cleanup();

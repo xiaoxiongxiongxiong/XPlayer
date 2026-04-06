@@ -28,6 +28,8 @@ XPlayer::XPlayer(QWidget * parent)
     //this->setWindowFlags(Qt::FramelessWindowHint);
     this->setAcceptDrops(true);
 
+    moveCenter();
+
     ui.m_actDisableAudio->setData(QVariant::fromValue(-1));
     ui.m_actDisableVideo->setData(QVariant::fromValue(-1));
 
@@ -499,6 +501,18 @@ void XPlayer::onActionsAudioTriggered(QAction * action)
 {
     auto index = action->data().toInt();
     CXPlayerSource::uniqueInstance().selectStream(index, false);
+}
+
+void XPlayer::moveCenter()
+{
+    QScreen * screen = QGuiApplication::primaryScreen();
+    auto screen_rect = screen->geometry();
+    auto cx = screen_rect.width() / 2;
+    auto cy = screen_rect.height() / 2;
+    auto rect = this->frameGeometry();
+    auto dx = cx - rect.width() / 2;
+    auto dy = cy - rect.height() / 2;
+    move(dx, dy);
 }
 
 void XPlayer::play(const std::string & url)
