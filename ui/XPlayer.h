@@ -72,7 +72,7 @@ private:
 private:
     Ui::XPlayerClass ui;
 
-    CVolumeWidget * m_widgetVolume = nullptr;
+    CVolumeWidget * m_pVolumeWidget = nullptr;
     QTimer * m_tmVolume = nullptr;
 
     QPoint m_ptStart;

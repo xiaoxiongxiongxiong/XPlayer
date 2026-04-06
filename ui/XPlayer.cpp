@@ -115,11 +115,11 @@ XPlayer::XPlayer(QWidget * parent)
 
     ui.m_sldProgress->installEventFilter(this);
     ui.m_wndScreen->installEventFilter(this);
-    ui.m_wndScreen->setFocusPolicy(Qt::StrongFocus);
+    //ui.m_wndScreen->setFocusPolicy(Qt::StrongFocus);
 
     // 创建音量滑块（初始隐藏）
-    m_widgetVolume = new CVolumeWidget(this);
-    m_widgetVolume->hide();
+    m_pVolumeWidget = new CVolumeWidget(this);
+    m_pVolumeWidget->hide();
 
     ui.m_btnVolume->installEventFilter(this);
 
@@ -128,14 +128,10 @@ XPlayer::XPlayer(QWidget * parent)
     m_tmVolume->setSingleShot(true);
     m_tmVolume->setInterval(200);
     connect(m_tmVolume, &QTimer::timeout, this, &XPlayer::onVolumeButtonEnter);
-    connect(m_widgetVolume, &CVolumeWidget::volumeChanged, this, &XPlayer::onVolumeChanged);
+    connect(m_pVolumeWidget, &CVolumeWidget::volumeChanged, this, &XPlayer::onVolumeChanged);
 
     loadConfig();
     m_uiSpeed = XPLAYER_SPEED_NORMAL;
-
-    const QString font_path = QStringLiteral("test.ttc");
-    CXPlayerSource::getInstance().setFontPath(font_path.toUtf8().toStdString());
-    CXPlayerSource::getInstance().setFontSize(28);
 }
 
 XPlayer::~XPlayer()
@@ -146,10 +142,10 @@ XPlayer::~XPlayer()
         m_pclsChoices = nullptr;
     }
 
-    if (nullptr != m_widgetVolume)
+    if (nullptr != m_pVolumeWidget)
     {
-        delete m_widgetVolume;
-        m_widgetVolume = nullptr;
+        delete m_pVolumeWidget;
+        m_pVolumeWidget = nullptr;
     }
 
     unloadConfig();
@@ -263,7 +259,7 @@ bool XPlayer::eventFilter(QObject * obj, QEvent * event)
         else if (QEvent::Leave == event->type())
         {
             m_tmVolume->stop();
-            m_widgetVolume->hideVolume();
+            m_pVolumeWidget->hideVolume();
             return true;
         }
         else if (QEvent::Wheel == event->type())
@@ -272,10 +268,10 @@ bool XPlayer::eventFilter(QObject * obj, QEvent * event)
             //if (!m_isMuted) {
             int delta = wheel->angleDelta().y();
             int step = (delta > 0) ? 1 : -1;
-            int current = m_widgetVolume->getVolume();
+            int current = m_pVolumeWidget->getVolume();
             int vol = qBound(0, current + step, 128);
 
-            m_widgetVolume->setVolume(vol);
+            m_pVolumeWidget->setVolume(vol);
             onVolumeChanged(vol);
             //}
             return true;
@@ -349,16 +345,16 @@ void XPlayer::onBtnClickedClose()
 
 void XPlayer::onBtnClickedVolume()
 {
-    auto val = m_widgetVolume->getVolume();
+    auto val = m_pVolumeWidget->getVolume();
     if (val > 0)
     {
-        m_widgetVolume->setVolume(0);
+        m_pVolumeWidget->setVolume(0);
         CXPlayerSource::uniqueInstance().setVolume(0);
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
     }
     else
     {
-        m_widgetVolume->setVolume(50);
+        m_pVolumeWidget->setVolume(50);
         CXPlayerSource::uniqueInstance().setVolume(64);
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
     }
@@ -462,13 +458,13 @@ void XPlayer::onBtnClickedRecord()
 
 void XPlayer::onVolumeButtonEnter()
 {
-    if (!m_widgetVolume->isVisible())
+    if (!m_pVolumeWidget->isVisible())
     {
         QRect rect = ui.m_btnVolume->rect();
         QPoint tlr = ui.m_btnVolume->mapToGlobal(rect.topLeft());
-        int height = m_widgetVolume->height();
+        int height = m_pVolumeWidget->height();
         QPoint pos(tlr.x(), tlr.y() - height);
-        m_widgetVolume->showVolume(pos);
+        m_pVolumeWidget->showVolume(pos);
     }
 }
 
@@ -593,6 +589,7 @@ void XPlayer::cleanup()
     }
     ui.m_labName->clear();
     ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/pause.ico"));
+    ui.m_btnCtrl->setToolTip(QStringLiteral("播放"));
     ui.m_sldProgress->setValue(0);
 
     auto actions = m_grpVideoActions->actions();
