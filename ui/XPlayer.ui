@@ -263,7 +263,7 @@ border-image:url(:/XPlayer/res/close_hover.ico);
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_2">
           <item>
-           <widget class="QOpenGLWidget" name="m_wndScreen">
+           <widget class="CXPlayerVideoRenderOpengl" name="m_wndScreen">
             <property name="acceptDrops">
              <bool>true</bool>
             </property>
@@ -685,6 +685,13 @@ QSlider::sub-page:horizontal{
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>CXPlayerVideoRenderOpengl</class>
+   <extends>QOpenGLWidget</extends>
+   <header>xplayer_video_render_opengl.h</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="../resources/XPlayer.qrc"/>
  </resources>
