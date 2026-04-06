@@ -4,7 +4,7 @@
 #include <cstdbool>
 #include <string>
 
-class CXPlayerConfig
+class CXPlayerConfig final
 {
 public:
     CXPlayerConfig(const CXPlayerConfig &) = delete;
@@ -13,7 +13,7 @@ public:
     CXPlayerConfig(CXPlayerConfig &&) = delete;
     CXPlayerConfig & operator= (const CXPlayerConfig &&) = delete;
 
-    static CXPlayerConfig & getInstance()
+    static CXPlayerConfig & uniqueInstance()
     {
         static CXPlayerConfig instance;
         return instance;
@@ -34,6 +34,19 @@ public:
     // 获取播放记录显示标记
     bool getRecordVisible();
 
+    // 设置字体文件路径
+    void setFontPath(const std::string & path);
+    // 获取字体文件路径
+    const std::string & getFontPath();
+
+    // 设置字体大小
+    void setFontSize(int size);
+    // 获取字体大小
+    int getFontSize();
+
+    // 错误信息
+    const char * err() const;
+
 private:
     CXPlayerConfig() = default;
     ~CXPlayerConfig() = default;
@@ -43,6 +56,17 @@ private:
 
     // 播放记录标记
     bool _record_flag = false;
+
+    // 字体文件路径
+    std::string _font_path;
+    // 字体大小
+    int _font_size = 24;
+
+    // 配置文件路径
+    std::string _path;
+
+    // 错误信息
+    std::string _err;
 };
 
 #endif

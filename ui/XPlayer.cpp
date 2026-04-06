@@ -15,6 +15,7 @@
 #include "RecordWidget.h"
 #include "CVolumeWidget.h"
 #include "utils/xplayer_utils.h"
+#include "config/xplayer_config.h"
 #include "renderer/xplayer_audio_render_sdl.h"
 #include "renderer/xplayer_video_render_sdl.h"
 #include "xplayer_source.h"
@@ -127,7 +128,7 @@ XPlayer::XPlayer(QWidget * parent)
     connect(m_tmVolume, &QTimer::timeout, this, &XPlayer::onVolumeButtonEnter);
     connect(m_widgetVolume, &CVolumeWidget::volumeChanged, this, &XPlayer::onVolumeChanged);
 
-    loadPlayRecord();
+    loadConfig();
     m_uiSpeed = XPLAYER_SPEED_NORMAL;
 
     const QString font_path = QStringLiteral("test.ttc");
@@ -149,7 +150,7 @@ XPlayer::~XPlayer()
         m_widgetVolume = nullptr;
     }
 
-    unloadPlayRecord();
+    unloadConfig();
 }
 
 void XPlayer::keyPressEvent(QKeyEvent * event)
@@ -162,7 +163,7 @@ void XPlayer::keyReleaseEvent(QKeyEvent * event)
     if (Qt::Key_Tab == event->key())
     {
         static bool flag = true;
-        CXPlayerSource::getInstance().showDetail(flag);
+        CXPlayerSource::uniqueInstance().showDetail(flag);
         flag = !flag;
     }
 
@@ -203,25 +204,25 @@ void XPlayer::mouseReleaseEvent(QMouseEvent * event)
 
 void XPlayer::resizeEvent(QResizeEvent * event)
 {
-    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
+    if (XPLAYER_STATE_NONE != CXPlayerSource::uniqueInstance().state())
     {
         int width = 0, height = 0;
         getDisplaySize(width, height);
-        CXPlayerSource::getInstance().resize(width, height);
+        CXPlayerSource::uniqueInstance().resize(width, height);
     }
 }
 
 void XPlayer::timerEvent(QTimerEvent * event)
 {
-    if (m_iTid == event->timerId() && XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
+    if (m_iTid == event->timerId() && XPLAYER_STATE_NONE != CXPlayerSource::uniqueInstance().state())
     {
-        if (XPLAYER_STATE_OVER == CXPlayerSource::getInstance().state())
+        if (XPLAYER_STATE_OVER == CXPlayerSource::uniqueInstance().state())
         {
             cleanup();
             return;
         }
 
-        auto pos = static_cast<int>(CXPlayerSource::getInstance().progress());
+        auto pos = static_cast<int>(CXPlayerSource::uniqueInstance().progress());
         if (pos > 0)
             ui.m_sldProgress->setValue(pos);
     }
@@ -245,7 +246,7 @@ bool XPlayer::eventFilter(QObject * obj, QEvent * event)
             int range = ui.m_sldProgress->maximum() - ui.m_sldProgress->minimum();
             int value = ui.m_sldProgress->minimum() + qRound(ratio * range);
             ui.m_sldProgress->setValue(value);
-            CXPlayerSource::getInstance().seek(value);
+            CXPlayerSource::uniqueInstance().seek(value);
             return true;
         }
     }
@@ -350,13 +351,13 @@ void XPlayer::onBtnClickedVolume()
     if (val > 0)
     {
         m_widgetVolume->setVolume(0);
-        CXPlayerSource::getInstance().setVolume(0);
+        CXPlayerSource::uniqueInstance().setVolume(0);
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
     }
     else
     {
         m_widgetVolume->setVolume(50);
-        CXPlayerSource::getInstance().setVolume(64);
+        CXPlayerSource::uniqueInstance().setVolume(64);
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
     }
 }
@@ -384,19 +385,21 @@ void XPlayer::onBtnClickedLive()
 
 void XPlayer::onBtnClickedCtrl()
 {
-    const auto & state = CXPlayerSource::getInstance().state();
+    const auto & state = CXPlayerSource::uniqueInstance().state();
     if (XPLAYER_STATE_NONE == state)
         return;
 
     if (XPLAYER_STATE_PLAYING == state)
     {
         ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/pause.ico"));
-        CXPlayerSource::getInstance().pause(true);
+        ui.m_btnCtrl->setToolTip(QStringLiteral("播放"));
+        CXPlayerSource::uniqueInstance().pause(true);
     }
     else if (XPLAYER_STATE_PAUSE == state)
     {
         ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/play.ico"));
-        CXPlayerSource::getInstance().pause(false);
+        ui.m_btnCtrl->setToolTip(QStringLiteral("暂停"));
+        CXPlayerSource::uniqueInstance().pause(false);
     }
 }
 
@@ -410,7 +413,7 @@ void XPlayer::onBtnClickedBackward()
     if (m_uiSpeed > XPLAYER_SPEED_ONE_QUATER)
     {
         m_uiSpeed--;
-        CXPlayerSource::getInstance().setSpeed(static_cast<XPLAYER_SPEED_MODE>(m_uiSpeed));
+        CXPlayerSource::uniqueInstance().setSpeed(static_cast<XPLAYER_SPEED_MODE>(m_uiSpeed));
     }
 }
 
@@ -419,7 +422,7 @@ void XPlayer::onBtnClickedForward()
     if (m_uiSpeed < XPLAYER_SPEED_QUADRUPLE)
     {
         m_uiSpeed++;
-        CXPlayerSource::getInstance().setSpeed(static_cast<XPLAYER_SPEED_MODE>(m_uiSpeed));
+        CXPlayerSource::uniqueInstance().setSpeed(static_cast<XPLAYER_SPEED_MODE>(m_uiSpeed));
     }
 }
 
@@ -441,17 +444,17 @@ void XPlayer::onBtnClickedNext()
 
 void XPlayer::onBtnClickedRecord()
 {
-    static bool flag = true;
-    ui.m_tabRecord->setVisible(flag);
+    auto flag = CXPlayerConfig::uniqueInstance().getRecordVisible();
+    ui.m_tabRecord->setVisible(!flag);
+    CXPlayerConfig::uniqueInstance().setRecordVisible(!flag);
 
-    flag = !flag;
     ui.horizontalLayout->activate();
 
-    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
+    if (XPLAYER_STATE_NONE != CXPlayerSource::uniqueInstance().state())
     {
         int width = 0, height = 0;
         getDisplaySize(width, height);
-        CXPlayerSource::getInstance().resize(width, height);
+        CXPlayerSource::uniqueInstance().resize(width, height);
     }
 }
 
@@ -473,7 +476,8 @@ void XPlayer::onVolumeChanged(int vol)
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
     else
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
-    CXPlayerSource::getInstance().setVolume(vol);
+    CXPlayerSource::uniqueInstance().setVolume(vol);
+    CXPlayerConfig::uniqueInstance().setVolume(vol);
 }
 
 void XPlayer::onLstDbclickedRecord(QListWidgetItem * item)
@@ -488,25 +492,25 @@ void XPlayer::onLstDbclickedRecord(QListWidgetItem * item)
 void XPlayer::onActionsVideoTriggered(QAction * action)
 {
     auto index = action->data().toInt();
-    CXPlayerSource::getInstance().selectStream(index, true);
+    CXPlayerSource::uniqueInstance().selectStream(index, true);
 }
 
 void XPlayer::onActionsAudioTriggered(QAction * action)
 {
     auto index = action->data().toInt();
-    CXPlayerSource::getInstance().selectStream(index, false);
+    CXPlayerSource::uniqueInstance().selectStream(index, false);
 }
 
 void XPlayer::play(const std::string & url)
 {
-    if (!CXPlayerSource::getInstance().open(url))
+    if (!CXPlayerSource::uniqueInstance().open(url))
     {
-        auto * err = CXPlayerSource::getInstance().err();
+        auto * err = CXPlayerSource::uniqueInstance().err();
         QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("%1！").arg(err));
         return;
     }
 
-    int64_t duration_ms = CXPlayerSource::getInstance().duration();
+    int64_t duration_ms = CXPlayerSource::uniqueInstance().duration();
     if (duration_ms > 0)
     {
         ui.m_sldProgress->setEnabled(true);
@@ -517,7 +521,7 @@ void XPlayer::play(const std::string & url)
 
     std::vector<int> ais;
     std::vector<int> vis;
-    CXPlayerSource::getInstance().getStreamsInfo(ais, vis);
+    CXPlayerSource::uniqueInstance().getStreamsInfo(ais, vis);
 
     for (auto iter = ais.cbegin(); iter != ais.cend(); ++iter)
     {
@@ -545,23 +549,27 @@ void XPlayer::play(const std::string & url)
         m_grpVideoActions->addAction(act);
     }
 
+    // 为了解决SDL_DestroyWindow后画面显示问题
+    ui.m_wndScreen->hide();
+    ui.m_wndScreen->show();
     int width = 0, height = 0;
     getDisplaySize(width, height);
-    if (!CXPlayerSource::getInstance().play(reinterpret_cast<HWND>(ui.m_wndScreen->winId()), width, height))
+    if (!CXPlayerSource::uniqueInstance().play(reinterpret_cast<HWND>(ui.m_wndScreen->winId()), width, height))
     {
-        auto * err = CXPlayerSource::getInstance().err();
+        auto * err = CXPlayerSource::uniqueInstance().err();
         QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("%1！").arg(err));
         return;
     }
     ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/play.ico"));
+    ui.m_btnCtrl->setToolTip(QStringLiteral("暂停"));
     m_iTid = startTimer(std::chrono::milliseconds(10));
 }
 
 void XPlayer::cleanup()
 {
-    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
+    if (XPLAYER_STATE_NONE != CXPlayerSource::uniqueInstance().state())
     {
-        CXPlayerSource::getInstance().close();
+        CXPlayerSource::uniqueInstance().close();
     }
 
     if (m_iTid > -1)
@@ -612,20 +620,33 @@ void XPlayer::cleanup()
     }
 }
 
-bool XPlayer::loadPlayRecord()
+bool XPlayer::loadConfig()
 {
     const auto path = QCoreApplication::applicationDirPath();
-    const auto strVodPath = path + "/record/vod.json";
-    const auto strLivePath = path + "/record/live.json";
+    const auto strConfigPath = path + "/config/config.json";
+    const auto strVodPath = path + "/config/vod.json";
+    const auto strLivePath = path + "/config/live.json";
 
+    CXPlayerConfig::uniqueInstance().loadConfig(strConfigPath.toLocal8Bit().toStdString());
     m_pVodWidget->loadRecord(strVodPath);
     m_pLiveWidget->loadRecord(strLivePath);
+
+    const auto strFontPath = path + QStringLiteral("/fonts/微软雅黑.ttc");
+    CXPlayerConfig::uniqueInstance().setFontPath(strFontPath.toUtf8().toStdString());
+    CXPlayerSource::uniqueInstance().setFontPath(strFontPath.toUtf8().toStdString());
+    CXPlayerSource::uniqueInstance().setFontSize(CXPlayerConfig::uniqueInstance().getFontSize());
+
+    m_pVolumeWidget->setVolume(CXPlayerConfig::uniqueInstance().getVolume());
+    CXPlayerSource::uniqueInstance().setVolume(CXPlayerConfig::uniqueInstance().getVolume());
+    ui.m_tabRecord->setVisible(CXPlayerConfig::uniqueInstance().getRecordVisible());
 
     return true;
 }
 
-void XPlayer::unloadPlayRecord()
+void XPlayer::unloadConfig()
 {
+    CXPlayerConfig::uniqueInstance().unloadConfig();
+
     if (nullptr != m_pVodWidget)
     {
         m_pVodWidget->unloadRecord();
@@ -661,11 +682,11 @@ void XPlayer::toggleFullScreen()
         m_blFullScreen = false;
     }
 
-    if (XPLAYER_STATE_NONE != CXPlayerSource::getInstance().state())
+    if (XPLAYER_STATE_NONE != CXPlayerSource::uniqueInstance().state())
     {
         int width = 0, height = 0;
         getDisplaySize(width, height);
-        CXPlayerSource::getInstance().resize(width, height);
+        CXPlayerSource::uniqueInstance().resize(width, height);
     }
 }
 

@@ -57,10 +57,10 @@ private:
     void play(const std::string & url);
     // 
     void cleanup();
-    // 加载播放记录
-    bool loadPlayRecord();
-    // 卸载播放记录
-    void unloadPlayRecord();
+    // 加载配置
+    bool loadConfig();
+    // 卸载配置
+    void unloadConfig();
     // 全屏切换
     void toggleFullScreen();
     // 获取显示区域大小
