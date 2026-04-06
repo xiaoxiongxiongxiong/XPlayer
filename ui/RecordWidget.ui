@@ -76,6 +76,9 @@
            <height>21</height>
           </size>
          </property>
+         <property name="styleSheet">
+          <string notr="true">color: rgb(255, 255, 255);</string>
+         </property>
          <property name="text">
           <string>添加</string>
          </property>
@@ -95,6 +98,9 @@
            <height>21</height>
           </size>
          </property>
+         <property name="styleSheet">
+          <string notr="true">color: rgb(255, 255, 255);</string>
+         </property>
          <property name="text">
           <string>删除</string>
          </property>
@@ -113,6 +119,9 @@
            <width>40</width>
            <height>21</height>
           </size>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color: rgb(255, 255, 255);</string>
          </property>
          <property name="text">
           <string>模式</string>
