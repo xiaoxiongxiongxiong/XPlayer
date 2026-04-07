@@ -3,7 +3,7 @@
 #include <QWidget>
 #include <QTimer>
 #include <QPaintEvent>
-#include "ui_CVolumeWidget.h"
+#include "ui_VolumeWidget.h"
 
 class CVolumeWidget : public QWidget
 {

@@ -1,4 +1,4 @@
-﻿#include "CVolumeWidget.h"
+﻿#include "VolumeWidget.h"
 #include <QPainter>
 
 CVolumeWidget::CVolumeWidget(QWidget *parent)

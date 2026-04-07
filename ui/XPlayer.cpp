@@ -13,7 +13,7 @@
 #include <windows.h>
 
 #include "RecordWidget.h"
-#include "CVolumeWidget.h"
+#include "VolumeWidget.h"
 #include "utils/xplayer_utils.h"
 #include "config/xplayer_config.h"
 #include "renderer/xplayer_audio_render_sdl.h"
