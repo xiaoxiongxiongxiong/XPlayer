@@ -79,7 +79,7 @@ private:
     bool m_blPressed = false;
     int m_iTid = -1;
 
-    QMenu * m_pclsChoices = nullptr;
+    QMenu * m_pmnuOpen = nullptr;
     QMenu * m_pmnuVideo = nullptr;
     QMenu * m_pmnuAudio = nullptr;
     QActionGroup * m_grpAudioActions = nullptr;

@@ -12,6 +12,7 @@
 #include <QFileInfo>
 #include <windows.h>
 
+#include "MenuWidget.h"
 #include "RecordWidget.h"
 #include "VolumeWidget.h"
 #include "utils/xplayer_utils.h"
@@ -30,6 +31,8 @@ XPlayer::XPlayer(QWidget * parent)
 
     moveCenter();
 
+    ui.m_actDisableAudio->setCheckable(true);
+    ui.m_actDisableVideo->setCheckable(true);
     ui.m_actDisableAudio->setData(QVariant::fromValue(-1));
     ui.m_actDisableVideo->setData(QVariant::fromValue(-1));
 
@@ -39,16 +42,14 @@ XPlayer::XPlayer(QWidget * parent)
     ui.m_actVod->setShortcut(QKeySequence::Open);
     ui.m_actLive->setShortcut(QKeySequence::Underline);
 
-    m_pclsChoices = new QMenu(ui.m_btnChoice);
-    m_pclsChoices->addAction(ui.m_actVod);
-    m_pclsChoices->addAction(ui.m_actLive);
+    m_pmnuOpen = ui.m_widgetMenu->addMenu(QStringLiteral("媒体"));
+    m_pmnuOpen->addAction(ui.m_actVod);
+    m_pmnuOpen->addAction(ui.m_actLive);
 
-    m_pclsChoices->addSeparator();
-
-    m_pmnuVideo = m_pclsChoices->addMenu(QStringLiteral("视频选项"));
+    m_pmnuVideo = ui.m_widgetMenu->addMenu(QStringLiteral("视频"));
     m_pmnuVideo->addAction(ui.m_actDisableVideo);
 
-    m_pmnuAudio = m_pclsChoices->addMenu(QStringLiteral("音频选项"));
+    m_pmnuAudio = ui.m_widgetMenu->addMenu(QStringLiteral("音频"));
     m_pmnuAudio->addAction(ui.m_actDisableAudio);
 
     m_grpAudioActions = new QActionGroup(this);
@@ -61,30 +62,12 @@ XPlayer::XPlayer(QWidget * parent)
     m_grpVideoActions->addAction(ui.m_actDisableVideo);
     connect(m_grpVideoActions, &QActionGroup::triggered, this, &XPlayer::onActionsVideoTriggered);
 
-    ui.m_actDisableAudio->setCheckable(true);
-    ui.m_actDisableVideo->setCheckable(true);
-
-    m_pclsChoices->setStyleSheet(R"(
-        QMenu {
-            background-color: #1f1f1f;
-            color: white;
-        }
-        QMenu::item {
-            padding: 2px 20px 2px 20px;
-        }
-        QMenu::item:selected {
-            background-color: #323232;
-            color: white;
-        }
-    )");
-    ui.m_btnChoice->setMenu(m_pclsChoices);
-
     connect(ui.m_actVod, &QAction::triggered, this, &XPlayer::onBtnClickedVod);
     connect(ui.m_actLive, &QAction::triggered, this, &XPlayer::onBtnClickedLive);
 
-    connect(ui.m_btnMinimize, SIGNAL(clicked()), this, SLOT(onBtnClickedMinimize()));
-    connect(ui.m_btnMaximize, SIGNAL(clicked()), this, SLOT(onBtnClickedMaximize()));
-    connect(ui.m_btnClose, SIGNAL(clicked()), this, SLOT(onBtnClickedClose()));
+    connect(ui.m_widgetMenu, &CMenuWidget::minimizeClicked, this, &XPlayer::onBtnClickedMinimize);
+    connect(ui.m_widgetMenu, &CMenuWidget::maximizeClicked, this, &XPlayer::onBtnClickedMaximize);
+    connect(ui.m_widgetMenu, &CMenuWidget::closeClicked, this, &XPlayer::onBtnClickedClose);
 
     connect(ui.m_btnVolume, SIGNAL(clicked()), this, SLOT(onBtnClickedVolume()));
     connect(ui.m_btnCtrl, SIGNAL(clicked()), this, SLOT(onBtnClickedCtrl()));
@@ -128,10 +111,16 @@ XPlayer::XPlayer(QWidget * parent)
 
 XPlayer::~XPlayer()
 {
-    if (m_pclsChoices)
+    if (nullptr != m_grpVideoActions)
     {
-        delete m_pclsChoices;
-        m_pclsChoices = nullptr;
+        delete m_grpVideoActions;
+        m_grpVideoActions = nullptr;
+    }
+
+    if (nullptr != m_grpAudioActions)
+    {
+        delete m_grpAudioActions;
+        m_grpAudioActions = nullptr;
     }
 
     if (nullptr != m_pVolumeWidget)
@@ -305,7 +294,7 @@ void XPlayer::dropEvent(QDropEvent * event)
 
     QString strFileName = urls[0].toLocalFile();
     QFileInfo fileInfo(strFileName);
-    ui.m_labName->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
+    ui.m_widgetMenu->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
 
     m_pVodWidget->addRecord(fileInfo.fileName(), strFileName);
 
@@ -362,7 +351,7 @@ void XPlayer::onBtnClickedVod()
     cleanup();
 
     QFileInfo fileInfo(strFileName);
-    ui.m_labName->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
+    ui.m_widgetMenu->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
 
     m_pVodWidget->addRecord(fileInfo.fileName(), strFileName);
 
@@ -475,7 +464,7 @@ void XPlayer::onLstDbclickedRecord(QListWidgetItem * item)
     cleanup();
 
     auto path = item->data(Qt::UserRole + 1).toString();
-    ui.m_labName->setText(item->text());
+    ui.m_widgetMenu->setText(item->text());
     play(path.toStdString());
 }
 
@@ -579,7 +568,7 @@ void XPlayer::cleanup()
         killTimer(m_iTid);
         m_iTid = -1;
     }
-    ui.m_labName->clear();
+    ui.m_widgetMenu->setText("");
     ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/pause.ico"));
     ui.m_btnCtrl->setToolTip(QStringLiteral("播放"));
     ui.m_sldProgress->setValue(0);
