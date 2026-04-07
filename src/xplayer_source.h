@@ -154,6 +154,9 @@ private:
     // 处理音频流切换
     bool processAudioStream(int stream_index);
 
+    // 计算实时帧率
+    double calcFrameRate();
+
     // 格式化详细信息
     std::string formatDetailString();
 
@@ -183,9 +186,13 @@ private:
     // 音频时钟
     std::atomic_int64_t _audio_clock = { 0 };
 
+    // 上次时间
+    int64_t _last_ts = 0;
+    // 上次帧数
+    std::atomic_int64_t _last_frames = { 0 };
     // 当前帧数
     std::atomic_int64_t _cur_frames = { 0 };
-    // 实时帧率
+    // 当前帧率
     std::atomic<double> _cur_fps = { 0.0 };
 
     // 线程句柄

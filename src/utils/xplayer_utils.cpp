@@ -2,8 +2,19 @@
 
 #include <cstring>
 #include <cstdarg>
+#include <chrono>
 
 #define XPLAYER_BUFF_MAX_LEN 256
+
+static int64_t ctv_time_default_base();
+static int64_t g_time_base_ms = ctv_time_default_base();
+
+int64_t ctv_time_default_base()
+{
+    auto x = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+    auto y = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch());
+    return x.count() - y.count();
+}
 
 std::string xpu_format_string(std::string & msg, const char * fmt, ...)
 {
@@ -90,4 +101,10 @@ std::string xpu_time2str(int64_t ms)
     xpu_format_string(str, "%02d:%02d:%02d.%03d", hour, minute, sec, msec);
 
     return str;
+}
+
+int64_t xpu_time_ms()
+{
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch());
+    return g_time_base_ms + ms.count();
 }

@@ -804,8 +804,9 @@ void CXPlayerSource::videoPlayThr()
     }
 
     _video_renderer->clear();
+    _last_ts = 0;
     _cur_frames.store(0);
-    _cur_fps.store(0.0);
+    _last_frames.store(0);
 }
 
 void CXPlayerSource::audioMultiSpeedRenderer(std::vector<std::uint8_t> & buff, int bytes, const bool & over)
@@ -886,6 +887,28 @@ bool CXPlayerSource::processAudioStream(int stream_index)
     return true;
 }
 
+double CXPlayerSource::calcFrameRate()
+{
+    const auto cur_ts = xpu_time_ms();
+    if (0 == _last_ts)
+    {
+        _last_ts = cur_ts;
+        _last_frames.store(_cur_frames.load());
+        return _cur_fps.load();
+    }
+
+    const auto ms = cur_ts - _last_ts;
+    if (ms >= 1000)
+    {
+        auto frames = _cur_frames.load() - _last_frames.load();
+        _cur_fps.store(static_cast<double>(frames) / static_cast<double>(ms) * 1000.0);
+        _last_frames.store(_cur_frames.load());
+        _last_ts = cur_ts;
+    }
+
+    return _cur_fps.load();
+}
+
 std::string CXPlayerSource::formatDetailString()
 {
     std::string str;
@@ -898,6 +921,8 @@ std::string CXPlayerSource::formatDetailString()
         auto duration_ms = static_cast<double>(stream->duration) * av_q2d(stream->time_base) * 1000.0;
         auto tmp = static_cast<double>(_dst_pos_ms.load()) / duration_ms * static_cast<double>(stream->nb_frames);
         _cur_frames.store(static_cast<int64_t>(std::round(tmp)));
+        _last_frames.store(_cur_frames.load());
+        _last_ts = 0;
     }
 
     if (!_show.load() || nullptr == _ctx)
@@ -927,7 +952,7 @@ std::string CXPlayerSource::formatDetailString()
             avcodec_get_name(codecpar->codec_id),
             codecpar->width, codecpar->height,
             av_get_pix_fmt_name(static_cast<AVPixelFormat>(codecpar->format)),
-            av_q2d(codecpar->framerate), _cur_fps.load()
+            av_q2d(codecpar->framerate), calcFrameRate()
         );
         str.append(video_info);
     }

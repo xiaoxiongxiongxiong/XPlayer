@@ -15,4 +15,7 @@ void flt2s16(const float * flt, int len, uint8_t * data);
 // 时间转字符串
 std::string xpu_time2str(int64_t ms);
 
+// 获取时间
+int64_t xpu_time_ms();
+
 #endif
