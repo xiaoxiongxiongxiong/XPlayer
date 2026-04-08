@@ -540,7 +540,7 @@ void XPlayer::play(const std::string & url)
         act->setChecked(0 == index);
         act->setText(QStringLiteral("音轨%1").arg(index));
         act->setData(QVariant::fromValue(*iter));
-        act->setObjectName(QStringLiteral("m_actAudio%d").arg(index));
+        act->setObjectName(QStringLiteral("m_actAudio%1").arg(index));
         m_pmnuAudio->addAction(act);
         m_grpAudioActions->addAction(act);
     }
@@ -553,7 +553,7 @@ void XPlayer::play(const std::string & url)
         act->setChecked(0 == index);
         act->setText(QStringLiteral("视轨%1").arg(index));
         act->setData(QVariant::fromValue(*iter));
-        act->setObjectName(QStringLiteral("m_actVideo%d").arg(index));
+        act->setObjectName(QStringLiteral("m_actVideo%1").arg(index));
         m_pmnuVideo->addAction(act);
         m_grpVideoActions->addAction(act);
     }
