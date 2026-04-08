@@ -55,6 +55,9 @@
        <property name="dragEnabled">
         <bool>true</bool>
        </property>
+       <property name="selectionMode">
+        <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
+       </property>
       </widget>
      </item>
      <item>

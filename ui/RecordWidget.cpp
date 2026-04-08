@@ -138,7 +138,26 @@ void CRecordWidget::onBtnClickedAdd()
 
 void CRecordWidget::onBtnClickedDelete()
 {
+    auto items = ui.m_lstRecord->selectedItems();
+    if (items.empty())
+        return;
 
+    std::vector<int> rows;
+    for (const auto & item : items)
+    {
+        CXPlayerRecordInfo ri;
+        ri._name = item->text().toStdString();
+        ri._path = item->data(Qt::UserRole + 1).toString().toStdString();
+        ri._mode = static_cast<XPLAYER_MODE>(m_iRecordMode);
+        m_ptrContext->delRecord(ri);
+        rows.push_back(ui.m_lstRecord->row(item));
+    }
+
+    std::sort(rows.begin(), rows.end());
+    for (auto iter = rows.rbegin(); iter != rows.rend(); iter++)
+    {
+        delete ui.m_lstRecord->takeItem(*iter);
+    }
 }
 
 void CRecordWidget::onBtnClickedMode()
