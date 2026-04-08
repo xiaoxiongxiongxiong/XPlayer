@@ -11,6 +11,7 @@ CMenuWidget::CMenuWidget(QWidget *parent)
     setFixedHeight(30); // 与原生菜单栏高度一致
     // 创建菜单栏
     m_pMenuBar = new QMenuBar(this);
+    m_pMenuBar->setMaximumWidth(240);
 
     ui.horizontalLayout->insertWidget(0, m_pMenuBar);
 
