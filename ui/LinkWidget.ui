@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CLinkWidgetClass</class>
+ <widget class="QWidget" name="CLinkWidgetClass">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>600</width>
+    <height>400</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>链接</string>
+  </property>
+  <widget class="QGroupBox" name="m_grpUrl">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>6</y>
+     <width>580</width>
+     <height>120</height>
+    </rect>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>580</width>
+     <height>120</height>
+    </size>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>580</width>
+     <height>120</height>
+    </size>
+   </property>
+   <property name="title">
+    <string>打开链接</string>
+   </property>
+   <widget class="QTextEdit" name="m_edtUrl">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>15</y>
+      <width>560</width>
+      <height>100</height>
+     </rect>
+    </property>
+    <property name="minimumSize">
+     <size>
+      <width>560</width>
+      <height>100</height>
+     </size>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>560</width>
+      <height>100</height>
+     </size>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QGroupBox" name="m_grpRecord">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>130</y>
+     <width>580</width>
+     <height>222</height>
+    </rect>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>580</width>
+     <height>222</height>
+    </size>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>580</width>
+     <height>222</height>
+    </size>
+   </property>
+   <property name="title">
+    <string>历史记录</string>
+   </property>
+   <widget class="QListWidget" name="m_lstRecord">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>15</y>
+      <width>560</width>
+      <height>202</height>
+     </rect>
+    </property>
+    <property name="minimumSize">
+     <size>
+      <width>560</width>
+      <height>202</height>
+     </size>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>560</width>
+      <height>202</height>
+     </size>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QPushButton" name="m_btnConfirm">
+   <property name="geometry">
+    <rect>
+     <x>170</x>
+     <y>362</y>
+     <width>60</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>确 定</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="m_btnCancel">
+   <property name="geometry">
+    <rect>
+     <x>370</x>
+     <y>362</y>
+     <width>60</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>取 消</string>
+   </property>
+  </widget>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <resources/>
+ <connections/>
+</ui>

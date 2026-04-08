@@ -15,6 +15,7 @@
 #include "MenuWidget.h"
 #include "RecordWidget.h"
 #include "VolumeWidget.h"
+#include "LinkWidget.h"
 #include "utils/xplayer_utils.h"
 #include "config/xplayer_config.h"
 #include "renderer/xplayer_audio_render_sdl.h"
@@ -360,6 +361,23 @@ void XPlayer::onBtnClickedVod()
 
 void XPlayer::onBtnClickedLive()
 {
+    std::vector<QString> urls;
+    m_pLiveWidget->getRecord(urls);
+
+    CLinkWidget lw(this);
+    lw.setRecord(urls);
+    auto ret = lw.exec();
+    if (QDialog::Accepted != ret)
+        return;
+
+    cleanup();
+
+    auto url = lw.getUrl();
+    ui.m_widgetMenu->setText(url);
+
+    m_pLiveWidget->addRecord(url, url);
+
+    play(url.toStdString());
 }
 
 void XPlayer::onBtnClickedCtrl()

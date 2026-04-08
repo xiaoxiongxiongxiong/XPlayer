@@ -26,6 +26,9 @@ public:
     // 添加播放记录
     bool addRecord(const QString & name, const QString & path);
 
+    // 获取记录
+    void getRecord(std::vector<QString> & urls);
+
 signals:
     void itemDbclicked(QListWidgetItem * item);
 

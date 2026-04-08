@@ -120,6 +120,17 @@ bool CRecordWidget::addRecord(const QString & name, const QString & path)
     return true;
 }
 
+void CRecordWidget::getRecord(std::vector<QString> & urls)
+{
+    urls.clear();
+    int cnt = ui.m_lstRecord->count();
+    for (int i = 0; i < cnt; i++)
+    {
+        auto * item = ui.m_lstRecord->item(i);
+        urls.push_back(item->text());
+    }
+}
+
 void CRecordWidget::onBtnClickedAdd()
 {
 

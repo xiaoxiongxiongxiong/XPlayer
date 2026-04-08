@@ -100,7 +100,7 @@ bool CXPlayerRecord::loadRecordFile(const std::string & path)
 
 void CXPlayerRecord::unloadRecordFile()
 {
-    if (_path.empty() || _lst.empty())
+    if (_path.empty())
         return;
 
     std::string mode_str;
