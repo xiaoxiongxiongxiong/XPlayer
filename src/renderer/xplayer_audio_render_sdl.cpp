@@ -20,6 +20,7 @@ bool CXPlayerAudioRender::create(int sample_rate, int channels, int frame_size, 
         return false;
     }
 
+    _volume.store(vol);
     SDL_PauseAudioDevice(_dev_id, 0);
 
     return true;
