@@ -13,6 +13,11 @@ CXPlayerStream::CXPlayerStream(int index) :
     _pkt_dts = AV_NOPTS_VALUE;
 }
 
+CXPlayerStream::~CXPlayerStream()
+{
+    _index = -1;
+}
+
 bool CXPlayerStream::init(const AVCodecParameters * codecpar, const AVRational & timebase)
 {
     if (nullptr == codecpar)
@@ -63,6 +68,13 @@ void CXPlayerStream::uninit()
     if (nullptr == _codecpar)
         return;
 
+    _running.store(false);
+    if (_thr.joinable())
+    {
+        _thr.join();
+    }
+
+    reset();
     avcodec_parameters_free(&_codecpar);
     destroyDecoder();
 }
@@ -88,7 +100,9 @@ bool CXPlayerStream::send(const AVPacket & pkt, const bool & over)
     }
 
     if (AV_NOPTS_VALUE != pkt.dts)
+    {
         _pkt_dts = pkt.dts;
+    }
 
     _pkts.push(pkt);
     _demux_over.store(over);
@@ -98,50 +112,28 @@ bool CXPlayerStream::send(const AVPacket & pkt, const bool & over)
 
 bool CXPlayerStream::recv(AVFrame & frm, bool & got, bool & over)
 {
-    got = false;
-    over = false;
-
-    if (_pkts.empty() && !_demux_over.load())
+    AVFrame * tmp = nullptr;
+    if (!_frms.pop(tmp))
     {
+        got = false;
+        over = _demux_over.load();
         return true;
     }
 
-    AVPacket pkt = {};
-    bool succ = true;
-    if (_pkts.pop(pkt))
-    {
-        succ = _decoder->send(&pkt);
-        av_packet_unref(&pkt);
-    }
-    else if (!_flushed.load())
-    {
-        succ = _decoder->send(nullptr);
-        _flushed.store(true);
-    }
-
-    if (!succ)
-    {
-        _err = _decoder->err();
-        return false;
-    }
-
-    succ = _decoder->recv(frm, got, over);
-    if (!succ)
-    {
-        _err = _decoder->err();
-        return false;
-    }
+    av_frame_ref(&frm, tmp);
+    av_frame_free(&tmp);
+    got = true;
+    over = false;
 
     return true;
 }
 
 void CXPlayerStream::clear()
 {
-    _pkts.clear();
-    _pkt_dts = AV_NOPTS_VALUE;
-    if (nullptr != _decoder)
+    _need_reset.store(true);
+    while (_running.load() && _need_reset.load())
     {
-        _decoder->clear();
+        std::this_thread::sleep_for(std::chrono::microseconds(20));
     }
 }
 
@@ -152,7 +144,21 @@ bool CXPlayerStream::isFull()
 
 bool CXPlayerStream::prepare()
 {
-    return createDecoder();
+    if (!createDecoder())
+        return false;
+
+    try
+    {
+        _running.store(true);
+        _thr = std::thread{ &CXPlayerStream::decodeThr, this };
+    }
+    catch (const std::exception & e)
+    {
+        xpu_format_string(_err, "%s", e.what());
+        return false;
+    }
+
+    return true;
 }
 
 int64_t CXPlayerStream::timestamp(int64_t timecode)
@@ -175,7 +181,7 @@ const char * CXPlayerStream::err() const
 
 bool CXPlayerStream::createDecoder()
 {
-    _decoder = std::make_shared<CXPlayerDecoder>();
+    _decoder = std::make_unique<CXPlayerDecoder>();
     if (nullptr == _decoder)
     {
         xpu_format_string(_err, "Create decoder failed");
@@ -200,4 +206,100 @@ void CXPlayerStream::destroyDecoder()
     _decoder->destroy();
     _decoder.reset();
     _decoder = nullptr;
+}
+
+void CXPlayerStream::decodeThr()
+{
+    while (_running.load())
+    {
+        if (_need_reset.load())
+        {
+            reset();
+            _need_reset.store(false);
+        }
+
+        // 无包且未结束
+        if (_pkts.empty() && !_demux_over.load())
+        {
+            std::this_thread::sleep_for(std::chrono::microseconds(20));
+            continue;
+        }
+
+        AVPacket pkt = {};
+        bool succ = true;
+        if (_pkts.pop(pkt))
+        {
+            succ = _decoder->send(&pkt);
+            av_packet_unref(&pkt);
+        }
+        else if (!_flushed.load())
+        {
+            succ = _decoder->send(nullptr);
+            _flushed.store(true);
+        }
+
+        if (!succ)
+        {
+            _err = _decoder->err();
+            _decode_error.store(true);
+            break;
+        }
+
+        bool got = false;
+        bool over = false;
+        do 
+        {
+            auto * frm = av_frame_alloc();
+            if (nullptr == frm)
+            {
+                xpu_format_string(_err, "av_frame_alloc failed");
+                _decode_error.store(true);
+                break;
+            }
+
+            succ = _decoder->recv(*frm, got, over);
+            if (got)
+                _frms.push(frm);
+            else
+                av_frame_free(&frm);
+
+            if (!succ)
+            {
+                _err = _decoder->err();
+                _decode_error.store(true);
+                break;
+            }
+
+            if (over)
+            {
+                _decode_over.store(true);
+                break;
+            }
+        } while (got);
+
+        while (_running.load() && !_need_reset.load() && _frms.size() > _max_frms)
+        {
+            std::this_thread::sleep_for(std::chrono::microseconds(20));
+        }
+    }
+}
+
+void CXPlayerStream::reset()
+{
+    AVPacket pkt = {};
+    while (_pkts.pop(pkt))
+    {
+        av_packet_unref(&pkt);
+    }
+    
+    AVFrame * frm = nullptr;
+    while (_frms.pop(frm))
+    {
+        av_frame_free(&frm);
+    }
+
+    _pkts.clear();
+    _frms.clear();
+    _pkt_dts = AV_NOPTS_VALUE;
+    _decoder->clear();
 }

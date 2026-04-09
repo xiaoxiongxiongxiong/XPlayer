@@ -122,15 +122,14 @@ bool CXPlayerDecoder::recv(AVFrame & frm, bool & got, bool & over)
     int ret = avcodec_receive_frame(_ctx, &frm);
     if (0 != ret)
     {
+        got = false;
         if (AVERROR(EAGAIN) == ret)
         {
-            got = false;
             return true;
         }
         if (AVERROR_EOF == ret)
         {
             over = true;
-            got = false;
             return true;
         }
         char buff[AV_ERROR_MAX_STRING_SIZE] = {};

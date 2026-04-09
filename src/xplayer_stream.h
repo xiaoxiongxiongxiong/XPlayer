@@ -5,6 +5,7 @@
 #include <string>
 #include <atomic>
 #include <memory>
+#include <thread>
 
 extern "C" {
 #include "libavutil/frame.h"
@@ -19,14 +20,16 @@ class CXPlayerStream
 {
 public:
     CXPlayerStream(int index);
-    ~CXPlayerStream() = default;
+    ~CXPlayerStream();
 
     // 创建
     bool init(const AVCodecParameters * codec_par, const AVRational & timebase);
     // 销毁
     void uninit();
 
+    // 发包
     bool send(const AVPacket & pkt, const bool & over = false);
+    // 收帧
     bool recv(AVFrame & frm, bool & got, bool & over);
 
     // 清空缓冲区和解码器内部缓冲
@@ -52,17 +55,26 @@ private:
     // 销毁解码器
     void destroyDecoder();
 
+    // 解码线程
+    void decodeThr();
+
+    // 重置
+    void reset();
+
 private:
     // 索引
     int _index = -1;
-
-    // 是否使用中
-    std::atomic_bool _active = { false };
 
     // flush
     std::atomic_bool _flushed = { false };
     // 是否已结束
     std::atomic_bool _demux_over = { false };
+    // 是否解码结束
+    std::atomic_bool _decode_over = { false };
+    // 是否解码错误
+    std::atomic_bool _decode_error = { false };
+    // 是否需要重置
+    std::atomic_bool _need_reset = { false };
 
     // 编解码器参数
     AVCodecParameters * _codecpar = nullptr;
@@ -70,7 +82,7 @@ private:
     AVRational _timebase = { 0,1 };
 
     // 解码器
-    std::shared_ptr<CXPlayerDecoder> _decoder = nullptr;
+    std::unique_ptr<CXPlayerDecoder> _decoder = nullptr;
 
     // 队列长度上限
     int _max_pkts = 0;
@@ -78,6 +90,16 @@ private:
     int64_t _pkt_dts = 0;
     // 数据包队列
     CXPlayerQueue<AVPacket> _pkts;
+
+    // 缓冲帧个数
+    int _max_frms = 5;
+    // 解码后数据
+    CXPlayerQueue<AVFrame *> _frms;
+
+    // 运行标记
+    std::atomic_bool _running = { false };
+    // 解码线程
+    std::thread _thr;
 
     // 错误信息
     std::string _err;
