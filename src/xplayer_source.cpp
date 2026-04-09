@@ -210,6 +210,12 @@ bool CXPlayerSource::pause(bool flag)
 
 bool CXPlayerSource::seek(const int64_t pos)
 {
+    if (XPLAYER_STATE_PLAYING != _state.load())
+    {
+        xpu_format_string(_err, "Not playing");
+        return false;
+    }
+
     _is_skip.store(true);
     _dst_pos_ms.store(pos);
 
