@@ -32,6 +32,10 @@ public:
 signals:
     void itemDbclicked(QListWidgetItem * item);
 
+protected:
+    void dragEnterEvent(QDragEnterEvent * event) override;
+    void dropEvent(QDropEvent * event) override;
+
 private slots:
     void onBtnClickedAdd();
     void onBtnClickedDelete();

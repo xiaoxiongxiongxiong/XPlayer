@@ -1,12 +1,19 @@
 ﻿#include "RecordWidget.h"
 #include <QMessageBox>
 #include <QFileInfo>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QMimeData>
+
+#include "LinkWidget.h"
 #include "record/xplayer_record.h"
 
 CRecordWidget::CRecordWidget(QWidget *parent)
     : QWidget(parent)
 {
     ui.setupUi(this);
+
+    this->setAcceptDrops(true);
 
     connect(ui.m_btnAdd, SIGNAL(clicked()), this, SLOT(onBtnClickedAdd()));
     connect(ui.m_btnDelete, SIGNAL(clicked()), this, SLOT(onBtnClickedDelete()));
@@ -131,9 +138,55 @@ void CRecordWidget::getRecord(std::vector<QString> & urls)
     }
 }
 
+void CRecordWidget::dragEnterEvent(QDragEnterEvent * event)
+{
+    if (!event->mimeData()->hasUrls())
+    {
+        event->ignore();
+        return;
+    }
+
+    event->acceptProposedAction();
+}
+
+void CRecordWidget::dropEvent(QDropEvent * event)
+{
+    const QMimeData * mime_data = event->mimeData();
+    if (!mime_data->hasUrls())
+        return;
+
+    QList<QUrl> urls = mime_data->urls();
+    if (1 != urls.size())
+        return;
+
+    //cleanup();
+
+    //QString strFileName = urls[0].toLocalFile();
+    //QFileInfo fileInfo(strFileName);
+    //ui.m_widgetMenu->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
+
+    //m_pVodWidget->addRecord(fileInfo.fileName(), strFileName);
+
+    //play(strFileName.toStdString());
+}
+
 void CRecordWidget::onBtnClickedAdd()
 {
+    if (XPLAYER_MODE_LIVE == m_iRecordMode)
+    {
+        CLinkWidget lw(nullptr);
+        auto ret = lw.exec();
+        if (QDialog::Accepted != ret)
+            return;
 
+        auto url = lw.getUrl();
+
+        if (!addRecord(url, url))
+        {
+            QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("添加链接失败！"));
+        }
+        return;
+    }
 }
 
 void CRecordWidget::onBtnClickedDelete()
