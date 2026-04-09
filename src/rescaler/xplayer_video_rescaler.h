@@ -49,7 +49,7 @@ public:
     bool updateParameters(const CXPlayerVideoInfo & dst, const bool & flag = false);
 
     // 转换
-    bool rescale(const AVFrame * in_frm, AVFrame * out_frm);
+    bool rescale(const AVFrame * in_frm, uint8_t ** data, int * linesize);
 
     // 错误信息
     const char * err() const;

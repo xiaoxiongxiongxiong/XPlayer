@@ -768,8 +768,9 @@ void CXPlayerSource::videoPlayThr()
             _wnd_changed.store(false);
         }
 
-        AVFrame out_frm{};
-        if (!_video_rescaler->rescale(&frm, &out_frm))
+        uint8_t * data[AV_NUM_DATA_POINTERS]{};
+        int linesize[AV_NUM_DATA_POINTERS]{};
+        if (!_video_rescaler->rescale(&frm, data, linesize))
         {
             _err = _video_rescaler->err();
             av_frame_unref(&frm);
@@ -777,28 +778,29 @@ void CXPlayerSource::videoPlayThr()
             break;
         }
 
-        av_frame_unref(&frm);
-
         int64_t delay_ms = 0;
         if (-1 != _audio_stream_index.load() && _audio_clock.load() > 0)
         {
-            auto tmp = stream->timestamp(out_frm.pts);
+            auto tmp = stream->timestamp(frm.pts);
             delay_ms = tmp - _audio_clock.load();
         }
         else
         {
-            if (out_frm.duration > 0)
-                delay_ms = stream->timestamp(out_frm.duration);
+            if (frm.duration > 0)
+                delay_ms = stream->timestamp(frm.duration);
             else
                 delay_ms = stream->frameDuration();
             delay_ms = static_cast<int64_t>(std::round(static_cast<double>(delay_ms) / _speed.load()));
-            _cur_pos_ms.store(stream->timestamp(out_frm.pts));
+            _cur_pos_ms.store(stream->timestamp(frm.pts));
         }
+
+        av_frame_unref(&frm);
+
         if (delay_ms > 0)
             std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
 
         auto str = formatDetailString();
-        _video_renderer->renderer(out_frm.data, out_frm.linesize, str);
+        _video_renderer->renderer(data, linesize, str);
         _cur_frames++;
         flag = false;
     }

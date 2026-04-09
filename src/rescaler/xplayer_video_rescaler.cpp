@@ -22,7 +22,6 @@ bool CXPlayerVideoInfo::operator==(const CXPlayerVideoInfo & other) const
     return true;
 }
 
-
 bool CXPlayerVideoRescaler::create(const CXPlayerVideoInfo & src, const CXPlayerVideoInfo & dst)
 {
     if (_rescaler)
@@ -43,36 +42,36 @@ bool CXPlayerVideoRescaler::create(const CXPlayerVideoInfo & src, const CXPlayer
         return false;
     }
 
-    // 完全相同，不需要转换
-    if (dst == src)
-    {
-        xpu_format_string(_err, "No need swscale!");
-        _src = src;
-        _dst = dst;
-        _need_rescale = false;
-        return true;
-    }
-
-    _rescaler = sws_getContext(src._width, src._height, src._fmt, dst._width, dst._height, dst._fmt, 0, nullptr, nullptr, nullptr);
-    if (nullptr == _rescaler)
-    {
-        xpu_format_string(_err, "sws_alloc_context failed!");
-        return false;
-    }
-
     int ret = av_image_alloc(_out_data, _out_linesize, dst._width, dst._height, dst._fmt, 64);
     if (ret <= 0)
     {
         char buff[AV_ERROR_MAX_STRING_SIZE] = { 0 };
         av_make_error_string(buff, AV_ERROR_MAX_STRING_SIZE, ret);
         xpu_format_string(_err, "av_image_alloc failed, err:%s", buff);
-        sws_freeContext(_rescaler);
-        _rescaler = nullptr;
         return false;
     }
 
     _src = src;
     _dst = dst;
+
+    // 完全相同，不需要转换
+    if (dst == src)
+    {
+        _need_rescale = false;
+        return true;
+    }
+
+    _rescaler = sws_getContext(src._width, src._height, src._fmt, 
+                               dst._width, dst._height, dst._fmt, 
+                               0, nullptr, nullptr, nullptr);
+    if (nullptr == _rescaler)
+    {
+        xpu_format_string(_err, "sws_alloc_context failed!");
+        av_freep(&_out_data[0]);
+        memset(_out_data, 0, sizeof(_out_data));
+        memset(_out_linesize, 0, sizeof(_out_linesize));
+        return false;
+    }
 
     _need_rescale = true;
 
@@ -102,31 +101,11 @@ bool CXPlayerVideoRescaler::updateParameters(const CXPlayerVideoInfo & dst, cons
     if (flag && _src == dst)
         return true;
 
-    if (!flag && _dst == dst)
-        return true;
-
-    if (flag)
-    {
-        _rescaler = sws_getCachedContext(_rescaler,
-                                         dst._width, dst._height, dst._fmt,
-                                         _dst._width, _dst._height, _dst._fmt,
-                                         0, nullptr, nullptr, nullptr);
-    }
-    else
-    {
-        _rescaler = sws_getCachedContext(_rescaler,
-                                         _src._width, _src._height, _src._fmt,
-                                         dst._width, dst._height, dst._fmt,
-                                         0, nullptr, nullptr, nullptr);
-    }
-    if (nullptr == _rescaler)
-    {
-        xpu_format_string(_err, "Cannot initialize the conversion context");
-        return false;
-    }
-
     if (!flag)
     {
+        if (_dst == dst)
+            return true;
+
         if (nullptr != _out_data)
         {
             av_freep(&_out_data[0]);
@@ -142,19 +121,49 @@ bool CXPlayerVideoRescaler::updateParameters(const CXPlayerVideoInfo & dst, cons
             xpu_format_string(_err, "av_image_alloc failed, err:%s", buff);
             return false;
         }
-        _dst = dst;
     }
-    else
-        _src = dst;
+
+    // 输入变更后跟输出一样或输出变更后跟输入一样
+    if ((flag && dst == _dst) || (!flag && dst == _src))
+    {
+        if (nullptr != _rescaler)
+        {
+            sws_freeContext(_rescaler);
+            _rescaler = nullptr;
+        }
+        _need_rescale = false;
+        return true;
+    }
+
+    auto & tmp = flag ? _src : _dst;
+    tmp = dst;
+
+    _rescaler = sws_getCachedContext(_rescaler,
+                                     _src._width, _src._height, _src._fmt,
+                                     _dst._width, _dst._height, _dst._fmt,
+                                     0, nullptr, nullptr, nullptr);
+    if (nullptr == _rescaler)
+    {
+        xpu_format_string(_err, "Cannot initialize the conversion context");
+        return false;
+    }
+
+    _need_rescale = true;
 
     return true;
 }
 
-bool CXPlayerVideoRescaler::rescale(const AVFrame * in_frm, AVFrame * out_frm)
+bool CXPlayerVideoRescaler::rescale(const AVFrame * in_frm, uint8_t ** data, int * linesize)
 {
-    if (nullptr == in_frm || nullptr == in_frm->data[0] || 0 >= in_frm->linesize[0] || nullptr == out_frm)
+    if (nullptr == in_frm || nullptr == in_frm->data[0] || 0 >= in_frm->linesize[0])
     {
         xpu_format_string(_err, "Input param is invalid");
+        return false;
+    }
+
+    if (nullptr == data || nullptr == linesize)
+    {
+        xpu_format_string(_err, "Output param is invalid");
         return false;
     }
 
@@ -166,19 +175,16 @@ bool CXPlayerVideoRescaler::rescale(const AVFrame * in_frm, AVFrame * out_frm)
             xpu_format_string(_err, "Input changed");
             return false;
         }
-        _need_rescale = pvi == _dst;
     }
 
     if (!_need_rescale)
     {
-        out_frm->format = static_cast<int>(_dst._fmt);
-        out_frm->pts = in_frm->pts;
-        out_frm->pkt_dts = in_frm->pkt_dts;
-        out_frm->duration = in_frm->duration;
-        out_frm->width = in_frm->width;
-        out_frm->height = in_frm->height;
-        memcpy(out_frm->data, in_frm->data, sizeof(in_frm->data[0]) * AV_NUM_DATA_POINTERS);
-        memcpy(out_frm->linesize, in_frm->linesize, sizeof(in_frm->linesize[0]) * AV_NUM_DATA_POINTERS);
+        av_image_copy(_out_data, _out_linesize, (const uint8_t **)in_frm->data, in_frm->linesize, _dst._fmt, _dst._width, _dst._height);
+        for (int i = 0; i < AV_NUM_DATA_POINTERS; i++)
+        {
+            data[i] = _out_data[i];
+            linesize[i] = _out_linesize[i];
+        }
         return true;
     }
 
@@ -195,7 +201,11 @@ bool CXPlayerVideoRescaler::rescale(const AVFrame * in_frm, AVFrame * out_frm)
         return false;
     }
 
-    copyFrame(out_frm, in_frm);
+    for (int i = 0; i < AV_NUM_DATA_POINTERS; i++)
+    {
+        data[i] = _out_data[i];
+        linesize[i] = _out_linesize[i];
+    }
 
     return true;
 }
