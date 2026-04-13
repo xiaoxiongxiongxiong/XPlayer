@@ -1,6 +1,7 @@
 ﻿#include "RecordWidget.h"
 #include <QMessageBox>
 #include <QFileInfo>
+#include <QFileDialog>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QMimeData>
@@ -151,23 +152,20 @@ void CRecordWidget::dragEnterEvent(QDragEnterEvent * event)
 
 void CRecordWidget::dropEvent(QDropEvent * event)
 {
+    if (XPLAYER_MODE_VOD != m_iRecordMode)
+        return;
+
     const QMimeData * mime_data = event->mimeData();
     if (!mime_data->hasUrls())
         return;
 
     QList<QUrl> urls = mime_data->urls();
-    if (1 != urls.size())
-        return;
-
-    //cleanup();
-
-    //QString strFileName = urls[0].toLocalFile();
-    //QFileInfo fileInfo(strFileName);
-    //ui.m_widgetMenu->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
-
-    //m_pVodWidget->addRecord(fileInfo.fileName(), strFileName);
-
-    //play(strFileName.toStdString());
+    for (const auto & url : urls)
+    {
+        QString strFileName = url.toLocalFile();
+        QFileInfo fileInfo(strFileName);
+        addRecord(fileInfo.fileName(), strFileName);
+    }
 }
 
 void CRecordWidget::onBtnClickedAdd()
@@ -180,13 +178,17 @@ void CRecordWidget::onBtnClickedAdd()
             return;
 
         auto url = lw.getUrl();
-
-        if (!addRecord(url, url))
-        {
-            QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("添加链接失败！"));
-        }
+        addRecord(url, url);
         return;
     }
+
+    const QString strFilter = tr("mp4(*.mp4);;mpegts(*.ts);;All Files(*.*)");
+    QString strFilePath = QFileDialog::getOpenFileName(this, QStringLiteral("文件对话框"), "F:\\media", strFilter);
+    if (strFilePath.isEmpty())
+        return;
+
+    QFileInfo fileInfo(strFilePath);
+    addRecord(fileInfo.fileName(), strFilePath);
 }
 
 void CRecordWidget::onBtnClickedDelete()
