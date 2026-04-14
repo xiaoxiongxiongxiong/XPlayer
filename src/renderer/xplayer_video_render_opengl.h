@@ -39,26 +39,26 @@ private:
     void initVertices();
 
 private:
-    // 纹理器
-    GLuint m_uiTexures[3] = {};
-    //
-    GLuint m_uiProgram = 0;
-
+    // 大小发生改变
+    std::atomic_bool _changed = { false };
     // 宽度
     std::atomic_int m_iWidth = { 0 };
     // 高度
     std::atomic_int m_iHeight = { 0 };
+    // 是否渲染完成
+    std::atomic_bool _is_over = { true };
+
+    // 纹理器
+    GLuint m_uiTexures[3] = {};
+    //
+    GLuint m_uiProgram = 0;
 
     GLuint m_uiVertexLocation = 0;
     GLuint m_uiTextureLocation = 1;
 
     GLuint m_uiVAO = 0;
     GLuint m_uiVBO = 0;
-
-    // 数据缓存
-    QByteArray m_yData;
-    QByteArray m_uData;
-    QByteArray m_vData;
+    GLuint m_uiEBO = 0;
 
     // 错误信息
     std::string _err;

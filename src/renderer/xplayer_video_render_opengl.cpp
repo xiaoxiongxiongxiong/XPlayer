@@ -1,6 +1,21 @@
 ﻿#include "xplayer_video_render_opengl.h"
 
+#include <QThread>
 #include "xplayer_utils.h"
+
+static const char * g_vert_str = R"(
+    #version 330 core
+    layout(location = 0) in vec3 xplayer_Position;
+    layout(location = 1) in vec2 xplayer_TextureIn;
+    
+    out vec2 xplayer_TexCoord0;
+    
+    void main(void)
+    {
+        gl_Position = vec4(xplayer_Position, 1.0);
+        xplayer_TexCoord0 = xplayer_TextureIn;
+    }
+)";
 
 static const char * g_frag_str = R"(
     #version 330 core
@@ -15,28 +30,15 @@ static const char * g_frag_str = R"(
     
     void main()
     {
-        vec3 yuv, rgb;
-        yuv.x = texture(xplayer_TextureY, xplayer_TexCoord0).r;
-        yuv.y = texture(xplayer_TextureU, xplayer_TexCoord0).r - 0.5;
-        yuv.z = texture(xplayer_TextureV, xplayer_TexCoord0).r - 0.5;
-        rgb = mat3(1.0,       1.0,      1.0, 
-                   0.0,      -0.337633, 1.732446, 
-                   1.370705, -0.698001, 0.0) * yuv;
-        xplayer_FragData = vec4(rgb, 1.0);
-    }
-)";
+        float y = texture(xplayer_TextureY, xplayer_TexCoord0).r;
+        float u = texture(xplayer_TextureU, xplayer_TexCoord0).r - 0.5;
+        float v = texture(xplayer_TextureV, xplayer_TexCoord0).r - 0.5;
 
-static const char * g_vert_str = R"(
-    #version 330 core
-    layout(location = 0) in vec2 xplayer_Vertex;
-    layout(location = 1) in vec2 xplayer_TextureIn;
-    
-    out vec2 xplayer_TexCoord0;
-    
-    void main(void)
-    {
-        gl_Position = vec4(xplayer_Vertex, 0.0, 1.0);
-        xplayer_TexCoord0 = xplayer_TextureIn;
+        float r = y + 1.402 * v;
+        float g = y - 0.344136 * u - 0.714136 * v;
+        float b = y + 1.772 * u;
+
+        xplayer_FragData = vec4(r, g, b, 1.0);
     }
 )";
 
@@ -48,6 +50,9 @@ CXPlayerVideoRenderOpengl::CXPlayerVideoRenderOpengl(QWidget * parent)
 CXPlayerVideoRenderOpengl::~CXPlayerVideoRenderOpengl()
 {
     makeCurrent();
+
+    _is_over.store(true);
+
     // 释放资源
     if (0 != m_uiVBO)
     {
@@ -59,6 +64,12 @@ CXPlayerVideoRenderOpengl::~CXPlayerVideoRenderOpengl()
     {
         glDeleteVertexArrays(1, &m_uiVAO);
         m_uiVAO = 0;
+    }
+
+    if (0 != m_uiEBO)
+    {
+        glDeleteBuffers(1, &m_uiEBO);
+        m_uiEBO = 0;
     }
 
     for (int i = 0; i < 3; i++)
@@ -78,24 +89,49 @@ CXPlayerVideoRenderOpengl::~CXPlayerVideoRenderOpengl()
 
 void CXPlayerVideoRenderOpengl::setSize(int width, int height)
 {
-    m_iWidth.store(width);
-    m_iHeight.store(height);
+    if (width < 1 || height < 1)
+        return;
+
+    if (m_iWidth.load() != width || m_iHeight.load() != height)
+    {
+        m_iWidth.store(width);
+        m_iHeight.store(height);
+        _changed.store(true);
+    }
 }
 
 void CXPlayerVideoRenderOpengl::renderer(const uint8_t * y, const uint8_t * u, const uint8_t * v, const std::string & str)
 {
-    if (nullptr == y || nullptr == u || nullptr == v || 0 == m_uiTexures[0])
+    if (nullptr == y || nullptr == u || nullptr == v)
         return;
 
-    const auto bytes = m_iWidth.load() * m_iHeight.load();
-    m_yData = QByteArray(reinterpret_cast<const char *>(y), bytes);
-    m_uData = QByteArray(reinterpret_cast<const char *>(u), bytes / 4);
-    m_vData = QByteArray(reinterpret_cast<const char *>(v), bytes / 4);
+    glBindTexture(GL_TEXTURE_2D, m_uiTexures[0]);
+    if (_changed.load())
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, m_iWidth.load(), m_iHeight.load(), 0, GL_RED, GL_UNSIGNED_BYTE, y);
+    else
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_iWidth.load(), m_iHeight.load(), GL_RED, GL_UNSIGNED_BYTE, y);
 
-    auto aaa = m_yData.isEmpty();
+    glBindTexture(GL_TEXTURE_2D, m_uiTexures[1]);
+    if (_changed.load())
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, m_iWidth.load() / 2, m_iHeight.load() / 2, 0, GL_RED, GL_UNSIGNED_BYTE, u);
+    else
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_iWidth.load() / 2, m_iHeight.load() / 2, GL_RED, GL_UNSIGNED_BYTE, u);
+
+    glBindTexture(GL_TEXTURE_2D, m_uiTexures[2]);
+    if (_changed.load())
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, m_iWidth.load() / 2, m_iHeight.load() / 2, 0, GL_RED, GL_UNSIGNED_BYTE, v);
+    else
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_iWidth.load() / 2, m_iHeight.load() / 2, GL_RED, GL_UNSIGNED_BYTE, v);
+
+    _changed.store(false);
+    _is_over.store(false);
 
     repaint();
-    //update(); // 触发 paintGL 重绘
+
+    while (!_is_over.load())
+    {
+        QThread::usleep(1);
+    }
 }
 
 void CXPlayerVideoRenderOpengl::initializeGL()
@@ -103,7 +139,7 @@ void CXPlayerVideoRenderOpengl::initializeGL()
     // 【重要】初始化 OpenGL 函数解析器
     initializeOpenGLFunctions();
 
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     initShader();
 
@@ -116,10 +152,8 @@ void CXPlayerVideoRenderOpengl::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT);
 
-    if (m_yData.isEmpty())
+    if (_is_over.load())
         return;
-
-    glClear(GL_COLOR_BUFFER_BIT);
 
     // 1. 使用着色器程序
     glUseProgram(m_uiProgram);
@@ -127,42 +161,30 @@ void CXPlayerVideoRenderOpengl::paintGL()
     // 2. 绑定 VAO
     glBindVertexArray(m_uiVAO);
 
-    // --- 关键步骤：更新纹理数据 ---
-    const auto w = m_iWidth.load();
-    const auto h = m_iHeight.load();
-
     // 更新 Y 纹理
     glActiveTexture(GL_TEXTURE0); // 激活纹理单元 0
     glBindTexture(GL_TEXTURE_2D, m_uiTexures[0]);
-    // 使用 glTexSubImage2D 更新数据，比 glTexImage2D 效率更高
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RED, GL_UNSIGNED_BYTE, m_yData.constData());
     // 将纹理单元 0 绑定到着色器中的 uniform sampler2D textureY
     glUniform1i(glGetUniformLocation(m_uiProgram, "xplayer_TextureY"), 0);
 
     // 更新 U 纹理
     glActiveTexture(GL_TEXTURE1); // 激活纹理单元 1
     glBindTexture(GL_TEXTURE_2D, m_uiTexures[1]);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w / 2, h / 2, GL_RED, GL_UNSIGNED_BYTE, m_uData.constData());
     glUniform1i(glGetUniformLocation(m_uiProgram, "xplayer_TextureU"), 1);
 
     // 更新 V 纹理
     glActiveTexture(GL_TEXTURE2); // 激活纹理单元 2
     glBindTexture(GL_TEXTURE_2D, m_uiTexures[2]);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w / 2, h / 2, GL_RED, GL_UNSIGNED_BYTE, m_vData.constData());
     glUniform1i(glGetUniformLocation(m_uiProgram, "xplayer_TextureV"), 2);
 
     // 3. 绘制
-    //glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebufferObject());
-    ////glViewport(0, 0, w, h);
-    //glClearColor(0.f, 1.f, 0.f, 1.f);
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    //glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-    //// 4. 解绑（可选，保持状态整洁）
+    // 4. 解绑（可选，保持状态整洁）
     glBindVertexArray(0);
     glUseProgram(0);
+
+    _is_over.store(true);
 }
 
 void CXPlayerVideoRenderOpengl::resizeGL(int w, int h)
@@ -211,7 +233,7 @@ bool CXPlayerVideoRenderOpengl::initShader()
     m_uiProgram = glCreateProgram();
     glAttachShader(m_uiProgram, vertex);
     glAttachShader(m_uiProgram, fragment);
-    glBindAttribLocation(m_uiProgram, m_uiVertexLocation, "xplayer_Vertex");
+    glBindAttribLocation(m_uiProgram, m_uiVertexLocation, "xplayer_Position");
     glBindAttribLocation(m_uiProgram, m_uiTextureLocation, "xplayer_TextureIn");
     glLinkProgram(m_uiProgram);
 
@@ -262,36 +284,47 @@ bool CXPlayerVideoRenderOpengl::initTextures()
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    glBindTexture(GL_TEXTURE_2D, 0);
-    //glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
 
     return true;
 }
 
 void CXPlayerVideoRenderOpengl::initVertices()
 {
-    float vertices[] =
+    // 设置顶点数据
+    const float vertices[] =
     {
-        -1.0f, -1.0f,   0.0f, 1.0f, // 左下
-         1.0f, -1.0f,   1.0f, 1.0f, // 右下
-         1.0f,  1.0f,   1.0f, 0.0f, // 右上
-        -1.0f,  1.0f,   0.0f, 0.0f  // 左上
+        // 位置              // 纹理坐标
+        -1.0f, -1.0f, 0.0f, 0.0f, 1.0f,
+         1.0f, -1.0f, 0.0f, 1.0f, 1.0f,
+        -1.0f,  1.0f, 0.0f, 0.0f, 0.0f,
+         1.0f,  1.0f, 0.0f, 1.0f, 0.0f
+    };
+
+    const uint indices[] =
+    {
+        0, 1, 2,
+        1, 2, 3
     };
 
     glGenVertexArrays(1, &m_uiVAO);
     glGenBuffers(1, &m_uiVBO);
+    glGenBuffers(1, &m_uiEBO);
 
     glBindVertexArray(m_uiVAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, m_uiVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
     // 位置属性 (location = 0)
-    glVertexAttribPointer(m_uiVertexLocation, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
+    glVertexAttribPointer(m_uiVertexLocation, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(m_uiVertexLocation);
 
     // 纹理坐标属性 (location = 1)
-    glVertexAttribPointer(m_uiTextureLocation, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
+    glVertexAttribPointer(m_uiTextureLocation, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(m_uiTextureLocation);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
