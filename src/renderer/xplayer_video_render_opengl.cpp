@@ -51,8 +51,6 @@ CXPlayerVideoRenderOpengl::~CXPlayerVideoRenderOpengl()
 {
     makeCurrent();
 
-    _is_over.store(true);
-
     // 释放资源
     if (0 != m_uiVBO)
     {
@@ -87,51 +85,55 @@ CXPlayerVideoRenderOpengl::~CXPlayerVideoRenderOpengl()
     doneCurrent();
 }
 
-void CXPlayerVideoRenderOpengl::setSize(int width, int height)
+bool CXPlayerVideoRenderOpengl::resizeImage(int width, int height)
 {
     if (width < 1 || height < 1)
-        return;
+    {
+        xpu_format_string(_err, "Input image size w * h(%d * %d) is invalid", width, height);
+        return false;
+    }
 
     if (m_iWidth.load() != width || m_iHeight.load() != height)
     {
         m_iWidth.store(width);
         m_iHeight.store(height);
-        _changed.store(true);
+        m_blChanged.store(true);
     }
+
+    return true;
 }
 
-void CXPlayerVideoRenderOpengl::renderer(const uint8_t * y, const uint8_t * u, const uint8_t * v, const std::string & str)
+bool CXPlayerVideoRenderOpengl::renderer(uint8_t * data[8], const std::string & str)
 {
-    if (nullptr == y || nullptr == u || nullptr == v)
-        return;
-
-    glBindTexture(GL_TEXTURE_2D, m_uiTexures[0]);
-    if (_changed.load())
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, m_iWidth.load(), m_iHeight.load(), 0, GL_RED, GL_UNSIGNED_BYTE, y);
-    else
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_iWidth.load(), m_iHeight.load(), GL_RED, GL_UNSIGNED_BYTE, y);
-
-    glBindTexture(GL_TEXTURE_2D, m_uiTexures[1]);
-    if (_changed.load())
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, m_iWidth.load() / 2, m_iHeight.load() / 2, 0, GL_RED, GL_UNSIGNED_BYTE, u);
-    else
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_iWidth.load() / 2, m_iHeight.load() / 2, GL_RED, GL_UNSIGNED_BYTE, u);
-
-    glBindTexture(GL_TEXTURE_2D, m_uiTexures[2]);
-    if (_changed.load())
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, m_iWidth.load() / 2, m_iHeight.load() / 2, 0, GL_RED, GL_UNSIGNED_BYTE, v);
-    else
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_iWidth.load() / 2, m_iHeight.load() / 2, GL_RED, GL_UNSIGNED_BYTE, v);
-
-    _changed.store(false);
-    _is_over.store(false);
-
-    repaint();
-
-    while (!_is_over.load())
+    if (nullptr == data[0] || nullptr == data[1] || nullptr == data[2])
     {
-        QThread::usleep(1);
+        xpu_format_string(_err, "Input param is invalid!");
+        return false;
     }
+
+    const int bytes = m_iWidth.load() * m_iHeight.load();
+    const auto index = m_iWriteIndex.load();
+    if (m_ucCache[index][0].size() != bytes)
+    {
+        m_ucCache[index][0].resize(bytes);
+        m_ucCache[index][1].resize(bytes / 4);
+        m_ucCache[index][2].resize(bytes / 4);
+    }
+
+    memcpy(m_ucCache[index][0].data(), data[0], bytes);
+    memcpy(m_ucCache[index][1].data(), data[1], bytes / 4);
+    memcpy(m_ucCache[index][2].data(), data[2], bytes / 4);
+
+    m_iWriteIndex.store((index + 1) % XPLAYER_OPENGL_FRAME_CACHE);
+    m_blExist.store(true);
+    emit frameReady();
+
+    return true;
+}
+
+const char * CXPlayerVideoRenderOpengl::err() const
+{
+    return _err.c_str();
 }
 
 void CXPlayerVideoRenderOpengl::initializeGL()
@@ -152,8 +154,12 @@ void CXPlayerVideoRenderOpengl::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT);
 
-    if (_is_over.load())
+    if (!m_blExist.load())
         return;
+
+    const auto index = m_iReadIndex.load();
+    const auto w = m_iWidth.load();
+    const auto h = m_iHeight.load();
 
     // 1. 使用着色器程序
     glUseProgram(m_uiProgram);
@@ -164,17 +170,29 @@ void CXPlayerVideoRenderOpengl::paintGL()
     // 更新 Y 纹理
     glActiveTexture(GL_TEXTURE0); // 激活纹理单元 0
     glBindTexture(GL_TEXTURE_2D, m_uiTexures[0]);
+    if (m_blChanged.load())
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][0].constData());
+    else
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][0].constData());
     // 将纹理单元 0 绑定到着色器中的 uniform sampler2D textureY
     glUniform1i(glGetUniformLocation(m_uiProgram, "xplayer_TextureY"), 0);
 
     // 更新 U 纹理
     glActiveTexture(GL_TEXTURE1); // 激活纹理单元 1
     glBindTexture(GL_TEXTURE_2D, m_uiTexures[1]);
+    if (m_blChanged.load())
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w / 2, h / 2, 0, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][1].constData());
+    else
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w / 2, h / 2, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][1].constData());
     glUniform1i(glGetUniformLocation(m_uiProgram, "xplayer_TextureU"), 1);
 
     // 更新 V 纹理
     glActiveTexture(GL_TEXTURE2); // 激活纹理单元 2
     glBindTexture(GL_TEXTURE_2D, m_uiTexures[2]);
+    if (m_blChanged.load())
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w / 2, h / 2, 0, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][2].constData());
+    else
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w / 2, h / 2, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][2].constData());
     glUniform1i(glGetUniformLocation(m_uiProgram, "xplayer_TextureV"), 2);
 
     // 3. 绘制
@@ -184,7 +202,9 @@ void CXPlayerVideoRenderOpengl::paintGL()
     glBindVertexArray(0);
     glUseProgram(0);
 
-    _is_over.store(true);
+    m_blChanged.store(false);
+    m_blExist.store(false);
+    m_iReadIndex.store((index + 1) % XPLAYER_OPENGL_FRAME_CACHE);
 }
 
 void CXPlayerVideoRenderOpengl::resizeGL(int w, int h)

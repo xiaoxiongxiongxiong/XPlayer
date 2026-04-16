@@ -53,6 +53,8 @@ private slots:
     void onActionsVideoTriggered(QAction * action);
     void onActionsAudioTriggered(QAction * action);
 
+    void onFrameReady();
+
 private:
     // 居中
     void moveCenter();
