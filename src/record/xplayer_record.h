@@ -5,13 +5,7 @@
 #include <string>
 #include <vector>
 
-typedef enum _XPLAYER_MODE
-{
-    XPLAYER_MODE_NONE,
-    XPLAYER_MODE_VOD,    // 点播
-    XPLAYER_MODE_LIVE,   // 直播
-    XPLAYER_MODE_MAX
-} XPLAYER_MODE;
+#include "xplayer_definitions.h"
 
 class CXPlayerRecordInfo
 {
@@ -25,7 +19,7 @@ public:
 	std::string _name;
 
 	// 类型
-	XPLAYER_MODE _mode = XPLAYER_MODE_NONE;
+	XPLAYER_RECORD_MODE _mode = XPLAYER_RECORD_NONE;
 };
 
 class CXPlayerRecord
@@ -49,14 +43,14 @@ public:
 	bool updateRecord(const CXPlayerRecordInfo & pri);
 
 	// 获取类型
-	XPLAYER_MODE getMode() const;
+	XPLAYER_RECORD_MODE getMode() const;
 
 	// 获取错误信息
 	const char * err()const;
 
 private:
 	// 记录类型
-	XPLAYER_MODE _mode = XPLAYER_MODE_NONE;
+	XPLAYER_RECORD_MODE _mode = XPLAYER_RECORD_NONE;
 	// 文件路径
 	std::string _path;
 	// 错误信息

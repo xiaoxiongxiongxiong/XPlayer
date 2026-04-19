@@ -31,9 +31,9 @@ bool CRecordWidget::loadRecord(const QString & path)
 {
     QFileInfo fileInfo(path);
     if ("vod.json" == fileInfo.fileName())
-        m_iRecordMode = XPLAYER_MODE_VOD;
+        m_iRecordMode = XPLAYER_RECORD_VOD;
     else if ("live.json" == fileInfo.fileName())
-        m_iRecordMode = XPLAYER_MODE_LIVE;
+        m_iRecordMode = XPLAYER_RECORD_LIVE;
     else
     {
         QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("不支持的记录文件：%1！").arg(fileInfo.fileName()));
@@ -112,7 +112,7 @@ bool CRecordWidget::addRecord(const QString & name, const QString & path)
     }
 
     CXPlayerRecordInfo pi;
-    pi._mode = static_cast<XPLAYER_MODE>(m_iRecordMode);
+    pi._mode = static_cast<XPLAYER_RECORD_MODE>(m_iRecordMode);
     pi._name = name.toStdString();
     pi._path = path.toStdString();
     if (!m_ptrContext->addRecord(pi))
@@ -152,7 +152,7 @@ void CRecordWidget::dragEnterEvent(QDragEnterEvent * event)
 
 void CRecordWidget::dropEvent(QDropEvent * event)
 {
-    if (XPLAYER_MODE_VOD != m_iRecordMode)
+    if (XPLAYER_RECORD_VOD != m_iRecordMode)
         return;
 
     const QMimeData * mime_data = event->mimeData();
@@ -170,7 +170,7 @@ void CRecordWidget::dropEvent(QDropEvent * event)
 
 void CRecordWidget::onBtnClickedAdd()
 {
-    if (XPLAYER_MODE_LIVE == m_iRecordMode)
+    if (XPLAYER_RECORD_LIVE == m_iRecordMode)
     {
         CLinkWidget lw(nullptr);
         auto ret = lw.exec();
@@ -203,7 +203,7 @@ void CRecordWidget::onBtnClickedDelete()
         CXPlayerRecordInfo ri;
         ri._name = item->text().toStdString();
         ri._path = item->data(Qt::UserRole + 1).toString().toStdString();
-        ri._mode = static_cast<XPLAYER_MODE>(m_iRecordMode);
+        ri._mode = static_cast<XPLAYER_RECORD_MODE>(m_iRecordMode);
         m_ptrContext->delRecord(ri);
         rows.push_back(ui.m_lstRecord->row(item));
     }

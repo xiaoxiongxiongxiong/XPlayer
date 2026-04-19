@@ -10,6 +10,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include "xplayer_definitions.h"
 
 class CXPlayerDemuxImpl;
 class CXPlayerStream;
@@ -18,28 +19,6 @@ class CXPlayerVideoRescaler;
 class CXPlayerAudioSpeex;
 class CXPlayerAudioRender;
 class CXPlayerVideoRenderSDL;
-
-// 播放器状态
-typedef enum _XPLAYER_STATE
-{
-    XPLAYER_STATE_NONE,
-    XPLAYER_STATE_READY,      // 已就绪
-    XPLAYER_STATE_PAUSE,      // 暂停
-    XPLAYER_STATE_PLAYING,    // 播放中
-    XPLAYER_STATE_OVER,       // 播放完成
-    XPLAYER_STATE_ERROR,      // 播放出错
-    XPLAYER_STATE_MAX
-} XPLAYER_STATE;
-
-// 播放倍速
-typedef enum _XPLAYER_SPEED_MODE
-{
-    XPLAYER_SPEED_ONE_QUATER,  // 0.25
-    XPLAYER_SPEED_ONE_HALF,    // 0.5
-    XPLAYER_SPEED_NORMAL,      // 1.0
-    XPLAYER_SPEED_DOUBLE,      // 2
-    XPLAYER_SPEED_QUADRUPLE,   // 4倍速
-} XPLAYER_SPEED_MODE;
 
 class CXPlayerSource final
 {

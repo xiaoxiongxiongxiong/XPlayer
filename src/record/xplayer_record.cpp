@@ -46,9 +46,9 @@ bool CXPlayerRecord::loadRecordFile(const std::string & path)
     }
 
     if (0 == strcmp(mode, "vod"))
-        _mode = XPLAYER_MODE_VOD;
+        _mode = XPLAYER_RECORD_VOD;
     else if (0 == strcmp(mode, "live"))
-        _mode = XPLAYER_MODE_LIVE;
+        _mode = XPLAYER_RECORD_LIVE;
     else
     {
         xpu_format_string(_err, "Unsupported mode '%s'", mode);
@@ -104,9 +104,9 @@ void CXPlayerRecord::unloadRecordFile()
         return;
 
     std::string mode_str;
-    if (XPLAYER_MODE_VOD == _mode)
+    if (XPLAYER_RECORD_VOD == _mode)
         mode_str = "vod";
-    else if (XPLAYER_MODE_LIVE == _mode)
+    else if (XPLAYER_RECORD_LIVE == _mode)
         mode_str = "live";
     else
         return;
@@ -155,7 +155,7 @@ bool CXPlayerRecord::addRecord(const CXPlayerRecordInfo & pri)
         return false;
     }
 
-    if (XPLAYER_MODE_NONE == _mode)
+    if (XPLAYER_RECORD_NONE == _mode)
         _mode = pri._mode;
     if (_mode != pri._mode)
     {
@@ -225,7 +225,7 @@ bool CXPlayerRecord::updateRecord(const CXPlayerRecordInfo & pri)
         return false;
     }
 
-    if (XPLAYER_MODE_NONE != pri._mode && (*found)._mode != pri._mode)
+    if (XPLAYER_RECORD_NONE != pri._mode && (*found)._mode != pri._mode)
     {
         xpu_format_string(_err, "Record '%s' mode changed", path.c_str());
         return false;
@@ -237,7 +237,7 @@ bool CXPlayerRecord::updateRecord(const CXPlayerRecordInfo & pri)
     return true;
 }
 
-XPLAYER_MODE CXPlayerRecord::getMode() const
+XPLAYER_RECORD_MODE CXPlayerRecord::getMode() const
 {
     return _mode;
 }

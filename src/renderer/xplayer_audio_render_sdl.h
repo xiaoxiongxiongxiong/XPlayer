@@ -6,8 +6,6 @@
 #include <atomic>
 #include <string>
 
-typedef struct _audio_info_t audio_info_t;
-
 class CXPlayerAudioRender
 {
 public:
