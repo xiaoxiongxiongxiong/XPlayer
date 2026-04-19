@@ -50,14 +50,19 @@ private slots:
     void onVolumeButtonEnter();
     void onVolumeChanged(int vol);
     void onLstDbclickedRecord(QListWidgetItem * item);
-    void onActionsVideoTriggered(QAction * action);
-    void onActionsAudioTriggered(QAction * action);
+    void onVideoRendererTriggered(QAction * action);
+    void onVideoTracksTriggered(QAction * action);
+    void onAudioTracksTriggered(QAction * action);
 
     void onFrameReady();
 
 private:
     // 居中
     void moveCenter();
+
+    // 初始化菜单栏
+    void initMenuBar();
+
     // 播放
     void play(const std::string & url);
     // 
@@ -82,10 +87,13 @@ private:
     int m_iTid = -1;
 
     QMenu * m_pmnuOpen = nullptr;
-    QMenu * m_pmnuVideo = nullptr;
-    QMenu * m_pmnuAudio = nullptr;
+    QMenu * m_pmnuVideoRenderers = nullptr;
+    QMenu * m_pmnuVideoTracks = nullptr;
+    QMenu * m_pmnuAudioTracks = nullptr;
+
+    QActionGroup * m_grpVideoRenderers = nullptr;
+    QActionGroup * m_grpVideoTracks = nullptr;
     QActionGroup * m_grpAudioActions = nullptr;
-    QActionGroup * m_grpVideoActions = nullptr;
 
     CRecordWidget * m_pVodWidget = nullptr;
     CRecordWidget * m_pLiveWidget = nullptr;
