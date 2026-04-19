@@ -1,6 +1,7 @@
 ﻿#ifndef __XPLAYER_VIDEO_RENDER_OPENGL_H__
 #define __XPLAYER_VIDEO_RENDER_OPENGL_H__
 
+#include "xplayer_video_renderer.h"
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions_3_0>
 #include <QOpenGLShaderProgram>
@@ -8,21 +9,39 @@
 
 #define XPLAYER_OPENGL_FRAME_CACHE 3
 
-class CXPlayerVideoRenderOpengl : public QOpenGLWidget, protected QOpenGLFunctions_3_0
+class CXPlayerVideoRenderOpengl : public QOpenGLWidget, protected QOpenGLFunctions_3_0, public ICXPlayerVideoRenderer
 {
 	Q_OBJECT
 public:
     explicit CXPlayerVideoRenderOpengl(QWidget * parent = nullptr);
 	~CXPlayerVideoRenderOpengl();
 
+    bool create(const void * wnd, int wnd_width, int wnd_height, int frm_width, int frm_height) override;
+    // 销毁
+    void destroy() override;
+
+    // 初始化字体上下文
+    bool initFontContext(const std::string & path, int size) override;
+    // 销毁字体上下文
+    void uninitFontContext() override;
+
+    // 改变窗口大小
+    bool resizeWindow(int width, int height) override;
+
     // 改变画面大小
-    bool resizeImage(int width, int height);
+    bool resizeImage(int width, int height) override;
 
     // 渲染
-    bool renderer(uint8_t * data[8], const std::string & str = "");
+    bool renderer(uint8_t * data[8], int linesize[8], const std::string & str = "") override;
+
+    // 清空画面
+    void clear() override;
+
+    // 获取渲染器类型
+    XPLAYER_VIDEO_RENDERER_TYPE getType() const override;
 
     // 错误信息
-    const char * err() const;
+    const char * err() const override;
 
 signals:
     void frameReady(); // 定义一个信号，用于通知主线程
@@ -46,16 +65,12 @@ private:
 
     void initVertices();
 
-private:
-    // 大小发生改变
-    std::atomic_bool m_blChanged = { false };
-    // 宽度
-    std::atomic_int m_iWidth = { 0 };
-    // 高度
-    std::atomic_int m_iHeight = { 0 };
+    // 渲染
+    bool rendererText(const std::string & str);
 
+private:
     // 纹理器
-    GLuint m_uiTexures[3] = {};
+    GLuint m_uiTexures[4] = {};
     //
     GLuint m_uiProgram = 0;
 

@@ -1,6 +1,7 @@
 ﻿#include "xplayer_video_render_opengl.h"
 
-#include <QThread>
+#include "SDL2/SDL_ttf.h"
+
 #include "xplayer_utils.h"
 
 static const char * g_vert_str = R"(
@@ -85,25 +86,47 @@ CXPlayerVideoRenderOpengl::~CXPlayerVideoRenderOpengl()
     doneCurrent();
 }
 
-bool CXPlayerVideoRenderOpengl::resizeImage(int width, int height)
+bool CXPlayerVideoRenderOpengl::create(const void * wnd, int wnd_width, int wnd_height, int frm_width, int frm_height)
 {
-    if (width < 1 || height < 1)
+    if (nullptr == wnd || wnd_width <= 0 || wnd_height <= 0 || frm_width <= 0 || frm_height <= 0)
     {
-        xpu_format_string(_err, "Input image size w * h(%d * %d) is invalid", width, height);
+        xpu_format_string(m_strError, "Input param is invalid");
         return false;
     }
 
-    if (m_iWidth.load() != width || m_iHeight.load() != height)
-    {
-        m_iWidth.store(width);
-        m_iHeight.store(height);
-        m_blChanged.store(true);
-    }
+    m_iFrameWidth.store(frm_width);
+    m_iFrameHeight.store(frm_height);
+    m_blChanged.store(true);
 
     return true;
 }
 
-bool CXPlayerVideoRenderOpengl::renderer(uint8_t * data[8], const std::string & str)
+void CXPlayerVideoRenderOpengl::destroy()
+{
+    uninitFontContext();
+}
+
+bool CXPlayerVideoRenderOpengl::initFontContext(const std::string & path, int size)
+{
+    return openFont(path, size);
+}
+
+void CXPlayerVideoRenderOpengl::uninitFontContext()
+{
+    closeFont();
+}
+
+bool CXPlayerVideoRenderOpengl::resizeWindow(int width, int height)
+{
+    return adjust(width, height, true);;
+}
+
+bool CXPlayerVideoRenderOpengl::resizeImage(int width, int height)
+{
+    return adjust(width, height, false);
+}
+
+bool CXPlayerVideoRenderOpengl::renderer(uint8_t * data[8], int linesize[8], const std::string & str)
 {
     if (nullptr == data[0] || nullptr == data[1] || nullptr == data[2])
     {
@@ -111,7 +134,7 @@ bool CXPlayerVideoRenderOpengl::renderer(uint8_t * data[8], const std::string & 
         return false;
     }
 
-    const int bytes = m_iWidth.load() * m_iHeight.load();
+    const int bytes = m_iFrameWidth.load() * m_iFrameHeight.load();
     const auto index = m_iWriteIndex.load();
     if (m_ucCache[index][0].size() != bytes)
     {
@@ -129,6 +152,17 @@ bool CXPlayerVideoRenderOpengl::renderer(uint8_t * data[8], const std::string & 
     emit frameReady();
 
     return true;
+}
+
+void CXPlayerVideoRenderOpengl::clear()
+{
+    m_blExist.store(false);
+    emit frameReady();
+}
+
+XPLAYER_VIDEO_RENDERER_TYPE CXPlayerVideoRenderOpengl::getType() const
+{
+    return XPLAYER_VIDEO_RENDERER_OPENGL;
 }
 
 const char * CXPlayerVideoRenderOpengl::err() const
@@ -158,8 +192,8 @@ void CXPlayerVideoRenderOpengl::paintGL()
         return;
 
     const auto index = m_iReadIndex.load();
-    const auto w = m_iWidth.load();
-    const auto h = m_iHeight.load();
+    const auto w = m_iFrameWidth.load();
+    const auto h = m_iFrameHeight.load();
 
     // 1. 使用着色器程序
     glUseProgram(m_uiProgram);
@@ -293,8 +327,8 @@ end:
 
 bool CXPlayerVideoRenderOpengl::initTextures()
 {
-    glGenTextures(3, m_uiTexures);
-    for (int i = 0; i < 3; ++i)
+    glGenTextures(4, m_uiTexures);
+    for (int i = 0; i < 4; ++i)
     {
         glBindTexture(GL_TEXTURE_2D, m_uiTexures[i]);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -349,4 +383,38 @@ void CXPlayerVideoRenderOpengl::initVertices()
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+}
+
+bool CXPlayerVideoRenderOpengl::rendererText(const std::string & str)
+{
+    SDL_Color color = { 255, 0, 0, 255 };
+
+    // 4. 渲染文字到 SDL_Surface
+    // TTF_RenderUTF8_Blended 生成带透明通道的 32位 表面
+    //SDL_Surface * surface = TTF_RenderUTF8_Blended(m_ptrFontCtx, text, color);
+    //if (!surface)
+    //{
+    //    xpu_format_string(m_strError, "Text render error: %s", TTF_GetError());
+    //    TTF_CloseFont(font);
+    //    return false;
+    //}
+
+    //textWidth = surface->w;
+    //textHeight = surface->h;
+
+    //// 5. 生成 OpenGL 纹理
+    //glGenTextures(1, &textTexture);
+    //glBindTexture(GL_TEXTURE_2D, textTexture);
+
+    //// 设置纹理参数 (线性过滤，防止锯齿)
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    //// 6. 关键：将 SDL_Surface 的数据上传到 OpenGL 显存
+    //// SDL_Surface 通常是 SDL_PIXELFORMAT_RGBA32，对应 GL_RGBA
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w, surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
+
+    //// 清理 SDL 资源
+    //SDL_FreeSurface(surface);
+    return true;
 }

@@ -12,18 +12,12 @@ extern "C" {
 #include "rescaler/xplayer_video_rescaler.h"
 #include "filter/xplayer_audio_speex.h"
 #include "renderer/xplayer_audio_render_sdl.h"
-#include "renderer/xplayer_video_render_sdl.h"
+#include "xplayer_video_renderer.h"
 #include "xplayer_stream.h"
 
 CXPlayerSource::~CXPlayerSource()
 {
     uninitConvertor();
-
-    if (nullptr != _video_renderer)
-    {
-        _video_renderer.reset();
-        _video_renderer = nullptr;
-    }
 
     if (nullptr != _audio_renderer)
     {
@@ -237,6 +231,11 @@ bool CXPlayerSource::selectStream(int index, bool is_video)
         _audio_stream_index.store(index > -1 ? index : -1);
 
     return true;
+}
+
+void CXPlayerSource::selectVideoRenderer(XPLAYER_VIDEO_RENDERER_TYPE type)
+{
+    _video_renderer_type.store(type);
 }
 
 void CXPlayerSource::setVolume(int volume)
@@ -471,15 +470,14 @@ bool CXPlayerSource::initRenderer(const void * wnd, int width, int height)
     codecpar = avs ? avs->codecpar : nullptr;
     if (nullptr == _video_renderer)
     {
-        _video_renderer = std::make_shared<CXPlayerVideoRenderSDL>();
+        _video_renderer = CXPlayerVideoRendererFactory::create(_video_renderer_type.load(), wnd);
         if (nullptr == _video_renderer)
         {
             xpu_format_string(_err, "Create CXPlayerVideoRenderSDL instance failed");
             return false;
         }
 
-        _video_renderer->setFontPath(_font_path);
-        _video_renderer->setFontSize(_font_size);
+        _video_renderer->initFontContext(_font_path, _font_size);
     }
 
     if (codecpar && !_video_renderer->create(wnd, width, height, codecpar->width, codecpar->height))
@@ -495,7 +493,9 @@ void CXPlayerSource::uninitRenderer()
 {
     if (_video_renderer)
     {
+        _video_renderer->uninitFontContext();
         _video_renderer->destroy();
+        CXPlayerVideoRendererFactory::destroy(_video_renderer);
     }
 
     if (_audio_renderer)

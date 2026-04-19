@@ -18,7 +18,7 @@ class CXPlayerAudioResampler;
 class CXPlayerVideoRescaler;
 class CXPlayerAudioSpeex;
 class CXPlayerAudioRender;
-class CXPlayerVideoRenderSDL;
+class ICXPlayerVideoRenderer;
 
 class CXPlayerSource final
 {
@@ -72,6 +72,9 @@ public:
 
     // 选流 -1表示禁用
     bool selectStream(int index, bool is_video);
+
+    // 选择视频渲染器
+    void selectVideoRenderer(XPLAYER_VIDEO_RENDERER_TYPE type);
 
     // 设置音量
     void setVolume(int volume);
@@ -215,7 +218,9 @@ private:
     // 视频画幅转换器
     std::shared_ptr<CXPlayerVideoRescaler> _video_rescaler = nullptr;
     // 视频渲染器
-    std::shared_ptr<CXPlayerVideoRenderSDL> _video_renderer = nullptr;
+    ICXPlayerVideoRenderer * _video_renderer = nullptr;
+    //
+    std::atomic<XPLAYER_VIDEO_RENDERER_TYPE> _video_renderer_type = { XPLAYER_VIDEO_RENDERER_SDL2 };
 
     // 字体路径
     std::string _font_path;
