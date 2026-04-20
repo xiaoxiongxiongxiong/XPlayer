@@ -767,11 +767,16 @@ bool XPlayer::loadConfig()
     const auto strLivePath = path + "/config/live.json";
 
     CXPlayerConfig::uniqueInstance().loadConfig(strConfigPath.toLocal8Bit().toStdString());
+    auto strFontPath = QString::fromStdString(CXPlayerConfig::uniqueInstance().getFontPath());
+    if (strFontPath.isEmpty())
+    {
+        strFontPath = path + QStringLiteral("/fonts/微软雅黑.ttc");
+        CXPlayerConfig::uniqueInstance().setFontPath(strFontPath.toUtf8().toStdString());
+    }
+
     m_pVodWidget->loadRecord(strVodPath);
     m_pLiveWidget->loadRecord(strLivePath);
 
-    const auto strFontPath = path + QStringLiteral("/fonts/微软雅黑.ttc");
-    CXPlayerConfig::uniqueInstance().setFontPath(strFontPath.toUtf8().toStdString());
     CXPlayerSource::uniqueInstance().setFontPath(strFontPath.toUtf8().toStdString());
     CXPlayerSource::uniqueInstance().setFontSize(CXPlayerConfig::uniqueInstance().getFontSize());
 
