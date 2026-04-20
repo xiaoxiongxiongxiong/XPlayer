@@ -52,6 +52,7 @@ bool CRecordWidget::loadRecord(const QString & path)
         QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("加载点播记录失败！"));
         delete m_ptrContext;
         m_ptrContext = nullptr;
+        return true;
     }
 
     std::vector<CXPlayerRecordInfo> elems;
