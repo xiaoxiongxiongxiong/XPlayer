@@ -1,4 +1,4 @@
-#ifndef __XPLAYER_RECORD_H__
+﻿#ifndef __XPLAYER_RECORD_H__
 #define __XPLAYER_RECORD_H__
 
 #include <cstdbool>

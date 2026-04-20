@@ -246,7 +246,7 @@ void CXPlayerVideoRenderOpengl::resizeGL(int w, int h)
     glViewport(0, 0, w, h);
 }
 
-GLuint CXPlayerVideoRenderOpengl::complileShader(GLenum type, const char * src)
+GLuint CXPlayerVideoRenderOpengl::compileShader(GLenum type, const char * src)
 {
     GLint status = 0;
 
@@ -277,9 +277,9 @@ bool CXPlayerVideoRenderOpengl::initShader()
     // 顶点着色器
     GLuint vertex = 0;
     
-    vertex = complileShader(GL_VERTEX_SHADER, g_vert_str);
+    vertex = compileShader(GL_VERTEX_SHADER, g_vert_str);
     // 创建片段着色器
-    fragment = complileShader(GL_FRAGMENT_SHADER, g_frag_str);
+    fragment = compileShader(GL_FRAGMENT_SHADER, g_frag_str);
     if (0 == vertex || 0 == fragment)
         goto end;
 
@@ -327,8 +327,8 @@ end:
 
 bool CXPlayerVideoRenderOpengl::initTextures()
 {
-    glGenTextures(4, m_uiTexures);
-    for (int i = 0; i < 4; ++i)
+    glGenTextures(3, m_uiTexures);
+    for (int i = 0; i < 3; ++i)
     {
         glBindTexture(GL_TEXTURE_2D, m_uiTexures[i]);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

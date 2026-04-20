@@ -57,7 +57,7 @@ protected:
     void resizeGL(int w, int h) override;
 
 private:
-    GLuint complileShader(GLenum type, const char * src);
+    GLuint compileShader(GLenum type, const char * src);
 
     bool initShader();
 
@@ -70,7 +70,7 @@ private:
 
 private:
     // 纹理器
-    GLuint m_uiTexures[4] = {};
+    GLuint m_uiTexures[3] = {};
     //
     GLuint m_uiProgram = 0;
 
