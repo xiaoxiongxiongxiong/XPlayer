@@ -24,14 +24,15 @@ qt_standard_project_setup()
 
 file(GLOB XPLAYER_SRC_FILES
     "src/*.cpp"
-    "src/demuxer/*.cpp"
+    "src/config/*.cpp"
     "src/decoder/*.cpp"
-    "src/renderer/*.cpp"
-    "src/rescaler/*.cpp"
+    "src/demuxer/*.cpp"
     "src/filter/*.cpp"
     "src/record/*.cpp"
-    "src/utils/*.cpp"
-    "src/config/*.cpp"
+    "src/renderer/*.cpp"
+    "src/resampler/*.cpp"
+    "src/rescaler/*.cpp"
+    "src/utils/*.cpp"  
 )
 
 file(GLOB XPLAYER_UI_FILES
@@ -59,15 +60,17 @@ set_target_properties(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
     PRIVATE
     dep/include
-    src/demuxer
-    src/renderer
-    src/rescaler
+    src/config
     src/decoder
+    src/demuxer
     src/filter
     src/record
+    src/renderer
+    src/resampler
+    src/rescaler
     src/utils
-    src/config
-    src/)
+    src/
+)
 
 target_link_directories(${PROJECT_NAME}
     PRIVATE

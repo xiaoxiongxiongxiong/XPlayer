@@ -6,12 +6,12 @@ extern "C" {
 #include "libavformat/avformat.h"
 }
 
-#include "utils/xplayer_utils.h"
-#include "demuxer/xplayer_demuxer.h"
-#include "rescaler/xplayer_audio_resampler.h"
-#include "rescaler/xplayer_video_rescaler.h"
-#include "filter/xplayer_audio_speex.h"
-#include "renderer/xplayer_audio_render_sdl.h"
+#include "xplayer_utils.h"
+#include "xplayer_demuxer.h"
+#include "xplayer_audio_resampler.h"
+#include "xplayer_video_rescaler.h"
+#include "xplayer_audio_speex.h"
+#include "xplayer_audio_render_sdl.h"
 #include "xplayer_video_renderer.h"
 #include "xplayer_stream.h"
 
