@@ -88,8 +88,4 @@ target_link_libraries(${PROJECT_NAME}
         SDL2_ttf
         jansson
         SoundTouch
-        $<$<CONFIG:Debug>:FramelessHelperCore64d>
-        $<$<CONFIG:Release>:FramelessHelperCore64>
-        $<$<CONFIG:Debug>:FramelessHelperWidgets64d>
-        $<$<CONFIG:Release>:FramelessHelperWidgets64>
 )

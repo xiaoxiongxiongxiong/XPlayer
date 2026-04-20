@@ -23,12 +23,14 @@
 #include "xplayer_source.h"
 
 XPlayer::XPlayer(QWidget * parent)
-    : FramelessMainWindow(parent)
+    : QMainWindow(parent)
 {
     ui.setupUi(this);
 
-    //this->setWindowFlags(Qt::FramelessWindowHint);
-    this->setAcceptDrops(true);
+    setWindowFlags(Qt::FramelessWindowHint);
+    setAcceptDrops(true);
+    setMouseTracking(true);
+    centralWidget()->setMouseTracking(true);
 
     moveCenter();
 
@@ -55,7 +57,8 @@ XPlayer::XPlayer(QWidget * parent)
 
     ui.m_sldProgress->installEventFilter(this);
     ui.m_wndScreen->installEventFilter(this);
-    //ui.m_wndScreen->setFocusPolicy(Qt::StrongFocus);
+    ui.m_wndScreen->setMouseTracking(true);
+    ui.m_tabRecord->setMouseTracking(true);
 
     // 创建音量滑块（初始隐藏）
     m_pVolumeWidget = new CVolumeWidget(this);
@@ -89,10 +92,10 @@ XPlayer::~XPlayer()
         m_grpVideoTracks = nullptr;
     }
 
-    if (nullptr != m_grpAudioActions)
+    if (nullptr != m_grpAudioTracks)
     {
-        delete m_grpAudioActions;
-        m_grpAudioActions = nullptr;
+        delete m_grpAudioTracks;
+        m_grpAudioTracks = nullptr;
     }
 
     if (nullptr != m_pVolumeWidget)
@@ -130,16 +133,52 @@ void XPlayer::mousePressEvent(QMouseEvent * event)
     }
 
     m_blPressed = true;
-    m_ptStart = event->globalPos() - frameGeometry().topLeft();
+    m_ptStart = event->globalPos();
+    m_recStart = geometry();
 }
 
 void XPlayer::mouseMoveEvent(QMouseEvent * event)
 {
     if (m_blPressed)
     {
-        move(event->globalPos() - m_ptStart);
+        const auto delta = event->globalPos() - m_ptStart;
+        if (0 == m_uiEdge)
+        {
+            move(m_recStart.x() + delta.x(), m_recStart.y() + delta.y());
+        }
+        else
+        {
+            int x = m_recStart.x();
+            int y = m_recStart.y();
+            int w = m_recStart.width();
+            int h = m_recStart.height();
+
+            if (Qt::Edge::LeftEdge & m_uiEdge)
+            {
+                x += delta.x();
+                w -= delta.x();
+            }
+            else if (Qt::Edge::RightEdge & m_uiEdge)
+            {
+                w += delta.x();
+            }
+
+            if (Qt::Edge::TopEdge & m_uiEdge)
+            {
+                y += delta.y();
+                h -= delta.y();
+            }
+            else if (Qt::Edge::BottomEdge & m_uiEdge)
+            {
+                h += delta.y();
+            }
+
+            setGeometry(x, y, qMax(w, minimumWidth()), qMax(h, minimumHeight()));
+        }
         return;
     }
+
+    updateCursorShape(event->pos());
 
     QMainWindow::mouseMoveEvent(event);
 }
@@ -505,9 +544,9 @@ void XPlayer::initMenuBar()
     ui.m_actVod->setShortcut(QKeySequence::Open);
     ui.m_actLive->setShortcut(QKeySequence::Underline);
 
-    m_pmnuOpen = ui.m_widgetMenu->addMenu(QStringLiteral("媒体"));
-    m_pmnuOpen->addAction(ui.m_actVod);
-    m_pmnuOpen->addAction(ui.m_actLive);
+    auto * open_menu = ui.m_widgetMenu->addMenu(QStringLiteral("媒体"));
+    open_menu->addAction(ui.m_actVod);
+    open_menu->addAction(ui.m_actLive);
 
     auto * video_menu = ui.m_widgetMenu->addMenu(QStringLiteral("视频"));
 
@@ -539,10 +578,10 @@ void XPlayer::initMenuBar()
     m_grpVideoTracks->addAction(ui.m_actDisableVideo);
     connect(m_grpVideoTracks, &QActionGroup::triggered, this, &XPlayer::onVideoTracksTriggered);
 
-    m_grpAudioActions = new QActionGroup(this);
-    m_grpAudioActions->setExclusive(true);
-    m_grpAudioActions->addAction(ui.m_actDisableAudio);
-    connect(m_grpAudioActions, &QActionGroup::triggered, this, &XPlayer::onAudioTracksTriggered);
+    m_grpAudioTracks = new QActionGroup(this);
+    m_grpAudioTracks->setExclusive(true);
+    m_grpAudioTracks->addAction(ui.m_actDisableAudio);
+    connect(m_grpAudioTracks, &QActionGroup::triggered, this, &XPlayer::onAudioTracksTriggered);
 
     connect(ui.m_actVod, &QAction::triggered, this, &XPlayer::onBtnClickedVod);
     connect(ui.m_actLive, &QAction::triggered, this, &XPlayer::onBtnClickedLive);
@@ -550,6 +589,54 @@ void XPlayer::initMenuBar()
     connect(ui.m_widgetMenu, &CMenuWidget::minimizeClicked, this, &XPlayer::onBtnClickedMinimize);
     connect(ui.m_widgetMenu, &CMenuWidget::maximizeClicked, this, &XPlayer::onBtnClickedMaximize);
     connect(ui.m_widgetMenu, &CMenuWidget::closeClicked, this, &XPlayer::onBtnClickedClose);
+}
+
+void XPlayer::updateCursorShape(const QPoint & pt)
+{
+    const int edge_width = 10;
+
+    int x = pt.x();
+    int y = pt.y();
+    int w = width();
+    int h = height();
+
+    m_uiEdge = 0u;
+    // 左侧
+    if (x < edge_width)
+        m_uiEdge |= Qt::Edge::LeftEdge;
+    // 上侧
+    if (y < edge_width)
+        m_uiEdge |= Qt::Edge::TopEdge;
+    // 右侧
+    if (w - edge_width < x)
+        m_uiEdge |= Qt::Edge::RightEdge;
+    // 下侧
+    if (h - edge_width < y)
+        m_uiEdge |= Qt::Edge::BottomEdge;
+
+    // 变换形状
+    switch (m_uiEdge)
+    {
+    case Qt::Edge::LeftEdge:
+    case Qt::Edge::RightEdge:
+        setCursor(Qt::SizeHorCursor);
+        break;
+    case Qt::Edge::TopEdge:
+    case Qt::Edge::BottomEdge:
+        setCursor(Qt::SizeVerCursor);
+        break;
+    case (Qt::Edge::LeftEdge | Qt::Edge::TopEdge):
+    case (Qt::Edge::RightEdge | Qt::Edge::BottomEdge):
+        setCursor(Qt::SizeFDiagCursor);
+        break;
+    case (Qt::Edge::LeftEdge | Qt::Edge::BottomEdge):
+    case (Qt::Edge::RightEdge | Qt::Edge::TopEdge):
+        setCursor(Qt::SizeBDiagCursor);
+        break;
+    default:
+        setCursor(Qt::ArrowCursor);
+        break;
+    }
 }
 
 void XPlayer::play(const std::string & url)
@@ -584,7 +671,7 @@ void XPlayer::play(const std::string & url)
         act->setData(QVariant::fromValue(*iter));
         act->setObjectName(QStringLiteral("m_actAudio%1").arg(index));
         m_pmnuAudioTracks->addAction(act);
-        m_grpAudioActions->addAction(act);
+        m_grpAudioTracks->addAction(act);
     }
 
     for (auto iter = vis.cbegin(); iter != vis.cend(); iter++)
@@ -641,12 +728,12 @@ void XPlayer::cleanup()
         m_grpVideoTracks->removeAction(action);
     }
 
-    actions = m_grpAudioActions->actions();
+    actions = m_grpAudioTracks->actions();
     for (auto & action : actions)
     {
         if (ui.m_actDisableAudio->objectName() == action->objectName())
             continue;
-        m_grpAudioActions->removeAction(action);
+        m_grpAudioTracks->removeAction(action);
     }
 
     actions = m_pmnuAudioTracks->actions();

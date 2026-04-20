@@ -1,8 +1,5 @@
 ﻿#pragma once
 
-#include <FramelessHelper/Widgets/framelesshelperwidgets_global.h>
-#include <FramelessHelper/Widgets/framelessmainwindow.h>
-
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QListWidget>
 #include "ui_XPlayer.h"
@@ -11,7 +8,7 @@ class QMenuBar;
 class CVolumeWidget;
 class CRecordWidget;
 
-class XPlayer : public FRAMELESSHELPER_NAMESPACE::FramelessMainWindow
+class XPlayer : public QMainWindow
 {
     Q_OBJECT
 
@@ -63,6 +60,9 @@ private:
     // 初始化菜单栏
     void initMenuBar();
 
+    // 更新鼠标形状
+    void updateCursorShape(const QPoint & pt);
+
     // 播放
     void play(const std::string & url);
     // 
@@ -82,18 +82,19 @@ private:
     CVolumeWidget * m_pVolumeWidget = nullptr;
     QTimer * m_tmVolume = nullptr;
 
+    // 边界
+    uint32_t m_uiEdge = 0u;
     QPoint m_ptStart;
+    QRect m_recStart;
     bool m_blPressed = false;
-    int m_iTid = -1;
 
-    QMenu * m_pmnuOpen = nullptr;
     QMenu * m_pmnuVideoRenderers = nullptr;
     QMenu * m_pmnuVideoTracks = nullptr;
     QMenu * m_pmnuAudioTracks = nullptr;
 
     QActionGroup * m_grpVideoRenderers = nullptr;
     QActionGroup * m_grpVideoTracks = nullptr;
-    QActionGroup * m_grpAudioActions = nullptr;
+    QActionGroup * m_grpAudioTracks = nullptr;
 
     CRecordWidget * m_pVodWidget = nullptr;
     CRecordWidget * m_pLiveWidget = nullptr;
@@ -103,6 +104,7 @@ private:
     // 
     QWidget * m_wndScreenParent = nullptr;
 
+    int m_iTid = -1;
     // 倍速
     uint32_t m_uiSpeed = 0;
 };
