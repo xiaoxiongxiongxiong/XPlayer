@@ -179,7 +179,6 @@ bool CXPlayerVideoRenderSDL::rendererText(const std::string & str)
     if (str.empty() || nullptr == m_ptrFontCtx)
         return true;
 
-
     int font_height = TTF_FontHeight(m_ptrFontCtx);
     const int line_space = 12;
     int y = 10;

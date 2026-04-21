@@ -146,18 +146,22 @@ bool CXPlayerVideoRenderOpengl::renderer(uint8_t * data[8], int linesize[8], con
     memcpy(m_ucCache[index][0].data(), data[0], bytes);
     memcpy(m_ucCache[index][1].data(), data[1], bytes / 4);
     memcpy(m_ucCache[index][2].data(), data[2], bytes / 4);
+    m_ucCache[index][3] = QByteArray(str.c_str(), str.size());
 
     m_iWriteIndex.store((index + 1) % XPLAYER_OPENGL_FRAME_CACHE);
-    m_blExist.store(true);
-    emit frameReady();
+
+    //emit frameReady();
+    update();
 
     return true;
 }
 
 void CXPlayerVideoRenderOpengl::clear()
 {
-    m_blExist.store(false);
-    emit frameReady();
+    m_iWriteIndex.store(0);
+    m_iReadIndex.store(0);
+    update();
+   // emit frameReady();
 }
 
 XPLAYER_VIDEO_RENDERER_TYPE CXPlayerVideoRenderOpengl::getType() const
@@ -186,9 +190,9 @@ void CXPlayerVideoRenderOpengl::initializeGL()
 
 void CXPlayerVideoRenderOpengl::paintGL()
 {
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (!m_blExist.load())
+    if (m_iReadIndex.load() == m_iWriteIndex.load())
         return;
 
     const auto index = m_iReadIndex.load();
@@ -237,7 +241,6 @@ void CXPlayerVideoRenderOpengl::paintGL()
     glUseProgram(0);
 
     m_blChanged.store(false);
-    m_blExist.store(false);
     m_iReadIndex.store((index + 1) % XPLAYER_OPENGL_FRAME_CACHE);
 }
 

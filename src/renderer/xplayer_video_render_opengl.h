@@ -74,12 +74,12 @@ private:
     //
     GLuint m_uiProgram = 0;
 
+    // 缓冲
+    QByteArray m_ucCache[XPLAYER_OPENGL_FRAME_CACHE][4];
     // 写
     std::atomic_int m_iWriteIndex = { 0 };
     // 读
     std::atomic_int m_iReadIndex = { 0 };
-    // 是否有新帧
-    std::atomic_bool m_blExist = { false };
 
     GLuint m_uiVertexLocation = 0;
     GLuint m_uiTextureLocation = 1;
@@ -87,8 +87,6 @@ private:
     GLuint m_uiVAO = 0;
     GLuint m_uiVBO = 0;
     GLuint m_uiEBO = 0;
-
-    QByteArray m_ucCache[XPLAYER_OPENGL_FRAME_CACHE][3];
 
     // 错误信息
     std::string _err;
