@@ -31,6 +31,7 @@ XPlayer::XPlayer(QWidget * parent)
     setAcceptDrops(true);
     setMouseTracking(true);
     centralWidget()->setMouseTracking(true);
+    QCoreApplication::instance()->installEventFilter(this);
 
     moveCenter();
 
@@ -238,6 +239,18 @@ bool XPlayer::eventFilter(QObject * obj, QEvent * event)
             ui.m_sldProgress->setValue(value);
             CXPlayerSource::uniqueInstance().seek(value);
             return true;
+        }
+    }
+
+    if (QEvent::MouseMove == event->type() && !m_blPressed)
+    {
+        QWidget * widget = qobject_cast<QWidget *>(obj);
+        // 确保事件发生在本窗口及其子控件上
+        if (nullptr != widget && this == widget->window())
+        {
+            QMouseEvent * ev = static_cast<QMouseEvent *>(event);
+            QPoint pos = this->mapFromGlobal(ev->globalPos());
+            updateCursorShape(pos);
         }
     }
 
@@ -593,6 +606,26 @@ void XPlayer::initMenuBar()
 
 void XPlayer::updateCursorShape(const QPoint & pt)
 {
+    // 定义一个“忽略列表”, QPushButton加进去
+    QWidget * target_widget = QApplication::widgetAt(QCursor::pos());
+    if (nullptr != target_widget)
+    {
+        QString strClassName = QString::fromLatin1(target_widget->metaObject()->className());
+        QStringList ignoreList = {
+            "QMenuBar",
+            "QMenu",
+            "QComboBox",
+            "QListWidget",
+            "QTableWidget",
+            "QPushButton"
+        };
+        if (ignoreList.contains(strClassName))
+        {
+            setCursor(Qt::ArrowCursor);
+            return;
+        }
+    }
+
     const int edge_width = 10;
 
     int x = pt.x();
