@@ -225,7 +225,7 @@ private:
     // 字体路径
     std::string _font_path;
     // 字体大小
-    int _font_size;
+    int _font_size = 24;
 
     // 上下文
     CXPlayerDemuxImpl * _ctx = nullptr;

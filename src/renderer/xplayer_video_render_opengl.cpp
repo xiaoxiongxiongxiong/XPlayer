@@ -1,5 +1,6 @@
 ﻿#include "xplayer_video_render_opengl.h"
 
+#include <sstream>
 #include "SDL2/SDL_ttf.h"
 
 #include "xplayer_utils.h"
@@ -43,6 +44,21 @@ static const char * g_frag_str = R"(
     }
 )";
 
+static const char * g_text_frag_str = R"(
+    #version 330 core
+    in vec2 xplayer_TexCoord0;
+    out vec4 xplayer_FragData;
+    uniform sampler2D xplayer_TextureStr;
+    uniform vec4 xplayer_FontColor;
+    void main()
+    {
+        vec4 texColor = texture(xplayer_TextureStr, xplayer_TexCoord0);
+        if(texColor.a < 0.1)
+            discard;
+        xplayer_FragData = texColor * xplayer_FontColor;
+    }
+)";
+
 CXPlayerVideoRenderOpengl::CXPlayerVideoRenderOpengl(QWidget * parent)
     : QOpenGLWidget(parent)
 {
@@ -52,26 +68,10 @@ CXPlayerVideoRenderOpengl::~CXPlayerVideoRenderOpengl()
 {
     makeCurrent();
 
-    // 释放资源
-    if (0 != m_uiVBO)
-    {
-        glDeleteBuffers(1, &m_uiVBO);
-        m_uiVBO = 0;
-    }
+    uninitVertices();
+    uninitFontVertices();
 
-    if (0 != m_uiVAO)
-    {
-        glDeleteVertexArrays(1, &m_uiVAO);
-        m_uiVAO = 0;
-    }
-
-    if (0 != m_uiEBO)
-    {
-        glDeleteBuffers(1, &m_uiEBO);
-        m_uiEBO = 0;
-    }
-
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
         glDeleteTextures(1, &m_uiTexures[i]);
         m_uiTexures[i] = 0;
@@ -81,6 +81,12 @@ CXPlayerVideoRenderOpengl::~CXPlayerVideoRenderOpengl()
     {
         glDeleteProgram(m_uiProgram);
         m_uiProgram = 0;
+    }
+
+    if (0 != m_uiFontProgram)
+    {
+        glDeleteProgram(m_uiFontProgram);
+        m_uiFontProgram = 0;
     }
 
     doneCurrent();
@@ -186,6 +192,8 @@ void CXPlayerVideoRenderOpengl::initializeGL()
     initTextures();
 
     initVertices();
+
+    initFontVertices();
 }
 
 void CXPlayerVideoRenderOpengl::paintGL()
@@ -238,8 +246,10 @@ void CXPlayerVideoRenderOpengl::paintGL()
 
     // 4. 解绑（可选，保持状态整洁）
     glBindVertexArray(0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glUseProgram(0);
 
+    rendererText(m_ucCache[index][3].toStdString());
     m_blChanged.store(false);
     m_iReadIndex.store((index + 1) % XPLAYER_OPENGL_FRAME_CACHE);
 }
@@ -275,15 +285,18 @@ bool CXPlayerVideoRenderOpengl::initShader()
 {
     bool succ = false;
     GLint status = 0;
-    // 片段着色器
-    GLuint fragment = 0;
     // 顶点着色器
     GLuint vertex = 0;
+    // 片段着色器
+    GLuint fragment = 0;
+    // 字体片段
+    GLuint font_fragment = 0;
     
     vertex = compileShader(GL_VERTEX_SHADER, g_vert_str);
     // 创建片段着色器
     fragment = compileShader(GL_FRAGMENT_SHADER, g_frag_str);
-    if (0 == vertex || 0 == fragment)
+    font_fragment = compileShader(GL_FRAGMENT_SHADER, g_text_frag_str);
+    if (0 == vertex || 0 == fragment || 0 == font_fragment)
         goto end;
 
     // 链接着色器程序
@@ -304,7 +317,24 @@ bool CXPlayerVideoRenderOpengl::initShader()
         goto end;
     }
 
-    glUseProgram(m_uiProgram);
+    // 字体
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    m_uiFontProgram = glCreateProgram();
+    glAttachShader(m_uiFontProgram, vertex);
+    glAttachShader(m_uiFontProgram, font_fragment);
+    glLinkProgram(m_uiFontProgram);
+
+    // 检查链接错误
+    glGetProgramiv(m_uiFontProgram, GL_LINK_STATUS, &status);
+    if (GL_FALSE == status)
+    {
+        char buff[512] = {};
+        glGetProgramInfoLog(m_uiFontProgram, 512, nullptr, buff);
+        xpu_format_string(_err, "%s", buff);
+        goto end;
+    }
 
     succ = true;
 
@@ -319,10 +349,20 @@ end:
         glDeleteShader(fragment);
         fragment = 0;
     }
+    if (0 != font_fragment)
+    {
+        glDeleteShader(font_fragment);
+        font_fragment = 0;
+    }
     if (0 != m_uiProgram && !succ)
     {
         glDeleteProgram(m_uiProgram);
         m_uiProgram = 0;
+    }
+    if (0 != m_uiFontProgram && !succ)
+    {
+        glDeleteProgram(m_uiFontProgram);
+        m_uiFontProgram = 0;
     }
 
     return succ;
@@ -330,8 +370,8 @@ end:
 
 bool CXPlayerVideoRenderOpengl::initTextures()
 {
-    glGenTextures(3, m_uiTexures);
-    for (int i = 0; i < 3; ++i)
+    glGenTextures(4, m_uiTexures);
+    for (int i = 0; i < 4; ++i)
     {
         glBindTexture(GL_TEXTURE_2D, m_uiTexures[i]);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -340,8 +380,6 @@ bool CXPlayerVideoRenderOpengl::initTextures()
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
-
-    glEnable(GL_DEPTH_TEST);
 
     return true;
 }
@@ -388,36 +426,167 @@ void CXPlayerVideoRenderOpengl::initVertices()
     glBindVertexArray(0);
 }
 
+void CXPlayerVideoRenderOpengl::uninitVertices()
+{
+    if (0 != m_uiVAO)
+    {
+        glDeleteVertexArrays(1, &m_uiVAO);
+        m_uiVAO = 0;
+    }
+
+    if (0 != m_uiVBO)
+    {
+        glDeleteBuffers(1, &m_uiVBO);
+        m_uiVBO = 0;
+    }
+
+    if (0 != m_uiEBO)
+    {
+        glDeleteBuffers(1, &m_uiEBO);
+        m_uiEBO = 0;
+    }
+}
+
+void CXPlayerVideoRenderOpengl::initFontVertices()
+{
+    const uint indices[] =
+    {
+        0, 1, 3,
+        1, 2, 3
+    };
+
+    // 字体
+    glGenVertexArrays(1, &m_uiFontVAO);
+    glGenBuffers(1, &m_uiFontVBO);
+    glGenBuffers(1, &m_uiFontEBO);
+
+    glBindVertexArray(m_uiFontVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_uiFontVBO);
+    glBufferData(GL_ARRAY_BUFFER, 4 * 5 * sizeof(float), nullptr, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_uiFontEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(m_uiVertexLocation, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(m_uiVertexLocation);
+
+    glVertexAttribPointer(m_uiTextureLocation, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(m_uiTextureLocation);
+
+    glBindVertexArray(0); // 解绑字体 VAO
+}
+
+void CXPlayerVideoRenderOpengl::uninitFontVertices()
+{
+    if (0 != m_uiFontVAO)
+    {
+        glDeleteVertexArrays(1, &m_uiFontVAO);
+        m_uiFontVAO = 0;
+    }
+
+    if (0 != m_uiFontVBO)
+    {
+        glDeleteBuffers(1, &m_uiFontVBO);
+        m_uiFontVBO = 0;
+    }
+
+    if (0 != m_uiFontEBO)
+    {
+        glDeleteBuffers(1, &m_uiFontEBO);
+        m_uiFontEBO = 0;
+    }
+}
+
 bool CXPlayerVideoRenderOpengl::rendererText(const std::string & str)
 {
-    SDL_Color color = { 255, 0, 0, 255 };
+    if (str.empty() || nullptr == m_ptrFontCtx)
+        return true;
 
-    // 4. 渲染文字到 SDL_Surface
-    // TTF_RenderUTF8_Blended 生成带透明通道的 32位 表面
-    //SDL_Surface * surface = TTF_RenderUTF8_Blended(m_ptrFontCtx, text, color);
-    //if (!surface)
-    //{
-    //    xpu_format_string(m_strError, "Text render error: %s", TTF_GetError());
-    //    TTF_CloseFont(font);
-    //    return false;
-    //}
+    glUseProgram(m_uiFontProgram);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, m_uiTexures[3]);
+    glUniform1i(glGetUniformLocation(m_uiFontProgram, "xplayer_TextureStr"), 3);
+    glUniform4f(glGetUniformLocation(m_uiFontProgram, "xplayer_FontColor"), 1.0f, 0.0f, 0.0f, 1.0f);
 
-    //textWidth = surface->w;
-    //textHeight = surface->h;
+    glBindVertexArray(m_uiFontVAO);
 
-    //// 5. 生成 OpenGL 纹理
-    //glGenTextures(1, &textTexture);
-    //glBindTexture(GL_TEXTURE_2D, textTexture);
+    // 行距
+    const float line_space = 12.0f;
+    // 边距
+    const float margin = 10.0f;
+    const auto screen_ratio_x = 2.0f / static_cast<float>(this->width());
+    const auto screen_ratio_y = 2.0f / static_cast<float>(this->height());
+    float cur_height = margin;
 
-    //// 设置纹理参数 (线性过滤，防止锯齿)
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // 字体高度
+    int font_height = TTF_FontHeight(m_ptrFontCtx);
 
-    //// 6. 关键：将 SDL_Surface 的数据上传到 OpenGL 显存
-    //// SDL_Surface 通常是 SDL_PIXELFORMAT_RGBA32，对应 GL_RGBA
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w, surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
+    std::string val;
+    std::istringstream iss(str);
+    while (getline(iss, val, '\n'))
+    {
+        if (val.empty())
+            continue;
 
-    //// 清理 SDL 资源
-    //SDL_FreeSurface(surface);
+        SDL_Color font_color = { 255, 0, 0, 255 };
+        SDL_Surface * surface = TTF_RenderUTF8_Blended(m_ptrFontCtx, val.c_str(), font_color);
+        if (nullptr == surface)
+        {
+            xpu_format_string(m_strError, "TTF_RenderUTF8_Blended error: %s", TTF_GetError());
+            return false;
+        }
+
+        const auto width = surface->w;
+        const auto height = surface->h;
+        std::vector<uint8_t> pixel_data;
+        pixel_data.reserve(width * height * 4);
+
+        for (int y = 0; y < height; y++)
+        {
+            uint8_t * row = reinterpret_cast<uint8_t *>(surface->pixels) + y * surface->pitch;
+            for (int x = 0; x < width; x++)
+            {
+                Uint32 pixel = ((Uint32 *)row)[x];
+                Uint8 r, g, b, a;
+                SDL_GetRGBA(pixel, surface->format, &r, &g, &b, &a);
+
+                pixel_data.push_back(r);
+                pixel_data.push_back(g);
+                pixel_data.push_back(b);
+                pixel_data.push_back(a);
+            }
+        }
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixel_data.data());
+
+        SDL_FreeSurface(surface);
+
+        // 左上坐标
+        float x_start = -1.0f + margin * screen_ratio_x;
+        float x_end = -1.0f + (margin + width) * screen_ratio_x;
+        float y_top = 1.0f - cur_height * screen_ratio_y;
+        float y_bottom = 1.0f - (cur_height + height) * screen_ratio_y;
+
+        float vertices[] = {
+            x_start, y_top,    0.0f, 0.0f, 0.0f, // 0: 左上
+            x_end,   y_top,    0.0f, 1.0f, 0.0f, // 1: 右上
+            x_end,   y_bottom, 0.0f, 1.0f, 1.0f, // 2: 右下
+            x_start, y_bottom, 0.0f, 0.0f, 1.0f  // 3: 左下
+        };
+
+        // 5. 更新 VBO
+        glBindBuffer(GL_ARRAY_BUFFER, m_uiFontVBO);
+        // 使用 glBufferSubData 比 glBufferData 更安全，不需要重新分配内存
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        cur_height += (line_space + height);
+    }
+
+    glBindVertexArray(0);
+    glUseProgram(0);
+
     return true;
 }

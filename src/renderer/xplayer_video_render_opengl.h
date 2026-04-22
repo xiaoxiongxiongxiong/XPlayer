@@ -64,15 +64,21 @@ private:
     bool initTextures();
 
     void initVertices();
+    void uninitVertices();
+
+    void initFontVertices();
+    void uninitFontVertices();
 
     // 渲染
     bool rendererText(const std::string & str);
 
 private:
-    // 纹理器
-    GLuint m_uiTexures[3] = {};
-    //
+    // 纹理器 0~2 yuv 3-text
+    GLuint m_uiTexures[4] = {};
+    // YUV
     GLuint m_uiProgram = 0;
+    // 字体
+    GLuint m_uiFontProgram = 0;
 
     // 缓冲
     QByteArray m_ucCache[XPLAYER_OPENGL_FRAME_CACHE][4];
@@ -87,6 +93,10 @@ private:
     GLuint m_uiVAO = 0;
     GLuint m_uiVBO = 0;
     GLuint m_uiEBO = 0;
+
+    GLuint m_uiFontVAO = 0;
+    GLuint m_uiFontVBO = 0;
+    GLuint m_uiFontEBO = 0;
 
     // 错误信息
     std::string _err;
