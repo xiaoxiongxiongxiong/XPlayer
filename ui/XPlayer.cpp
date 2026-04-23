@@ -74,7 +74,6 @@ XPlayer::XPlayer(QWidget * parent)
     connect(m_tmVolume, &QTimer::timeout, this, &XPlayer::onVolumeButtonEnter);
     connect(m_pVolumeWidget, &CVolumeWidget::volumeChanged, this, &XPlayer::onVolumeChanged);
 
-    connect(ui.m_wndScreen, &CXPlayerVideoRenderOpengl::frameReady, this, &XPlayer::onFrameReady);
     loadConfig();
     m_uiSpeed = XPLAYER_SPEED_NORMAL;
 }
@@ -525,11 +524,6 @@ void XPlayer::onAudioTracksTriggered(QAction * action)
 {
     auto index = action->data().toInt();
     CXPlayerSource::uniqueInstance().selectStream(index, false);
-}
-
-void XPlayer::onFrameReady()
-{
-    ui.m_wndScreen->repaint();
 }
 
 void XPlayer::moveCenter()

@@ -104,6 +104,12 @@ bool CXPlayerVideoRenderOpengl::create(const void * wnd, int wnd_width, int wnd_
     m_iFrameHeight.store(frm_height);
     m_blChanged.store(true);
 
+    m_iWriteIndex.store(0);
+    m_iReadIndex.store(0);
+
+    m_iWriteTimes.store(0);
+    m_iReadTimes.store(0);
+
     return true;
 }
 
@@ -155,8 +161,8 @@ bool CXPlayerVideoRenderOpengl::renderer(uint8_t * data[8], int linesize[8], con
     m_ucCache[index][3] = QByteArray(str.c_str(), str.size());
 
     m_iWriteIndex.store((index + 1) % XPLAYER_OPENGL_FRAME_CACHE);
+    m_iWriteTimes++;
 
-    //emit frameReady();
     update();
 
     return true;
@@ -166,8 +172,9 @@ void CXPlayerVideoRenderOpengl::clear()
 {
     m_iWriteIndex.store(0);
     m_iReadIndex.store(0);
+    m_iWriteTimes.store(0);
+    m_iReadTimes.store(0);
     update();
-   // emit frameReady();
 }
 
 XPLAYER_VIDEO_RENDERER_TYPE CXPlayerVideoRenderOpengl::getType() const
@@ -194,13 +201,17 @@ void CXPlayerVideoRenderOpengl::initializeGL()
     initVertices();
 
     initFontVertices();
+
+    m_iYUVLocation[0] = glGetUniformLocation(m_uiProgram, "xplayer_TextureY");
+    m_iYUVLocation[1] = glGetUniformLocation(m_uiProgram, "xplayer_TextureU");
+    m_iYUVLocation[2] = glGetUniformLocation(m_uiProgram, "xplayer_TextureV");
 }
 
 void CXPlayerVideoRenderOpengl::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (m_iReadIndex.load() == m_iWriteIndex.load())
+    if (m_iReadTimes.load() == m_iWriteTimes.load())
         return;
 
     const auto index = m_iReadIndex.load();
@@ -221,7 +232,7 @@ void CXPlayerVideoRenderOpengl::paintGL()
     else
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][0].constData());
     // 将纹理单元 0 绑定到着色器中的 uniform sampler2D textureY
-    glUniform1i(glGetUniformLocation(m_uiProgram, "xplayer_TextureY"), 0);
+    glUniform1i(m_iYUVLocation[0], 0);
 
     // 更新 U 纹理
     glActiveTexture(GL_TEXTURE1); // 激活纹理单元 1
@@ -230,7 +241,7 @@ void CXPlayerVideoRenderOpengl::paintGL()
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w / 2, h / 2, 0, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][1].constData());
     else
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w / 2, h / 2, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][1].constData());
-    glUniform1i(glGetUniformLocation(m_uiProgram, "xplayer_TextureU"), 1);
+    glUniform1i(m_iYUVLocation[1], 1);
 
     // 更新 V 纹理
     glActiveTexture(GL_TEXTURE2); // 激活纹理单元 2
@@ -239,7 +250,7 @@ void CXPlayerVideoRenderOpengl::paintGL()
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w / 2, h / 2, 0, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][2].constData());
     else
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w / 2, h / 2, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][2].constData());
-    glUniform1i(glGetUniformLocation(m_uiProgram, "xplayer_TextureV"), 2);
+    glUniform1i(m_iYUVLocation[2], 2);
 
     // 3. 绘制
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -252,6 +263,7 @@ void CXPlayerVideoRenderOpengl::paintGL()
     rendererText(m_ucCache[index][3].toStdString());
     m_blChanged.store(false);
     m_iReadIndex.store((index + 1) % XPLAYER_OPENGL_FRAME_CACHE);
+    m_iReadTimes++;
 }
 
 void CXPlayerVideoRenderOpengl::resizeGL(int w, int h)
@@ -518,9 +530,6 @@ bool CXPlayerVideoRenderOpengl::rendererText(const std::string & str)
     const auto screen_ratio_x = 2.0f / static_cast<float>(this->width());
     const auto screen_ratio_y = 2.0f / static_cast<float>(this->height());
     float cur_height = margin;
-
-    // 字体高度
-    int font_height = TTF_FontHeight(m_ptrFontCtx);
 
     std::string val;
     std::istringstream iss(str);

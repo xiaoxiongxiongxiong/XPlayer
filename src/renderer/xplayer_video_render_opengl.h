@@ -43,9 +43,6 @@ public:
     // 错误信息
     const char * err() const override;
 
-signals:
-    void frameReady(); // 定义一个信号，用于通知主线程
-
 protected:
     // 1. 初始化 OpenGL 资源和状态（只调用一次）
     void initializeGL() override;
@@ -79,13 +76,19 @@ private:
     GLuint m_uiProgram = 0;
     // 字体
     GLuint m_uiFontProgram = 0;
+    // yuv Location
+    GLint m_iYUVLocation[3] = { 0 };
 
     // 缓冲
     QByteArray m_ucCache[XPLAYER_OPENGL_FRAME_CACHE][4];
-    // 写
+    // 写索引
     std::atomic_int m_iWriteIndex = { 0 };
-    // 读
+    // 读索引
     std::atomic_int m_iReadIndex = { 0 };
+    // 写次数
+    std::atomic_int m_iWriteTimes = { 0 };
+    // 读次数
+    std::atomic_int m_iReadTimes = { 0 };
 
     GLuint m_uiVertexLocation = 0;
     GLuint m_uiTextureLocation = 1;
