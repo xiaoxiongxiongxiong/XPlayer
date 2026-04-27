@@ -548,26 +548,13 @@ bool CXPlayerVideoRenderOpengl::rendererText(const std::string & str)
 
         const auto width = surface->w;
         const auto height = surface->h;
-        std::vector<uint8_t> pixel_data;
-        pixel_data.reserve(width * height * 4);
 
-        for (int y = 0; y < height; y++)
-        {
-            uint8_t * row = reinterpret_cast<uint8_t *>(surface->pixels) + y * surface->pitch;
-            for (int x = 0; x < width; x++)
-            {
-                Uint32 pixel = ((Uint32 *)row)[x];
-                Uint8 r, g, b, a;
-                SDL_GetRGBA(pixel, surface->format, &r, &g, &b, &a);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // 允许非4字节对齐
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, surface->pitch / 4); // 告诉 OpenGL 每行有多少像素
 
-                pixel_data.push_back(r);
-                pixel_data.push_back(g);
-                pixel_data.push_back(b);
-                pixel_data.push_back(a);
-            }
-        }
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, surface->pixels);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixel_data.data());
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 
         SDL_FreeSurface(surface);
 
