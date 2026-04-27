@@ -15,6 +15,7 @@ extern "C" {
 
 typedef struct AVCodecParameters AVCodecParameters;
 class CXPlayerDecoder;
+class CXPlayerFilterBsf;
 
 class CXPlayerStream
 {
@@ -28,7 +29,7 @@ public:
     void uninit();
 
     // 发包
-    bool send(const AVPacket & pkt, const bool & over = false);
+    bool send(AVPacket & pkt, const bool & over = false);
     // 收帧
     bool recv(AVFrame & frm, bool & got, bool & over);
 
@@ -50,6 +51,11 @@ public:
     const char * err() const;
 
 private:
+    // 创建过滤器
+    bool createFilter();
+    // 销毁过滤器
+    void destroyFilter();
+
     // 创建解码器
     bool createDecoder();
     // 销毁解码器
@@ -83,6 +89,7 @@ private:
 
     // 解码器
     std::unique_ptr<CXPlayerDecoder> _decoder = nullptr;
+    std::unique_ptr<CXPlayerFilterBsf> _bsf = nullptr;
 
     // 队列长度上限
     int _max_pkts = 0;

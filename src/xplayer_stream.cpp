@@ -4,8 +4,9 @@ extern "C" {
 #include "libavcodec/avcodec.h"
 }
 
-#include "utils/xplayer_utils.h"
-#include "decoder/xplayer_decoder.h"
+#include "xplayer_utils.h"
+#include "xplayer_filter_bsf.h"
+#include "xplayer_decoder.h"
 
 CXPlayerStream::CXPlayerStream(int index) :
     _index(index)
@@ -77,9 +78,10 @@ void CXPlayerStream::uninit()
     reset();
     avcodec_parameters_free(&_codecpar);
     destroyDecoder();
+    destroyFilter();
 }
 
-bool CXPlayerStream::send(const AVPacket & pkt, const bool & over)
+bool CXPlayerStream::send(AVPacket & pkt, const bool & over)
 {
     if (over)
     {
@@ -99,13 +101,45 @@ bool CXPlayerStream::send(const AVPacket & pkt, const bool & over)
         return false;
     }
 
+    _demux_over.store(over);
+    if (over)
+    {
+        return true;
+    }
+
     if (AV_NOPTS_VALUE != pkt.dts)
     {
         _pkt_dts = pkt.dts;
     }
 
-    _pkts.push(pkt);
-    _demux_over.store(over);
+    if (!_bsf)
+    {
+        _pkts.push(pkt);
+        return true;
+    }
+
+    bool succ = _bsf->send(pkt);
+    av_packet_unref(&pkt);
+    if (!succ)
+    {
+        _err = _bsf->err();
+        return false;
+    }
+
+    bool got = false;
+    do 
+    {
+        AVPacket tmp = {};
+        if (!_bsf->recv(tmp, got))
+        {
+            _err = _bsf->err();
+            break;
+        }
+        if (got)
+        {
+            _pkts.push(tmp);
+        }
+    } while (got);
 
     return true;
 }
@@ -144,6 +178,9 @@ bool CXPlayerStream::isFull()
 
 bool CXPlayerStream::prepare()
 {
+    if (!createFilter())
+        return false;
+
     if (!createDecoder())
         return false;
 
@@ -177,6 +214,37 @@ int64_t CXPlayerStream::frameDuration()
 const char * CXPlayerStream::err() const
 {
     return _err.c_str();
+}
+
+bool CXPlayerStream::createFilter()
+{
+    _bsf = std::make_unique<CXPlayerFilterBsf>();
+    if (nullptr == _bsf)
+    {
+        xpu_format_string(_err, "Create filter failed");
+        return false;
+    }
+
+    int ret = _bsf->create(_codecpar);
+    if (1 != ret)
+    {
+        _err = _bsf->err();
+        _bsf.reset();
+        _bsf = nullptr;
+        return 0 == ret;
+    }
+
+    return true;
+}
+
+void CXPlayerStream::destroyFilter()
+{
+    if (nullptr != _bsf)
+    {
+        _bsf->destroy();
+        _bsf.reset();
+        _bsf = nullptr;
+    }
 }
 
 bool CXPlayerStream::createDecoder()
