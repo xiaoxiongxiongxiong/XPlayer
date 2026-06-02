@@ -14,7 +14,7 @@ extern "C" {
 #include "xplayer_queue.h"
 
 typedef struct AVCodecParameters AVCodecParameters;
-class CXPlayerDecoder;
+class ICXPlayerDecoder;
 class CXPlayerFilterBsf;
 
 class CXPlayerStream
@@ -88,7 +88,7 @@ private:
     AVRational _timebase = { 0,1 };
 
     // 解码器
-    std::unique_ptr<CXPlayerDecoder> _decoder = nullptr;
+    ICXPlayerDecoder * _decoder = nullptr;
     std::unique_ptr<CXPlayerFilterBsf> _bsf = nullptr;
 
     // 队列长度上限

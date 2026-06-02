@@ -18,54 +18,54 @@ bool ICXPlayerVideoRenderer::openFont(const std::string & path, int size)
 {
 	if (path.empty() || size < 1)
 	{
-		xpu_format_string(m_strError, "Font path or size is invalid");
+		xpu_format_string(_err, "Font path or size is invalid");
 		return false;
 	}
 
-	m_ptrFontCtx = TTF_OpenFont(path.c_str(), size);
-	if (nullptr == m_ptrFontCtx)
+	_font_ctx = TTF_OpenFont(path.c_str(), size);
+	if (nullptr == _font_ctx)
 	{
-		xpu_format_string(m_strError, "TTF_OpenFont error: %s", TTF_GetError());
+		xpu_format_string(_err, "TTF_OpenFont error: %s", TTF_GetError());
 		return false;
 	}
 
-	m_strFontPath = path;
-	m_iFontSize = size;
+	_font_path = path;
+	_font_size = size;
 
 	return true;
 }
 
 void ICXPlayerVideoRenderer::closeFont()
 {
-	if (nullptr != m_ptrFontCtx)
+	if (nullptr != _font_ctx)
 	{
-		TTF_CloseFont(m_ptrFontCtx);
-		m_ptrFontCtx = nullptr;
+		TTF_CloseFont(_font_ctx);
+		_font_ctx = nullptr;
 	}
 
-    m_strFontPath.clear();
-    m_iFontSize = 0;
+    _font_path.clear();
+    _font_size = 0;
 }
 
 bool ICXPlayerVideoRenderer::adjust(int width, int height, bool flag)
 {
     if (width < 1 || height < 1)
     {
-        xpu_format_string(m_strError, "Input size w * h(%d * %d) is invalid", width, height);
+        xpu_format_string(_err, "Input size w * h(%d * %d) is invalid", width, height);
         return false;
     }
 
-	if (flag && (width != m_iWidth || height != m_iHeight))
+	if (flag && (width != _wnd_width || height != _wnd_height))
 	{
-		m_iWidth.store(width);
-		m_iHeight.store(height);
-		m_blChanged.store(true);
+		_wnd_width.store(width);
+		_wnd_height.store(height);
+		_changed.store(true);
 	}
-	else if (!flag && (width != m_iFrameWidth.load() || height != m_iFrameHeight.load()))
+	else if (!flag && (width != _img_width.load() || height != _img_height.load()))
 	{
-        m_iFrameWidth.store(width);
-        m_iFrameHeight.store(height);
-		m_blChanged.store(true);
+        _img_width.store(width);
+        _img_height.store(height);
+		_changed.store(true);
 	}
 
 	return true;

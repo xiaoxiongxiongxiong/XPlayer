@@ -327,6 +327,88 @@ void CXPlayerSource::destroyStreams()
     _streams.clear();
 }
 
+XPLAYER_PIXEL_FORMAT_TYPE CXPlayerSource::getPixelFormat(int format)
+{
+    XPLAYER_PIXEL_FORMAT_TYPE type = XPLAYER_PIXEL_FORMAT_NONE;
+
+    switch (format)
+    {
+    case AV_PIX_FMT_YUV420P:
+        type = XPLAYER_PIXEL_FORMAT_YUV420P;
+        break;
+    case AV_PIX_FMT_YUYV422:
+        type = XPLAYER_PIXEL_FORMAT_YUY2;
+        break;
+    case AV_PIX_FMT_UYVY422:
+        type = XPLAYER_PIXEL_FORMAT_UYVY;
+        break;
+    case AV_PIX_FMT_YVYU422:
+        type = XPLAYER_PIXEL_FORMAT_YVYU;
+        break;
+    case AV_PIX_FMT_YUV420P10:
+        type = XPLAYER_PIXEL_FORMAT_YUV420P10;
+        break;
+    case AV_PIX_FMT_NV12:
+        type = XPLAYER_PIXEL_FORMAT_NV12;
+        break;
+    case AV_PIX_FMT_NV21:
+        type = XPLAYER_PIXEL_FORMAT_NV21;
+        break;
+    case AV_PIX_FMT_P010:
+        type = XPLAYER_PIXEL_FORMAT_P010;
+        break;
+    default:
+        break;
+    }
+
+    return type;
+}
+
+bool CXPlayerSource::initRescaler(int format, int width, int height)
+{
+    if (nullptr != _video_rescaler)
+        return true;
+
+    _video_rescaler = std::make_shared<CXPlayerVideoRescaler>();
+    if (nullptr == _video_rescaler)
+    {
+        xpu_format_string(_err, "Create CXPlayerVideoRescaler instance failed");
+        return false;
+    }
+
+    auto pix_fmt = static_cast<AVPixelFormat>(format);
+    auto tmp = getPixelFormat(format);
+    if (!_video_renderer->supportedPixelFormat(tmp))
+    {
+        pix_fmt = AV_PIX_FMT_YUV420P;
+        tmp = XPLAYER_PIXEL_FORMAT_YUV420P;
+    }
+
+    CXPlayerVideoInfo src(static_cast<AVPixelFormat>(format), width, height);
+    CXPlayerVideoInfo dst(pix_fmt, width, height);
+    if (!_video_rescaler->create(src, dst))
+    {
+        _err = _video_rescaler->err();
+        _video_rescaler.reset();
+        _video_rescaler = nullptr;
+        return false;
+    }
+
+    _pixel_format.store(tmp);
+
+    return true;
+}
+
+void CXPlayerSource::uninitRescaler()
+{
+    if (nullptr == _video_rescaler)
+        return;
+
+    _video_rescaler->destroy();
+    _video_rescaler.reset();
+    _video_rescaler = nullptr;
+}
+
 bool CXPlayerSource::initConvertor()
 {
     auto * avs = _ctx->getStreamInfo(_audio_stream_index.load());
@@ -355,32 +437,6 @@ bool CXPlayerSource::initConvertor()
         }
     }
 
-    avs = _ctx->getStreamInfo(_video_stream_index.load());
-    codecpar = avs ? avs->codecpar : nullptr;
-    if (nullptr == _video_rescaler)
-    {
-        _video_rescaler = std::make_shared<CXPlayerVideoRescaler>();
-        if (nullptr == _video_rescaler)
-        {
-            xpu_format_string(_err, "Create CXPlayerVideoRescaler instance failed");
-            return false;
-        }
-    }
-
-    if (codecpar)
-    {
-        _video_rescaler->destroy();
-        CXPlayerVideoInfo src(static_cast<AVPixelFormat>(codecpar->format), codecpar->width, codecpar->height);
-        CXPlayerVideoInfo dst(AV_PIX_FMT_YUV420P, codecpar->width, codecpar->height);
-        if (!_video_rescaler->create(src, dst))
-        {
-            _err = _video_rescaler->err();
-            _video_rescaler.reset();
-            _video_rescaler = nullptr;
-            return false;
-        }
-    }
-
     return true;
 }
 
@@ -393,12 +449,7 @@ void CXPlayerSource::uninitConvertor()
         _audio_resampler = nullptr;
     }
 
-    if (_video_rescaler)
-    {
-        _video_rescaler->destroy();
-        _video_rescaler.reset();
-        _video_rescaler = nullptr;
-    }
+
 }
 
 bool CXPlayerSource::initFilter()
@@ -466,23 +517,20 @@ bool CXPlayerSource::initRenderer(const void * wnd, int width, int height)
         return false;
     }
 
-    avs = _ctx->getStreamInfo(_video_stream_index.load());
-    codecpar = avs ? avs->codecpar : nullptr;
+    if (nullptr != _video_renderer)
+        return true;
+
+    _video_renderer = CXPlayerVideoRendererFactory::create(_video_renderer_type.load(), wnd);
     if (nullptr == _video_renderer)
     {
-        _video_renderer = CXPlayerVideoRendererFactory::create(_video_renderer_type.load(), wnd);
-        if (nullptr == _video_renderer)
-        {
-            xpu_format_string(_err, "Create CXPlayerVideoRenderSDL instance failed");
-            return false;
-        }
-
-        _video_renderer->initFontContext(_font_path, _font_size);
+        xpu_format_string(_err, "Create CXPlayerVideoRenderSDL instance failed");
+        return false;
     }
 
-    if (codecpar && !_video_renderer->create(wnd, width, height, codecpar->width, codecpar->height))
+    if (!_video_renderer->create(wnd, width, height, _font_path, _font_size))
     {
         _err = _video_renderer->err();
+        CXPlayerVideoRendererFactory::destroy(_video_renderer);
         return false;
     }
 
@@ -493,7 +541,6 @@ void CXPlayerSource::uninitRenderer()
 {
     if (_video_renderer)
     {
-        _video_renderer->uninitFontContext();
         _video_renderer->destroy();
         CXPlayerVideoRendererFactory::destroy(_video_renderer);
     }
@@ -770,12 +817,20 @@ void CXPlayerSource::videoPlayThr()
 
         if (_wnd_changed)
         {
-            _video_renderer->resizeWindow(_wnd_width.load(), _wnd_height.load());
+            _video_renderer->resize(_wnd_width.load(), _wnd_height.load());
             _wnd_changed.store(false);
+        }
+
+        if (!initRescaler(frm.format, frm.width, frm.height))
+        {
+            av_frame_unref(&frm);
+            _state.store(XPLAYER_STATE_ERROR);
+            break;
         }
 
         uint8_t * data[AV_NUM_DATA_POINTERS]{};
         int linesize[AV_NUM_DATA_POINTERS]{};
+
         if (!_video_rescaler->rescale(&frm, data, linesize))
         {
             _err = _video_rescaler->err();
@@ -800,15 +855,14 @@ void CXPlayerSource::videoPlayThr()
             _cur_pos_ms.store(stream->timestamp(frm.pts));
         }
 
-        av_frame_unref(&frm);
-
         if (delay_ms > 0)
             std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
 
         auto str = formatDetailString();
-        _video_renderer->renderer(data, linesize, str);
+        _video_renderer->renderer(frm.width, frm.height, _pixel_format.load(), data, linesize, str);
         _cur_frames++;
         flag = false;
+        av_frame_unref(&frm);
     }
 
     _video_renderer->clear();

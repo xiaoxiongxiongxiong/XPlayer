@@ -100,6 +100,14 @@ private:
     // 销毁流
     void destroyStreams();
 
+    // 获取像素格式
+    XPLAYER_PIXEL_FORMAT_TYPE getPixelFormat(int format);
+
+    // 初始化画幅转换器
+    bool initRescaler(int format, int width, int height);
+    // 销毁画幅转换器
+    void uninitRescaler();
+
     // 初始化转换器
     bool initConvertor();
     // 销毁转换器
@@ -221,6 +229,8 @@ private:
     ICXPlayerVideoRenderer * _video_renderer = nullptr;
     //
     std::atomic<XPLAYER_VIDEO_RENDERER_TYPE> _video_renderer_type = { XPLAYER_VIDEO_RENDERER_SDL2 };
+    // 渲染时的像素格式
+    std::atomic<XPLAYER_PIXEL_FORMAT_TYPE> _pixel_format = { XPLAYER_PIXEL_FORMAT_NONE };
 
     // 字体路径
     std::string _font_path;

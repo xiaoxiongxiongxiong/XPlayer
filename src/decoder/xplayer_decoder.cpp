@@ -1,84 +1,24 @@
-﻿#include "xplayer_decoder.h"
+#include "xplayer_decoder.h"
 
 extern "C" {
 #include "libavutil/frame.h"
 #include "libavcodec/avcodec.h"
 }
+
 #include "utils/xplayer_utils.h"
+#include "xplayer_decoder_software.h"
+#include "xplayer_decoder_hardware.h"
 
-bool CXPlayerDecoder::create(const AVCodecParameters * codec_par)
-{
-    if (nullptr == codec_par)
-    {
-        xpu_format_string(_err, "Invalid params");
-        return false;
-    }
-
-    auto * codec = avcodec_find_decoder(codec_par->codec_id);
-    if (nullptr == codec)
-    {
-        xpu_format_string(_err, "Find decoder by id '%d' failed", codec_par->codec_id);
-        return false;
-    }
-
-    _ctx = avcodec_alloc_context3(codec);
-    if (nullptr == _ctx)
-    {
-        xpu_format_string(_err, "avcodec_alloc_context3 failed for decoder %d", codec_par->codec_id);
-        return false;
-    }
-
-    int ret = avcodec_parameters_to_context(_ctx, codec_par);
-    if (ret < 0)
-    {
-        xpu_format_string(_err, "Copy parameters to decoder '%d' failed", codec_par->codec_id);
-        avcodec_free_context(&_ctx);
-        return false;
-    }
-
-    ret = avcodec_open2(_ctx, codec, nullptr);
-    if (0 != ret)
-    {
-        xpu_format_string(_err, "Open decoder '%d' failed", codec_par->codec_id);
-        avcodec_free_context(&_ctx);
-        return false;
-    }
-
-    _codec_par = avcodec_parameters_alloc();
-    if (nullptr == _codec_par)
-    {
-        xpu_format_string(_err, "avcodec_parameters_alloc failed.");
-        return true;
-    }
-
-    ret = avcodec_parameters_copy(_codec_par, codec_par);
-    if (ret < 0)
-    {
-        char buff[AV_ERROR_MAX_STRING_SIZE] = { 0 };
-        av_make_error_string(buff, AV_ERROR_MAX_STRING_SIZE, ret);
-        xpu_format_string(_err, "avcodec_parameters_copy failed, err: %s", buff);
-        _codec_par = nullptr;
-    }
-
-    return true;
-}
-
-void CXPlayerDecoder::destroy()
+void ICXPlayerDecoder::destroy()
 {
     if (nullptr == _ctx)
         return;
 
     avcodec_close(_ctx);
     avcodec_free_context(&_ctx);
-
-    if (nullptr != _codec_par)
-    {
-        avcodec_parameters_free(&_codec_par);
-        _codec_par = nullptr;
-    }
 }
 
-bool CXPlayerDecoder::clear()
+bool ICXPlayerDecoder::clear()
 {
     if (nullptr == _ctx)
     {
@@ -91,7 +31,7 @@ bool CXPlayerDecoder::clear()
     return true;
 }
 
-bool CXPlayerDecoder::send(const AVPacket * pkt)
+bool ICXPlayerDecoder::send(const AVPacket * pkt)
 {
     if (nullptr == _ctx)
     {
@@ -111,7 +51,7 @@ bool CXPlayerDecoder::send(const AVPacket * pkt)
     return true;
 }
 
-bool CXPlayerDecoder::recv(AVFrame & frm, bool & got, bool & over)
+bool ICXPlayerDecoder::recv(AVFrame & frm, bool & got, bool & over)
 {
     if (nullptr == _ctx)
     {
@@ -143,7 +83,59 @@ bool CXPlayerDecoder::recv(AVFrame & frm, bool & got, bool & over)
     return true;
 }
 
-const char * CXPlayerDecoder::err() const
+ICXPlayerDecoder * CXPlayerDecoderFactory::create(XPLAYER_DECODER_TYPE type, const AVCodecParameters * codec_par)
 {
-    return _err.c_str();
+    ICXPlayerDecoder * decoder = nullptr;
+    if (XPLAYER_DECODER_SOFTWARE == type)
+    {
+        auto * ctx = new (std::nothrow) CXPlayerDecoderSoftware;
+        if (nullptr == ctx)
+            return nullptr;
+
+        if (!ctx->create(codec_par))
+        {
+            delete ctx;
+            return nullptr;
+        }
+
+        decoder = dynamic_cast<ICXPlayerDecoder *>(ctx);
+    }
+    else if (XPLAYER_DECODER_HARDWARE == type)
+    {
+        auto * ctx = new (std::nothrow) CXPlayerDecoderHardware;
+        if (nullptr == ctx)
+            return nullptr;
+
+        if (!ctx->create(codec_par))
+        {
+            delete ctx;
+            return nullptr;
+        }
+
+        decoder = dynamic_cast<ICXPlayerDecoder *>(ctx);
+    }
+    else
+        return nullptr;
+
+    return decoder;
+}
+
+void CXPlayerDecoderFactory::destroy(ICXPlayerDecoder * decoder)
+{
+    if (nullptr == decoder)
+        return;
+
+    auto type = decoder->getType();
+    if (XPLAYER_DECODER_SOFTWARE == type)
+    {
+        auto * ctx = dynamic_cast<CXPlayerDecoderSoftware *>(decoder);
+        ctx->destroy();
+        delete ctx;
+    }
+    else if (XPLAYER_DECODER_HARDWARE == type)
+    {
+        auto * ctx = dynamic_cast<CXPlayerDecoderHardware *>(decoder);
+        ctx->destroy();
+        delete ctx;
+    }
 }

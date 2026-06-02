@@ -41,7 +41,6 @@ bool CXPlayerStream::init(const AVCodecParameters * codecpar, const AVRational &
         return false;
     }
 
-
     _codecpar = avcodec_parameters_alloc();
     if (nullptr == _codecpar)
     {
@@ -249,17 +248,16 @@ void CXPlayerStream::destroyFilter()
 
 bool CXPlayerStream::createDecoder()
 {
-    _decoder = std::make_unique<CXPlayerDecoder>();
+    // 视频优先使用硬件解码
+    if (AVMEDIA_TYPE_VIDEO == _codecpar->codec_type)
+        _decoder = CXPlayerDecoderFactory::create(XPLAYER_DECODER_HARDWARE, _codecpar);
+    if (nullptr != _decoder)
+        return true;
+
+    _decoder = CXPlayerDecoderFactory::create(XPLAYER_DECODER_SOFTWARE, _codecpar);
     if (nullptr == _decoder)
     {
-        xpu_format_string(_err, "Create decoder failed");
-        return false;
-    }
-
-    if (!_decoder->create(_codecpar))
-    {
-        xpu_format_string(_err, "%s", _decoder->err());
-        _decoder.reset();
+        xpu_format_string(_err, "Create software decoder failed");
         return false;
     }
 
@@ -271,8 +269,7 @@ void CXPlayerStream::destroyDecoder()
     if (nullptr == _decoder)
         return;
 
-    _decoder->destroy();
-    _decoder.reset();
+    CXPlayerDecoderFactory::destroy(_decoder);
     _decoder = nullptr;
 }
 

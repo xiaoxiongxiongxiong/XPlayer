@@ -7,48 +7,42 @@
 
 #include "utils/xplayer_utils.h"
 
-bool CXPlayerVideoRenderSDL::create(const void * wnd, int wnd_width, int wnd_height, int frm_width, int frm_height)
+bool CXPlayerVideoRenderSDL::supportedPixelFormat(XPLAYER_PIXEL_FORMAT_TYPE format)
 {
-    if (nullptr == wnd || wnd_width <= 0 || wnd_height <= 0 || frm_width <= 0 || frm_height <= 0)
+    auto tmp = getPixelFormat(format);
+    return -1 != tmp;
+}
+
+bool CXPlayerVideoRenderSDL::create(const void * wnd, int width, int height, const std::string & path, const int & size)
+{
+    if (nullptr == wnd || width <= 0 || height <= 0 || path.empty() || size <= 0)
     {
-        xpu_format_string(m_strError, "Input param is invalid");
+        xpu_format_string(_err, "Input param is invalid");
         return false;
     }
 
     if (nullptr != _wnd)
     {
-        xpu_format_string(m_strError, "Already initialized sdl renderer");
+        xpu_format_string(_err, "Already initialized SDL2 renderer");
         return false;
     }
 
     _wnd = SDL_CreateWindowFrom(getHandle(wnd));
     if (nullptr == _wnd)
     {
-        xpu_format_string(m_strError, "SDL_CreateWindowFrom failed: %s", SDL_GetError());
+        xpu_format_string(_err, "SDL_CreateWindowFrom failed: %s", SDL_GetError());
         return false;
     }
 
-    _renderer = SDL_CreateRenderer(_wnd, -1, SDL_RENDERER_ACCELERATED);
-    if (nullptr == _renderer)
+    if (!openFont(path, size))
     {
-        xpu_format_string(m_strError, "SDL_CreateRenderer failed: %s", SDL_GetError());
-        destroy();
+        SDL_DestroyWindow(_wnd);
+        _wnd = nullptr;
         return false;
     }
 
-    _texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING, frm_width, frm_height);
-    if (nullptr == _texture)
-    {
-        xpu_format_string(m_strError, "SDL_CreateTexture failed: %s", SDL_GetError());
-        destroy();
-        return false;
-    }
-
-    m_iFrameWidth.store(frm_width);
-    m_iFrameHeight.store(frm_height);
-
-    m_iWidth.store(wnd_width);
-    m_iHeight.store(wnd_height);
+    _wnd_width.store(width);
+    _wnd_height.store(height);
 
     return true;
 }
@@ -74,75 +68,69 @@ void CXPlayerVideoRenderSDL::destroy()
         _wnd = nullptr;
     }
 
-    uninitFontContext();
-
-    m_iFrameWidth.store(0);
-    m_iFrameHeight.store(0);
-
-    m_iWidth.store(0);
-    m_iHeight.store(0);
-}
-
-bool CXPlayerVideoRenderSDL::initFontContext(const std::string & path, int size)
-{
-    return openFont(path, size);
-}
-
-void CXPlayerVideoRenderSDL::uninitFontContext()
-{
     closeFont();
+
+    _img_width.store(0);
+    _img_height.store(0);
+
+    _wnd_width.store(0);
+    _wnd_height.store(0);
 }
 
-bool CXPlayerVideoRenderSDL::resizeWindow(int width, int height)
+bool CXPlayerVideoRenderSDL::resize(int width, int height)
 {
     return adjust(width, height, true);
 }
 
-bool CXPlayerVideoRenderSDL::resizeImage(int width, int height)
+bool CXPlayerVideoRenderSDL::renderer(int width, int height, XPLAYER_PIXEL_FORMAT_TYPE format,
+                                      uint8_t * data[8], int linesize[8], const std::string & str)
 {
-    return adjust(width, height, false);
-}
-
-bool CXPlayerVideoRenderSDL::renderer(uint8_t * data[8], int linesize[8], const std::string & str)
-{
-    if (nullptr == _renderer)
+    if (nullptr == _wnd)
     {
-        xpu_format_string(m_strError, "SDL2 renderer not create yet");
+        xpu_format_string(_err, "SDL2 renderer not create yet");
         return false;
     }
 
     if (nullptr == data[0] || linesize[0] <= 0)
     {
-        xpu_format_string(m_strError, "Input param is invalid!");
+        xpu_format_string(_err, "Input param is invalid!");
         return false;
     }
 
-    if (!reopenRenderer())
+    if (!reopenRenderer(width, height, format))
         return false;
 
-    int ret = SDL_UpdateYUVTexture(_texture, nullptr,
+    int ret = -1;
+    if (XPLAYER_PIXEL_FORMAT_YUV420P == _format.load())
+    {
+        ret = SDL_UpdateYUVTexture(_texture, nullptr,
                                    data[0], linesize[0],
                                    data[1], linesize[1],
                                    data[2], linesize[2]);
+    }
+    else
+    {
+        ret = SDL_UpdateTexture(_texture, nullptr, data[0], linesize[0]);
+    }
     if (0 != ret)
     {
-        xpu_format_string(m_strError, "SDL_UpdateYUVTexture failed: %s", SDL_GetError());
+        xpu_format_string(_err, "SDL_UpdateYUVTexture failed: %s", SDL_GetError());
         return false;
     }
 
     ret = SDL_RenderClear(_renderer);
     if (0 != ret)
     {
-        xpu_format_string(m_strError, "SDL_RenderClear failed: %s", SDL_GetError());
+        xpu_format_string(_err, "SDL_RenderClear failed: %s", SDL_GetError());
         return false;
     }
 
-    SDL_Rect src_rect = { 0, 0, m_iFrameWidth.load(), m_iFrameHeight.load() };
-    SDL_Rect rect = { 0, 0, m_iWidth.load(), m_iHeight.load() };
-    ret = SDL_RenderCopy(_renderer, _texture, &src_rect, &rect);
+    SDL_Rect img_rect = { 0, 0, _img_width.load(), _img_height.load() };
+    SDL_Rect wnd_rect = { 0, 0, _wnd_width.load(), _wnd_height.load() };
+    ret = SDL_RenderCopy(_renderer, _texture, &img_rect, &wnd_rect);
     if (0 != ret)
     {
-        xpu_format_string(m_strError, "SDL_RenderCopy failed: %s", SDL_GetError());
+        xpu_format_string(_err, "SDL_RenderCopy failed: %s", SDL_GetError());
         return false;
     }
 
@@ -171,15 +159,15 @@ XPLAYER_VIDEO_RENDERER_TYPE CXPlayerVideoRenderSDL::getType() const
 
 const char * CXPlayerVideoRenderSDL::err() const
 {
-    return m_strError.c_str();
+    return _err.c_str();
 }
 
 bool CXPlayerVideoRenderSDL::rendererText(const std::string & str)
 {
-    if (str.empty() || nullptr == m_ptrFontCtx)
+    if (str.empty() || nullptr == _font_ctx)
         return true;
 
-    int font_height = TTF_FontHeight(m_ptrFontCtx);
+    int font_height = TTF_FontHeight(_font_ctx);
     const int line_space = 12;
     int y = 10;
 
@@ -191,17 +179,17 @@ bool CXPlayerVideoRenderSDL::rendererText(const std::string & str)
             continue;
 
         SDL_Color font_color = { 255, 0, 0, 255 };
-        SDL_Surface * surface = TTF_RenderUTF8_Blended(m_ptrFontCtx, val.c_str(), font_color);
+        SDL_Surface * surface = TTF_RenderUTF8_Blended(_font_ctx, val.c_str(), font_color);
         if (nullptr == surface)
         {
-            xpu_format_string(m_strError, "TTF_RenderUTF8_Blended error: %s", TTF_GetError());
+            xpu_format_string(_err, "TTF_RenderUTF8_Blended error: %s", TTF_GetError());
             return false;
         }
 
         SDL_Texture * text = SDL_CreateTextureFromSurface(_renderer, surface);
         if (nullptr == text)
         {
-            xpu_format_string(m_strError, "SDL_CreateTextureFromSurface error: %s", SDL_GetError());
+            xpu_format_string(_err, "SDL_CreateTextureFromSurface error: %s", SDL_GetError());
             SDL_FreeSurface(surface);
             return false;
         }
@@ -210,7 +198,7 @@ bool CXPlayerVideoRenderSDL::rendererText(const std::string & str)
         SDL_Rect text_rect = { 10, y, surface->w, surface->h };
         if (0 != SDL_RenderCopy(_renderer, text, nullptr, &text_rect))
         {
-            xpu_format_string(m_strError, "SDL_RenderCopy failed: %s", SDL_GetError());
+            xpu_format_string(_err, "SDL_RenderCopy failed: %s", SDL_GetError());
             succ = false;
         }
 
@@ -224,33 +212,74 @@ bool CXPlayerVideoRenderSDL::rendererText(const std::string & str)
     return true;
 }
 
-bool CXPlayerVideoRenderSDL::reopenRenderer()
+bool CXPlayerVideoRenderSDL::reopenRenderer(int width, int height, XPLAYER_PIXEL_FORMAT_TYPE format)
 {
-    if (!m_blChanged.load())
+    if (_img_width.load() == width && _img_height.load() == height && _format.load() == format)
         return true;
 
-    SDL_RenderClear(_renderer);
-    SDL_DestroyRenderer(_renderer);
-    _renderer = nullptr;
+    if (nullptr != _renderer)
+    {
+        SDL_RenderClear(_renderer);
+        SDL_DestroyRenderer(_renderer);
+        _renderer = nullptr;
+    }
 
-    SDL_DestroyTexture(_texture);
-    _texture = nullptr;
+    if (nullptr != _texture)
+    {
+        SDL_DestroyTexture(_texture);
+        _texture = nullptr;
+    }
 
     _renderer = SDL_CreateRenderer(_wnd, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (nullptr == _renderer)
     {
-        xpu_format_string(m_strError, "SDL_CreateRenderer failed: %s", SDL_GetError());
+        xpu_format_string(_err, "SDL_CreateRenderer failed: %s", SDL_GetError());
         return false;
     }
 
-    _texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING, m_iFrameWidth.load(), m_iFrameHeight.load());
+    auto tmp = getPixelFormat(format);
+    if (-1 == tmp)
+    {
+        xpu_format_string(_err, "Unsupported pixel format: %d", format);
+        return false;
+    }
+
+    _texture = SDL_CreateTexture(_renderer, static_cast<SDL_PixelFormatEnum>(tmp), SDL_TEXTUREACCESS_STREAMING, width, height);
     if (nullptr == _texture)
     {
-        xpu_format_string(m_strError, "SDL_CreateTexture failed: %s", SDL_GetError());
+        xpu_format_string(_err, "SDL_CreateTexture failed: %s", SDL_GetError());
         return false;
     }
 
-    m_blChanged.store(false);
+    _changed.store(false);
+    _format.store(format);
+    _img_width.store(width);
+    _img_height.store(height);
 
     return true;
+}
+
+int CXPlayerVideoRenderSDL::getPixelFormat(XPLAYER_PIXEL_FORMAT_TYPE format)
+{
+    int res = -1;
+
+    switch (format)
+    {
+    case XPLAYER_PIXEL_FORMAT_YUV420P:
+        res = SDL_PIXELFORMAT_IYUV;
+        break;
+    case XPLAYER_PIXEL_FORMAT_YUY2:
+        res = SDL_PIXELFORMAT_YUY2;
+        break;
+    case XPLAYER_PIXEL_FORMAT_UYVY:
+        res = SDL_PIXELFORMAT_UYVY;
+        break;
+    case XPLAYER_PIXEL_FORMAT_YVYU:
+        res = SDL_PIXELFORMAT_YVYU;
+        break;
+    default:
+        break;
+    }
+
+    return res;
 }

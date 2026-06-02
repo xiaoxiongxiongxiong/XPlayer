@@ -92,17 +92,23 @@ CXPlayerVideoRenderOpengl::~CXPlayerVideoRenderOpengl()
     doneCurrent();
 }
 
-bool CXPlayerVideoRenderOpengl::create(const void * wnd, int wnd_width, int wnd_height, int frm_width, int frm_height)
+bool CXPlayerVideoRenderOpengl::supportedPixelFormat(XPLAYER_PIXEL_FORMAT_TYPE format)
 {
-    if (nullptr == wnd || wnd_width <= 0 || wnd_height <= 0 || frm_width <= 0 || frm_height <= 0)
+    if (format <= XPLAYER_PIXEL_FORMAT_NONE || format >= XPLAYER_PIXEL_FORMAT_MAX)
+        return false;
+
+    return true;
+}
+
+bool CXPlayerVideoRenderOpengl::create(const void * wnd, int width, int height, const std::string & path, const int & size)
+{
+    if (nullptr == wnd || width <= 0 || height <= 0 || path.empty() || size <= 0)
     {
-        xpu_format_string(m_strError, "Input param is invalid");
+        xpu_format_string(_err, "Input param is invalid");
         return false;
     }
 
-    m_iFrameWidth.store(frm_width);
-    m_iFrameHeight.store(frm_height);
-    m_blChanged.store(true);
+    _changed.store(true);
 
     m_iWriteIndex.store(0);
     m_iReadIndex.store(0);
@@ -110,35 +116,21 @@ bool CXPlayerVideoRenderOpengl::create(const void * wnd, int wnd_width, int wnd_
     m_iWriteTimes.store(0);
     m_iReadTimes.store(0);
 
-    return true;
+    return openFont(path, size);
 }
 
 void CXPlayerVideoRenderOpengl::destroy()
 {
-    uninitFontContext();
-}
-
-bool CXPlayerVideoRenderOpengl::initFontContext(const std::string & path, int size)
-{
-    return openFont(path, size);
-}
-
-void CXPlayerVideoRenderOpengl::uninitFontContext()
-{
     closeFont();
 }
 
-bool CXPlayerVideoRenderOpengl::resizeWindow(int width, int height)
+bool CXPlayerVideoRenderOpengl::resize(int width, int height)
 {
     return adjust(width, height, true);;
 }
 
-bool CXPlayerVideoRenderOpengl::resizeImage(int width, int height)
-{
-    return adjust(width, height, false);
-}
-
-bool CXPlayerVideoRenderOpengl::renderer(uint8_t * data[8], int linesize[8], const std::string & str)
+bool CXPlayerVideoRenderOpengl::renderer(int width, int height, XPLAYER_PIXEL_FORMAT_TYPE format, 
+                                         uint8_t * data[8], int linesize[8], const std::string & str)
 {
     if (nullptr == data[0] || nullptr == data[1] || nullptr == data[2])
     {
@@ -146,7 +138,7 @@ bool CXPlayerVideoRenderOpengl::renderer(uint8_t * data[8], int linesize[8], con
         return false;
     }
 
-    const int bytes = m_iFrameWidth.load() * m_iFrameHeight.load();
+    const int bytes = _img_width.load() * _img_height.load();
     const auto index = m_iWriteIndex.load();
     if (m_ucCache[index][0].size() != bytes)
     {
@@ -215,8 +207,8 @@ void CXPlayerVideoRenderOpengl::paintGL()
         return;
 
     const auto index = m_iReadIndex.load();
-    const auto w = m_iFrameWidth.load();
-    const auto h = m_iFrameHeight.load();
+    const auto w = _img_width.load();
+    const auto h = _img_height.load();
 
     // 1. 使用着色器程序
     glUseProgram(m_uiProgram);
@@ -227,7 +219,7 @@ void CXPlayerVideoRenderOpengl::paintGL()
     // 更新 Y 纹理
     glActiveTexture(GL_TEXTURE0); // 激活纹理单元 0
     glBindTexture(GL_TEXTURE_2D, m_uiTexures[0]);
-    if (m_blChanged.load())
+    if (_changed.load())
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][0].constData());
     else
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][0].constData());
@@ -237,7 +229,7 @@ void CXPlayerVideoRenderOpengl::paintGL()
     // 更新 U 纹理
     glActiveTexture(GL_TEXTURE1); // 激活纹理单元 1
     glBindTexture(GL_TEXTURE_2D, m_uiTexures[1]);
-    if (m_blChanged.load())
+    if (_changed.load())
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w / 2, h / 2, 0, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][1].constData());
     else
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w / 2, h / 2, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][1].constData());
@@ -246,7 +238,7 @@ void CXPlayerVideoRenderOpengl::paintGL()
     // 更新 V 纹理
     glActiveTexture(GL_TEXTURE2); // 激活纹理单元 2
     glBindTexture(GL_TEXTURE_2D, m_uiTexures[2]);
-    if (m_blChanged.load())
+    if (_changed.load())
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w / 2, h / 2, 0, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][2].constData());
     else
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w / 2, h / 2, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][2].constData());
@@ -261,7 +253,7 @@ void CXPlayerVideoRenderOpengl::paintGL()
     glUseProgram(0);
 
     rendererText(m_ucCache[index][3].toStdString());
-    m_blChanged.store(false);
+    _changed.store(false);
     m_iReadIndex.store((index + 1) % XPLAYER_OPENGL_FRAME_CACHE);
     m_iReadTimes++;
 }
@@ -512,7 +504,7 @@ void CXPlayerVideoRenderOpengl::uninitFontVertices()
 
 bool CXPlayerVideoRenderOpengl::rendererText(const std::string & str)
 {
-    if (str.empty() || nullptr == m_ptrFontCtx)
+    if (str.empty() || nullptr == _font_ctx)
         return true;
 
     glUseProgram(m_uiFontProgram);
@@ -539,10 +531,10 @@ bool CXPlayerVideoRenderOpengl::rendererText(const std::string & str)
             continue;
 
         SDL_Color font_color = { 255, 0, 0, 255 };
-        SDL_Surface * surface = TTF_RenderUTF8_Blended(m_ptrFontCtx, val.c_str(), font_color);
+        SDL_Surface * surface = TTF_RenderUTF8_Blended(_font_ctx, val.c_str(), font_color);
         if (nullptr == surface)
         {
-            xpu_format_string(m_strError, "TTF_RenderUTF8_Blended error: %s", TTF_GetError());
+            xpu_format_string(_err, "TTF_RenderUTF8_Blended error: %s", TTF_GetError());
             return false;
         }
 
