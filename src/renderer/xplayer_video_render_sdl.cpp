@@ -7,10 +7,15 @@
 
 #include "utils/xplayer_utils.h"
 
-bool CXPlayerVideoRenderSDL::supportedPixelFormat(XPLAYER_PIXEL_FORMAT_TYPE format)
+bool CXPlayerVideoRenderSDL::supportedPixelFormat(std::vector<XPLAYER_PIXEL_FORMAT_TYPE> & formats)
 {
-    auto tmp = getPixelFormat(format);
-    return -1 != tmp;
+    formats.clear();
+    formats.push_back(XPLAYER_PIXEL_FORMAT_YUV420P);
+    formats.push_back(XPLAYER_PIXEL_FORMAT_YUY2);
+    formats.push_back(XPLAYER_PIXEL_FORMAT_UYVY);
+    formats.push_back(XPLAYER_PIXEL_FORMAT_YVYU);
+
+    return true;
 }
 
 bool CXPlayerVideoRenderSDL::create(const void * wnd, int width, int height, const std::string & path, const int & size)

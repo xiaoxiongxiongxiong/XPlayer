@@ -12,10 +12,14 @@ extern "C" {
 #include "libavcodec/packet.h"
 }
 #include "xplayer_queue.h"
+#include "xplayer_definitions.h"
 
 typedef struct AVCodecParameters AVCodecParameters;
 class ICXPlayerDecoder;
 class CXPlayerFilterBsf;
+class CXPlayerVideoRescaler;
+class CXPlayerAudioResampler;
+class CXPlayerAudioSpeex;
 
 class CXPlayerStream
 {
@@ -39,13 +43,16 @@ public:
     bool isFull();
 
     // 准备
-    bool prepare();
+    bool prepare(const std::vector<XPLAYER_PIXEL_FORMAT_TYPE> & formats);
 
     // 时间戳
     int64_t timestamp(int64_t timecode);
 
     // 单帧时长
     int64_t frameDuration();
+
+    // 获取最终的像素格式
+    XPLAYER_PIXEL_FORMAT_TYPE getPixelFormat();
 
     // 错误信息
     const char * err() const;
@@ -61,8 +68,29 @@ private:
     // 销毁解码器
     void destroyDecoder();
 
+    // 初始化画幅转换器
+    bool initRescaler(int format, int width, int height);
+    // 销毁画幅转换器
+    void uninitRescaler();
+
+    // 初始化重采样器
+    bool initResampler(const AVChannelLayout & layout, int format, int sample_rate);
+    // 销毁重采样器
+    void uninitResampler();
+
+    // 初始化音频倍速过滤器
+    bool initAudioSpeex(int channels, int sample_rate, int frame_size);
+    // 销毁音频倍速过滤器
+    void uninitAudioSpeex();
+
     // 解码线程
     void decodeThr();
+
+    // 处理视频帧
+    bool processVideoFrame(const AVFrame & src);
+
+    // 处理音频帧
+    bool processAudioFrame(const AVFrame & src);
 
     // 重置
     void reset();
@@ -87,9 +115,22 @@ private:
     // 时间基
     AVRational _timebase = { 0,1 };
 
+    // 支持的像素格式集合
+    std::vector<XPLAYER_PIXEL_FORMAT_TYPE> _formats;
+
     // 解码器
     ICXPlayerDecoder * _decoder = nullptr;
     std::unique_ptr<CXPlayerFilterBsf> _bsf = nullptr;
+
+    // 画幅转换器
+    std::unique_ptr<CXPlayerVideoRescaler> _rescaler = nullptr;
+    // 最终像素格式
+    std::atomic<XPLAYER_PIXEL_FORMAT_TYPE> _pix_format = { XPLAYER_PIXEL_FORMAT_NONE };
+    // 重采样器
+    std::unique_ptr<CXPlayerAudioResampler> _resampler = nullptr;
+
+    // 音频倍速过滤器
+    std::unique_ptr<CXPlayerAudioSpeex> _speex = nullptr;
 
     // 队列长度上限
     int _max_pkts = 0;

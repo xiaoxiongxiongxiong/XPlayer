@@ -5,60 +5,6 @@
 
 #include "xplayer_utils.h"
 
-static const char * g_vert_str = R"(
-    #version 330 core
-    layout(location = 0) in vec3 xplayer_Position;
-    layout(location = 1) in vec2 xplayer_TextureIn;
-    
-    out vec2 xplayer_TexCoord0;
-    
-    void main(void)
-    {
-        gl_Position = vec4(xplayer_Position, 1.0);
-        xplayer_TexCoord0 = xplayer_TextureIn;
-    }
-)";
-
-static const char * g_frag_str = R"(
-    #version 330 core
-    in lowp vec2 xplayer_TexCoord0;
-
-    out vec4 xplayer_FragData;
-
-    uniform sampler2D xplayer_TextureY;
-    uniform sampler2D xplayer_TextureU;
-    uniform sampler2D xplayer_TextureV;
-  //  uniform mediump float xplayer_Alpha;
-    
-    void main()
-    {
-        float y = texture(xplayer_TextureY, xplayer_TexCoord0).r;
-        float u = texture(xplayer_TextureU, xplayer_TexCoord0).r - 0.5;
-        float v = texture(xplayer_TextureV, xplayer_TexCoord0).r - 0.5;
-
-        float r = y + 1.402 * v;
-        float g = y - 0.344136 * u - 0.714136 * v;
-        float b = y + 1.772 * u;
-
-        xplayer_FragData = vec4(r, g, b, 1.0);
-    }
-)";
-
-static const char * g_text_frag_str = R"(
-    #version 330 core
-    in vec2 xplayer_TexCoord0;
-    out vec4 xplayer_FragData;
-    uniform sampler2D xplayer_TextureStr;
-    uniform vec4 xplayer_FontColor;
-    void main()
-    {
-        vec4 texColor = texture(xplayer_TextureStr, xplayer_TexCoord0);
-        if(texColor.a < 0.1)
-            discard;
-        xplayer_FragData = texColor * xplayer_FontColor;
-    }
-)";
-
 CXPlayerVideoRenderOpengl::CXPlayerVideoRenderOpengl(QWidget * parent)
     : QOpenGLWidget(parent)
 {
@@ -92,10 +38,18 @@ CXPlayerVideoRenderOpengl::~CXPlayerVideoRenderOpengl()
     doneCurrent();
 }
 
-bool CXPlayerVideoRenderOpengl::supportedPixelFormat(XPLAYER_PIXEL_FORMAT_TYPE format)
+bool CXPlayerVideoRenderOpengl::supportedPixelFormat(std::vector<XPLAYER_PIXEL_FORMAT_TYPE> & formats)
 {
-    if (format <= XPLAYER_PIXEL_FORMAT_NONE || format >= XPLAYER_PIXEL_FORMAT_MAX)
-        return false;
+    formats.clear();
+
+    formats.push_back(XPLAYER_PIXEL_FORMAT_YUV420P);
+    formats.push_back(XPLAYER_PIXEL_FORMAT_YUY2);
+    formats.push_back(XPLAYER_PIXEL_FORMAT_UYVY);
+    formats.push_back(XPLAYER_PIXEL_FORMAT_YVYU);
+    formats.push_back(XPLAYER_PIXEL_FORMAT_YUV420P10);
+    formats.push_back(XPLAYER_PIXEL_FORMAT_NV12);
+    formats.push_back(XPLAYER_PIXEL_FORMAT_NV21);
+    formats.push_back(XPLAYER_PIXEL_FORMAT_P010);
 
     return true;
 }
@@ -136,6 +90,14 @@ bool CXPlayerVideoRenderOpengl::renderer(int width, int height, XPLAYER_PIXEL_FO
     {
         xpu_format_string(_err, "Input param is invalid!");
         return false;
+    }
+
+    if (_img_width.load() != width || _img_height.load() != height || _format.load() != format)
+    {
+        _img_width.store(width);
+        _img_height.store(height);
+        _format.store(format);
+        _changed.store(true);
     }
 
     const int bytes = _img_width.load() * _img_height.load();
@@ -186,7 +148,7 @@ void CXPlayerVideoRenderOpengl::initializeGL()
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-    initShader();
+    initShader(_format.load());
 
     initTextures();
 
@@ -213,39 +175,36 @@ void CXPlayerVideoRenderOpengl::paintGL()
     // 1. 使用着色器程序
     glUseProgram(m_uiProgram);
 
-    // 2. 绑定 VAO
-    glBindVertexArray(m_uiVAO);
 
-    // 更新 Y 纹理
-    glActiveTexture(GL_TEXTURE0); // 激活纹理单元 0
-    glBindTexture(GL_TEXTURE_2D, m_uiTexures[0]);
-    if (_changed.load())
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][0].constData());
-    else
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][0].constData());
-    // 将纹理单元 0 绑定到着色器中的 uniform sampler2D textureY
-    glUniform1i(m_iYUVLocation[0], 0);
-
-    // 更新 U 纹理
-    glActiveTexture(GL_TEXTURE1); // 激活纹理单元 1
-    glBindTexture(GL_TEXTURE_2D, m_uiTexures[1]);
-    if (_changed.load())
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w / 2, h / 2, 0, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][1].constData());
-    else
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w / 2, h / 2, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][1].constData());
-    glUniform1i(m_iYUVLocation[1], 1);
-
-    // 更新 V 纹理
-    glActiveTexture(GL_TEXTURE2); // 激活纹理单元 2
-    glBindTexture(GL_TEXTURE_2D, m_uiTexures[2]);
-    if (_changed.load())
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w / 2, h / 2, 0, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][2].constData());
-    else
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w / 2, h / 2, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][2].constData());
-    glUniform1i(m_iYUVLocation[2], 2);
-
-    // 3. 绘制
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    switch (_format.load())
+    {
+    case XPLAYER_PIXEL_FORMAT_YUV420P:
+        renderYUV420P(w, h, index);
+        break;
+    case XPLAYER_PIXEL_FORMAT_YUY2:
+        renderYUY2(w, h, index);
+        break;
+    case XPLAYER_PIXEL_FORMAT_UYVY:
+        renderUYVY(w, h, index);
+        break;
+    case XPLAYER_PIXEL_FORMAT_YVYU:
+        renderYVYU(w, h, index);
+        break;
+    case XPLAYER_PIXEL_FORMAT_YUV420P10:
+        renderYUV420P10(w, h, index);
+        break;
+    case XPLAYER_PIXEL_FORMAT_NV12:
+        renderNV12(w, h, index);
+        break;
+    case XPLAYER_PIXEL_FORMAT_NV21:
+        renderNV21(w, h, index);
+        break;
+    case XPLAYER_PIXEL_FORMAT_P010:
+        renderP010(w, h, index);
+        break;
+    default:
+        break;
+    }
 
     // 4. 解绑（可选，保持状态整洁）
     glBindVertexArray(0);
@@ -263,10 +222,16 @@ void CXPlayerVideoRenderOpengl::resizeGL(int w, int h)
     glViewport(0, 0, w, h);
 }
 
-GLuint CXPlayerVideoRenderOpengl::compileShader(GLenum type, const char * src)
+GLuint CXPlayerVideoRenderOpengl::compileShader(GLenum type, const std::string & path)
 {
     GLint status = 0;
 
+    std::vector<char> buff;
+    if (!xpu_file2str(path, buff, _err))
+        return 0;
+    buff.push_back('\0');
+
+    const auto * src = buff.data();
     auto shader = glCreateShader(type);
     glShaderSource(shader, 1, &src, nullptr);
     glCompileShader(shader);
@@ -285,22 +250,61 @@ GLuint CXPlayerVideoRenderOpengl::compileShader(GLenum type, const char * src)
     return shader;
 }
 
-bool CXPlayerVideoRenderOpengl::initShader()
+bool CXPlayerVideoRenderOpengl::initShader(const XPLAYER_PIXEL_FORMAT_TYPE & format)
+{
+    bool succ = false;
+    // 顶点着色器
+    GLuint vertex = compileShader(GL_VERTEX_SHADER, "shaders/xplayer_common.vs");
+    if (0 == vertex)
+        return false;
+
+    switch (format)
+    {
+    case XPLAYER_PIXEL_FORMAT_YUV420P:
+        succ = initShaderYUV420P(vertex);
+        break;
+    case XPLAYER_PIXEL_FORMAT_YUY2:
+        succ = initShaderYUY2(vertex);
+        break;
+    case XPLAYER_PIXEL_FORMAT_UYVY:
+        succ = initShaderUYVY(vertex);
+        break;
+    case XPLAYER_PIXEL_FORMAT_YVYU:
+        succ = initShaderYVYU(vertex);
+        break;
+    case XPLAYER_PIXEL_FORMAT_YUV420P10:
+        succ = initShaderYUV420P10(vertex);
+        break;
+    case XPLAYER_PIXEL_FORMAT_NV12:
+        succ = initShaderNV12(vertex);
+        break;
+    case XPLAYER_PIXEL_FORMAT_NV21:
+        succ = initShaderNV21(vertex);
+        break;
+    case XPLAYER_PIXEL_FORMAT_P010:
+        succ = initShaderP010(vertex);
+        break;
+    default:
+        break;
+    }
+
+    if (succ)
+        succ = initFontShader(vertex);
+
+    return succ;
+}
+
+bool CXPlayerVideoRenderOpengl::initShaderYUV420P(GLuint vertex)
 {
     bool succ = false;
     GLint status = 0;
-    // 顶点着色器
-    GLuint vertex = 0;
+
     // 片段着色器
     GLuint fragment = 0;
-    // 字体片段
-    GLuint font_fragment = 0;
     
-    vertex = compileShader(GL_VERTEX_SHADER, g_vert_str);
     // 创建片段着色器
-    fragment = compileShader(GL_FRAGMENT_SHADER, g_frag_str);
-    font_fragment = compileShader(GL_FRAGMENT_SHADER, g_text_frag_str);
-    if (0 == vertex || 0 == fragment || 0 == font_fragment)
+    fragment = compileShader(GL_FRAGMENT_SHADER, "shaders/xplayer_yuv420p.fs");
+    if (0 == fragment)
         goto end;
 
     // 链接着色器程序
@@ -321,6 +325,65 @@ bool CXPlayerVideoRenderOpengl::initShader()
         goto end;
     }
 
+    succ = true;
+
+end:
+    if (0 != fragment)
+    {
+        glDeleteShader(fragment);
+        fragment = 0;
+    }
+    if (0 != m_uiProgram && !succ)
+    {
+        glDeleteProgram(m_uiProgram);
+        m_uiProgram = 0;
+    }
+
+    return succ;
+}
+
+bool CXPlayerVideoRenderOpengl::initShaderYUY2(GLuint vertex)
+{
+    return true;
+}
+
+bool CXPlayerVideoRenderOpengl::initShaderUYVY(GLuint vertex)
+{
+    return true;
+}
+
+bool CXPlayerVideoRenderOpengl::initShaderYVYU(GLuint vertex)
+{
+    return true;
+}
+
+bool CXPlayerVideoRenderOpengl::initShaderYUV420P10(GLuint vertex)
+{
+    return true;
+}
+
+bool CXPlayerVideoRenderOpengl::initShaderNV12(GLuint vertex)
+{
+    return true;
+}
+
+bool CXPlayerVideoRenderOpengl::initShaderNV21(GLuint vertex)
+{
+    return true;
+}
+
+bool CXPlayerVideoRenderOpengl::initShaderP010(GLuint vertex)
+{
+    return true;
+}
+
+bool CXPlayerVideoRenderOpengl::initFontShader(GLuint vertex)
+{
+    bool succ = false;
+    GLint status = 0;
+    // 字体片段
+    GLuint font_fragment = 0;
+    font_fragment = compileShader(GL_FRAGMENT_SHADER, "shaders/xplayer_text.fs");
     // 字体
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -337,39 +400,26 @@ bool CXPlayerVideoRenderOpengl::initShader()
         char buff[512] = {};
         glGetProgramInfoLog(m_uiFontProgram, 512, nullptr, buff);
         xpu_format_string(_err, "%s", buff);
+        glDeleteShader(font_fragment);
         goto end;
     }
 
     succ = true;
 
 end:
-    if (0 != vertex)
-    {
-        glDeleteShader(vertex);
-        vertex = 0;
-    }
-    if (0 != fragment)
-    {
-        glDeleteShader(fragment);
-        fragment = 0;
-    }
     if (0 != font_fragment)
     {
         glDeleteShader(font_fragment);
         font_fragment = 0;
     }
-    if (0 != m_uiProgram && !succ)
-    {
-        glDeleteProgram(m_uiProgram);
-        m_uiProgram = 0;
-    }
+
     if (0 != m_uiFontProgram && !succ)
     {
         glDeleteProgram(m_uiFontProgram);
         m_uiFontProgram = 0;
     }
 
-    return succ;
+    return true;
 }
 
 bool CXPlayerVideoRenderOpengl::initTextures()
@@ -500,6 +550,73 @@ void CXPlayerVideoRenderOpengl::uninitFontVertices()
         glDeleteBuffers(1, &m_uiFontEBO);
         m_uiFontEBO = 0;
     }
+}
+
+void CXPlayerVideoRenderOpengl::renderYUV420P(const int & w, const int & h, const int & index)
+{
+    glUniform1i(glGetUniformLocation(m_uiProgram, "xplayer_ColorSpace"), 0);
+
+    // 2. 绑定 VAO
+    glBindVertexArray(m_uiVAO);
+
+    // 更新 Y 纹理
+    glActiveTexture(GL_TEXTURE0); // 激活纹理单元 0
+    glBindTexture(GL_TEXTURE_2D, m_uiTexures[0]);
+    if (_changed.load())
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][0].constData());
+    else
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][0].constData());
+    // 将纹理单元 0 绑定到着色器中的 uniform sampler2D textureY
+    glUniform1i(m_iYUVLocation[0], 0);
+
+    // 更新 U 纹理
+    glActiveTexture(GL_TEXTURE1); // 激活纹理单元 1
+    glBindTexture(GL_TEXTURE_2D, m_uiTexures[1]);
+    if (_changed.load())
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w / 2, h / 2, 0, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][1].constData());
+    else
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w / 2, h / 2, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][1].constData());
+    glUniform1i(m_iYUVLocation[1], 1);
+
+    // 更新 V 纹理
+    glActiveTexture(GL_TEXTURE2); // 激活纹理单元 2
+    glBindTexture(GL_TEXTURE_2D, m_uiTexures[2]);
+    if (_changed.load())
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w / 2, h / 2, 0, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][2].constData());
+    else
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w / 2, h / 2, GL_RED, GL_UNSIGNED_BYTE, m_ucCache[index][2].constData());
+    glUniform1i(m_iYUVLocation[2], 2);
+
+    // 3. 绘制
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
+void CXPlayerVideoRenderOpengl::renderYUY2(const int & w, const int & h, const int & index)
+{
+}
+
+void CXPlayerVideoRenderOpengl::renderUYVY(const int & w, const int & h, const int & index)
+{
+}
+
+void CXPlayerVideoRenderOpengl::renderYVYU(const int & w, const int & h, const int & index)
+{
+}
+
+void CXPlayerVideoRenderOpengl::renderYUV420P10(const int & w, const int & h, const int & index)
+{
+}
+
+void CXPlayerVideoRenderOpengl::renderNV12(const int & w, const int & h, const int & index)
+{
+}
+
+void CXPlayerVideoRenderOpengl::renderNV21(const int & w, const int & h, const int & index)
+{
+}
+
+void CXPlayerVideoRenderOpengl::renderP010(const int & w, const int & h, const int & index)
+{
 }
 
 bool CXPlayerVideoRenderOpengl::rendererText(const std::string & str)

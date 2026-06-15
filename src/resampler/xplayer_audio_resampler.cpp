@@ -102,7 +102,7 @@ void CXPlayerAudioResampler::destroy()
     _out_max_nb_samples = 0;
 }
 
-bool CXPlayerAudioResampler::resampler(const AVFrame * in_frm, uint8_t ** out_data, int * out_len)
+bool CXPlayerAudioResampler::resample(const AVFrame * in_frm, uint8_t ** out_data, int * out_len)
 {
     if (nullptr == in_frm)
     {

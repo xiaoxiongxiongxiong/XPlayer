@@ -32,6 +32,8 @@ public:
 private:
     // 硬件设备上下文
     AVBufferRef * _hw_ctx = nullptr;
+    // 像素格式
+    enum AVPixelFormat _pix_fmt;
 };
 
 #endif

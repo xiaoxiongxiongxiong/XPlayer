@@ -6,7 +6,7 @@ extern "C" {
 #include "libavcodec/bsf.h"
 }
 
-int CXPlayerFilterBsf::create(const AVCodecParameters * par)
+int CXPlayerFilterBsf::create(AVCodecParameters * par)
 {
     if (nullptr == par)
     {
@@ -46,6 +46,13 @@ int CXPlayerFilterBsf::create(const AVCodecParameters * par)
     }
 
     ret = av_bsf_init(m_ptrCtx);
+    if (ret < 0)
+    {
+        av_bsf_free(&m_ptrCtx);
+        goto err;
+    }
+
+    ret = avcodec_parameters_copy(par, m_ptrCtx->par_out);
     if (ret < 0)
     {
         av_bsf_free(&m_ptrCtx);

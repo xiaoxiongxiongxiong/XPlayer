@@ -8,19 +8,6 @@ extern "C" {
 
 #include "xplayer_utils.h"
 
-static enum AVPixelFormat get_hw_format(AVCodecContext * ctx,
-                                        const enum AVPixelFormat * pix_fmts)
-{
-    const enum AVPixelFormat * p;
-
-    for (p = pix_fmts; *p != -1; p++) {
-        if (*p == AV_PIX_FMT_D3D11)
-            return *p;
-    }
-
-    return AV_PIX_FMT_NONE;
-}
-
 bool CXPlayerDecoderHardware::create(const AVCodecParameters * codec_par)
 {
     auto type = av_hwdevice_find_type_by_name("d3d11va");
@@ -30,7 +17,7 @@ bool CXPlayerDecoderHardware::create(const AVCodecParameters * codec_par)
         return false;
     }
 
-    enum AVPixelFormat pix_fmt = AVPixelFormat::AV_PIX_FMT_NONE;
+    _pix_fmt = AVPixelFormat::AV_PIX_FMT_NONE;
 
     auto * codec = avcodec_find_decoder(codec_par->codec_id);
     for (int i = 0; ; i++)
@@ -44,7 +31,7 @@ bool CXPlayerDecoderHardware::create(const AVCodecParameters * codec_par)
 
         if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX && config->device_type == type)
         {
-            pix_fmt = config->pix_fmt;
+            _pix_fmt = config->pix_fmt;
             break;
         }
     }
@@ -66,7 +53,19 @@ bool CXPlayerDecoderHardware::create(const AVCodecParameters * codec_par)
         return false;
     }
 
-    _ctx->get_format = get_hw_format;
+    _ctx->opaque = this;
+    _ctx->get_format = [](struct AVCodecContext * s, const enum AVPixelFormat * fmt)->enum AVPixelFormat
+    {
+        auto * ctx = static_cast<CXPlayerDecoderHardware *>(s->opaque);
+        const enum AVPixelFormat * p;
+
+        for (p = fmt; *p != -1; p++) {
+            if (*p == ctx->_pix_fmt)
+                return *p;
+        }
+
+        return AV_PIX_FMT_NONE;
+    };
 
     ret = av_hwdevice_ctx_create(&_hw_ctx, type, nullptr, nullptr, 0);
     if (0 != ret)
@@ -111,16 +110,29 @@ bool CXPlayerDecoderHardware::send(const AVPacket * pkt)
 bool CXPlayerDecoderHardware::recv(AVFrame & frm, bool & got, bool & over)
 {
     AVFrame tmp = {};
-    bool ret = ICXPlayerDecoder::recv(tmp, got, over);
+    bool succ = ICXPlayerDecoder::recv(tmp, got, over);
     if (!got)
-        return ret;
+        return succ;
 
-    if (AV_PIX_FMT_D3D11 == tmp.format)
+    if (_pix_fmt == tmp.format)
     {
-        ret = av_hwframe_transfer_data(&frm, &tmp, 0);
-        frm.pts = tmp.pts;
-        frm.pkt_dts = tmp.pkt_dts;
-        frm.pkt_duration = tmp.pkt_duration;
+        auto * ctx = reinterpret_cast<AVHWFramesContext *>(tmp.hw_frames_ctx->data);
+
+        frm.width = tmp.width;
+        frm.height = tmp.height;
+        frm.format = ctx->sw_format;
+        auto ret = av_hwframe_transfer_data(&frm, &tmp, 0);
+        if (0 != ret)
+        {
+            char buff[AV_ERROR_MAX_STRING_SIZE] = {};
+            av_make_error_string(buff, AV_ERROR_MAX_STRING_SIZE, ret);
+            xpu_format_string(_err, "%s", buff);
+            got = false;
+            av_frame_unref(&tmp);
+            return false;
+        }
+
+        ret = av_frame_copy_props(&frm, &tmp);
         av_frame_unref(&tmp);
         if (0 != ret)
         {

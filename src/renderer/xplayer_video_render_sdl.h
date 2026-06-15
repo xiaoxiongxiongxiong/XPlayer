@@ -16,7 +16,7 @@ public:
 	virtual ~CXPlayerVideoRenderSDL() = default;
 
 	// 是否支持对应像素格式
-	bool supportedPixelFormat(XPLAYER_PIXEL_FORMAT_TYPE format) override;
+	bool supportedPixelFormat(std::vector<XPLAYER_PIXEL_FORMAT_TYPE> & formats) override;
 
 	// 创建
 	bool create(const void * wnd, int width, int height, const std::string & path, const int & size) override;

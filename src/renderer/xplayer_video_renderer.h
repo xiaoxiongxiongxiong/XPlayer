@@ -4,6 +4,7 @@
 #include <cstdbool>
 #include <string>
 #include <atomic>
+#include <vector>
 
 #include "xplayer_definitions.h"
 
@@ -21,7 +22,7 @@ public:
     * @param  format  像素格式
     * @return true/false
     */
-    virtual bool supportedPixelFormat(XPLAYER_PIXEL_FORMAT_TYPE format) = 0;
+    virtual bool supportedPixelFormat(std::vector<XPLAYER_PIXEL_FORMAT_TYPE> & formats) = 0;
 
     /*
     * create

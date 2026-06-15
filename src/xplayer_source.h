@@ -14,9 +14,6 @@
 
 class CXPlayerDemuxImpl;
 class CXPlayerStream;
-class CXPlayerAudioResampler;
-class CXPlayerVideoRescaler;
-class CXPlayerAudioSpeex;
 class CXPlayerAudioRender;
 class ICXPlayerVideoRenderer;
 
@@ -92,7 +89,7 @@ public:
     const char * err() const;
 
 private:
-    CXPlayerSource() = default;
+    CXPlayerSource();
     ~CXPlayerSource();
 
     // 创建流
@@ -100,28 +97,15 @@ private:
     // 销毁流
     void destroyStreams();
 
-    // 获取像素格式
-    XPLAYER_PIXEL_FORMAT_TYPE getPixelFormat(int format);
-
-    // 初始化画幅转换器
-    bool initRescaler(int format, int width, int height);
-    // 销毁画幅转换器
-    void uninitRescaler();
-
-    // 初始化转换器
-    bool initConvertor();
-    // 销毁转换器
-    void uninitConvertor();
-
-    // 初始化过滤器
-    bool initFilter();
-    // 销毁过滤器
-    void uninitFilter();
-
     // 初始化渲染器
-    bool initRenderer(const void * wnd, int width, int height);
+    bool initAudioRenderer();
     // 销毁渲染器
-    void uninitRenderer();
+    void uninitAudioRenderer();
+
+    // 初始化视频渲染器
+    bool initVideoRenderer(const void * wnd, int width, int height);
+    // 销毁视频渲染器
+    void uninitVideoRenderer();
 
     // 读包线程
     void readPacketsThr();
@@ -149,6 +133,11 @@ private:
 
     // 格式化详细信息
     std::string formatDetailString();
+
+    // 采样格式转换
+    int getSampleFormat(XPLAYER_SAMPLE_FORMAT_TYPE type);
+    //
+    XPLAYER_SAMPLE_FORMAT_TYPE getSampleFormat(int format);
 
 private:
     // 播放状态
@@ -204,12 +193,8 @@ private:
     std::atomic_bool _audio_play_over = { false };
     // 音频流索引
     std::atomic_int _audio_stream_index = { -1 };
-    // 音频重采样器
-    std::shared_ptr<CXPlayerAudioResampler> _audio_resampler = nullptr;
     // 音频渲染器
-    std::shared_ptr<CXPlayerAudioRender> _audio_renderer = nullptr;
-    // 音频倍速过滤器
-    std::shared_ptr<CXPlayerAudioSpeex> _audio_speex = nullptr;
+    std::unique_ptr<CXPlayerAudioRender> _audio_renderer = nullptr;
 
     // 视频播放线程
     std::thread _video_thr;
@@ -223,14 +208,10 @@ private:
     std::atomic_bool _video_play_over = { false };
     // 视频流索引
     std::atomic_int _video_stream_index = { -1 };
-    // 视频画幅转换器
-    std::shared_ptr<CXPlayerVideoRescaler> _video_rescaler = nullptr;
     // 视频渲染器
     ICXPlayerVideoRenderer * _video_renderer = nullptr;
     //
     std::atomic<XPLAYER_VIDEO_RENDERER_TYPE> _video_renderer_type = { XPLAYER_VIDEO_RENDERER_SDL2 };
-    // 渲染时的像素格式
-    std::atomic<XPLAYER_PIXEL_FORMAT_TYPE> _pixel_format = { XPLAYER_PIXEL_FORMAT_NONE };
 
     // 字体路径
     std::string _font_path;
@@ -238,7 +219,7 @@ private:
     int _font_size = 24;
 
     // 上下文
-    CXPlayerDemuxImpl * _ctx = nullptr;
+    std::unique_ptr<CXPlayerDemuxImpl> _ctx = nullptr;
     // 流
     std::unordered_map<int, std::shared_ptr<CXPlayerStream>> _streams;
 

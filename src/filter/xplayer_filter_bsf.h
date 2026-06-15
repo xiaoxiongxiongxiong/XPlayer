@@ -16,7 +16,7 @@ public:
 	~CXPlayerFilterBsf() = default;
 
 	// 创建
-	int create(const AVCodecParameters * par);
+	int create(AVCodecParameters * par);
     // 销毁
     void destroy();
 

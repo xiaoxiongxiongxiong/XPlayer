@@ -17,7 +17,7 @@ public:
 	~CXPlayerVideoRenderOpengl();
 
     // 是否支持对应像素格式
-    bool supportedPixelFormat(XPLAYER_PIXEL_FORMAT_TYPE format) override;
+    bool supportedPixelFormat(std::vector<XPLAYER_PIXEL_FORMAT_TYPE> & formats) override;
 
     // 创建
     bool create(const void * wnd, int width, int height, const std::string & path, const int & size) override;
@@ -51,9 +51,20 @@ protected:
     void resizeGL(int w, int h) override;
 
 private:
-    GLuint compileShader(GLenum type, const char * src);
+    GLuint compileShader(GLenum type, const std::string & path);
 
-    bool initShader();
+    bool initShader(const XPLAYER_PIXEL_FORMAT_TYPE & format);
+    bool initShaderYUV420P(GLuint vertex);
+    bool initShaderYUY2(GLuint vertex);
+    bool initShaderUYVY(GLuint vertex);
+    bool initShaderYVYU(GLuint vertex);
+    bool initShaderYUV420P10(GLuint vertex);
+    bool initShaderNV12(GLuint vertex);
+    bool initShaderNV21(GLuint vertex);
+    bool initShaderP010(GLuint vertex);
+
+    // 初始化字体shader
+    bool initFontShader(GLuint vertex);
 
     bool initTextures();
 
@@ -62,6 +73,16 @@ private:
 
     void initFontVertices();
     void uninitFontVertices();
+
+    // 渲染yuv420p
+    void renderYUV420P(const int & w, const int & h, const int & index);
+    void renderYUY2(const int & w, const int & h, const int & index);
+    void renderUYVY(const int & w, const int & h, const int & index);
+    void renderYVYU(const int & w, const int & h, const int & index);
+    void renderYUV420P10(const int & w, const int & h, const int & index);
+    void renderNV12(const int & w, const int & h, const int & index);
+    void renderNV21(const int & w, const int & h, const int & index);
+    void renderP010(const int & w, const int & h, const int & index);
 
     // 渲染
     bool rendererText(const std::string & str);

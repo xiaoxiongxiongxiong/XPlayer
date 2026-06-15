@@ -4,27 +4,17 @@
 
 extern "C" {
 #include "libavformat/avformat.h"
+#include "libavutil/pixdesc.h"
 }
 
 #include "xplayer_utils.h"
 #include "xplayer_demuxer.h"
-#include "xplayer_audio_resampler.h"
-#include "xplayer_video_rescaler.h"
-#include "xplayer_audio_speex.h"
 #include "xplayer_audio_render_sdl.h"
 #include "xplayer_video_renderer.h"
 #include "xplayer_stream.h"
 
-CXPlayerSource::~CXPlayerSource()
-{
-    uninitConvertor();
-
-    if (nullptr != _audio_renderer)
-    {
-        _audio_renderer.reset();
-        _audio_renderer = nullptr;
-    }
-}
+CXPlayerSource::CXPlayerSource() = default;
+CXPlayerSource::~CXPlayerSource() = default;
 
 void CXPlayerSource::setFontPath(const std::string & path)
 {
@@ -38,7 +28,7 @@ void CXPlayerSource::setFontSize(int size)
 
 bool CXPlayerSource::open(const std::string & url, const std::string & params)
 {
-    _ctx = new(std::nothrow) CXPlayerDemuxImpl();
+    _ctx = std::make_unique<CXPlayerDemuxImpl>();
     if (nullptr == _ctx)
     {
         xpu_format_string(_err, "no enough memory");
@@ -48,14 +38,14 @@ bool CXPlayerSource::open(const std::string & url, const std::string & params)
     if (!_ctx->open(url, params))
     {
         xpu_format_string(_err, "%s", _ctx->err());
-        delete _ctx;
+        _ctx.reset();
         _ctx = nullptr;
         return false;
     }
 
     if (!createStreams())
     {
-        delete _ctx;
+        _ctx.reset();
         _ctx = nullptr;
         return false;
     }
@@ -110,11 +100,11 @@ void CXPlayerSource::close()
 
     destroyStreams();
 
-    uninitFilter();
-    uninitRenderer();
+    uninitAudioRenderer();
+    uninitVideoRenderer();
 
     _ctx->close();
-    delete _ctx;
+    _ctx.reset();
     _ctx = nullptr;
 
     _state.store(XPLAYER_STATE_NONE);
@@ -155,9 +145,18 @@ bool CXPlayerSource::play(const void * wnd, int width, int height)
         return false;
     }
 
+    if (!initAudioRenderer())
+        return false;
+
+    if (!initVideoRenderer(wnd, width, height))
+        return false;
+
+    std::vector<XPLAYER_PIXEL_FORMAT_TYPE> formats;
+    _video_renderer->supportedPixelFormat(formats);
+
     for (const auto & si : _streams)
     {
-        if (!si.second->prepare())
+        if (!si.second->prepare(formats))
         {
             _err = si.second->err();
             return false;
@@ -166,15 +165,6 @@ bool CXPlayerSource::play(const void * wnd, int width, int height)
 
     _wnd_width.store(width);
     _wnd_height.store(height);
-
-    if (!initConvertor())
-        return false;
-
-    if (!initFilter())
-        return false;
-
-    if (!initRenderer(wnd, width, height))
-        return false;
 
     _cond.notify_one();
     _state.store(XPLAYER_STATE_PLAYING);
@@ -327,196 +317,52 @@ void CXPlayerSource::destroyStreams()
     _streams.clear();
 }
 
-XPLAYER_PIXEL_FORMAT_TYPE CXPlayerSource::getPixelFormat(int format)
+bool CXPlayerSource::initAudioRenderer()
 {
-    XPLAYER_PIXEL_FORMAT_TYPE type = XPLAYER_PIXEL_FORMAT_NONE;
-
-    switch (format)
-    {
-    case AV_PIX_FMT_YUV420P:
-        type = XPLAYER_PIXEL_FORMAT_YUV420P;
-        break;
-    case AV_PIX_FMT_YUYV422:
-        type = XPLAYER_PIXEL_FORMAT_YUY2;
-        break;
-    case AV_PIX_FMT_UYVY422:
-        type = XPLAYER_PIXEL_FORMAT_UYVY;
-        break;
-    case AV_PIX_FMT_YVYU422:
-        type = XPLAYER_PIXEL_FORMAT_YVYU;
-        break;
-    case AV_PIX_FMT_YUV420P10:
-        type = XPLAYER_PIXEL_FORMAT_YUV420P10;
-        break;
-    case AV_PIX_FMT_NV12:
-        type = XPLAYER_PIXEL_FORMAT_NV12;
-        break;
-    case AV_PIX_FMT_NV21:
-        type = XPLAYER_PIXEL_FORMAT_NV21;
-        break;
-    case AV_PIX_FMT_P010:
-        type = XPLAYER_PIXEL_FORMAT_P010;
-        break;
-    default:
-        break;
-    }
-
-    return type;
-}
-
-bool CXPlayerSource::initRescaler(int format, int width, int height)
-{
-    if (nullptr != _video_rescaler)
+    if (nullptr != _audio_renderer)
         return true;
 
-    _video_rescaler = std::make_shared<CXPlayerVideoRescaler>();
-    if (nullptr == _video_rescaler)
-    {
-        xpu_format_string(_err, "Create CXPlayerVideoRescaler instance failed");
-        return false;
-    }
-
-    auto pix_fmt = static_cast<AVPixelFormat>(format);
-    auto tmp = getPixelFormat(format);
-    if (!_video_renderer->supportedPixelFormat(tmp))
-    {
-        pix_fmt = AV_PIX_FMT_YUV420P;
-        tmp = XPLAYER_PIXEL_FORMAT_YUV420P;
-    }
-
-    CXPlayerVideoInfo src(static_cast<AVPixelFormat>(format), width, height);
-    CXPlayerVideoInfo dst(pix_fmt, width, height);
-    if (!_video_rescaler->create(src, dst))
-    {
-        _err = _video_rescaler->err();
-        _video_rescaler.reset();
-        _video_rescaler = nullptr;
-        return false;
-    }
-
-    _pixel_format.store(tmp);
-
-    return true;
-}
-
-void CXPlayerSource::uninitRescaler()
-{
-    if (nullptr == _video_rescaler)
-        return;
-
-    _video_rescaler->destroy();
-    _video_rescaler.reset();
-    _video_rescaler = nullptr;
-}
-
-bool CXPlayerSource::initConvertor()
-{
-    auto * avs = _ctx->getStreamInfo(_audio_stream_index.load());
-    auto * codecpar = avs ? avs->codecpar : nullptr;
+    _audio_renderer = std::make_unique<CXPlayerAudioRender>();
     if (nullptr == _audio_renderer)
     {
-        _audio_resampler = std::make_shared<CXPlayerAudioResampler>();
-        if (nullptr == _audio_resampler)
-        {
-            xpu_format_string(_err, "Create CXPlayerAudioResampler instance failed");
-            return false;
-        }
+        xpu_format_string(_err, "Create CXPlayerAudioRender instance failed");
+        return false;
     }
 
-    if (codecpar)
-    {
-        _audio_resampler->destroy();
-        CXPlayerAudioInfo src(codecpar->ch_layout, static_cast<AVSampleFormat>(codecpar->format), codecpar->sample_rate);
-        AVChannelLayout dst_layout{};
-        av_channel_layout_default(&dst_layout, 2);
-        CXPlayerAudioInfo dst(dst_layout, AV_SAMPLE_FMT_S16, codecpar->sample_rate);
-        if (!_audio_resampler->create(src, dst, codecpar->frame_size))
-        {
-            _err = _audio_resampler->err();
-            return false;
-        }
-    }
-
-    return true;
-}
-
-void CXPlayerSource::uninitConvertor()
-{
-    if (_audio_resampler)
-    {
-        _audio_resampler->destroy();
-        _audio_resampler.reset();
-        _audio_resampler = nullptr;
-    }
-
-
-}
-
-bool CXPlayerSource::initFilter()
-{
-    if (_audio_stream_index.load() < 0)
+    if (-1 == _audio_stream_index.load())
         return true;
 
-    auto * stream = _ctx->getStreamInfo(_audio_stream_index.load());
-    if (nullptr == stream)
-    {
-        xpu_format_string(_err, "Get stream info by index '%d' failed", _audio_stream_index.load());
-        return false;
-    }
-
-    auto * codec_par = stream->codecpar;
-
-    _audio_speex = std::make_shared<CXPlayerAudioSpeex>();
-    if (nullptr == _audio_speex)
-    {
-        xpu_format_string(_err, "Create CXPlayerAudioSpeex instance failed");
-        return false;
-    }
-
-    if (!_audio_speex->create(codec_par->channels, codec_par->sample_rate, codec_par->frame_size))
-    {
-        _err = _audio_speex->err();
-        _audio_speex.reset();
-        _audio_speex = nullptr;
-        return false;
-    }
-
-    _audio_speex->setSpeed(_speed.load());
-
-    return true;
-}
-
-void CXPlayerSource::uninitFilter()
-{
-    if (nullptr != _audio_speex)
-    {
-        _audio_speex->destroy();
-        _audio_speex.reset();
-        _audio_speex = nullptr;
-    }
-}
-
-bool CXPlayerSource::initRenderer(const void * wnd, int width, int height)
-{
     auto * avs = _ctx->getStreamInfo(_audio_stream_index.load());
     auto * codecpar = avs ? avs->codecpar : nullptr;
-    if (nullptr == _audio_renderer)
+    if (nullptr == codecpar)
     {
-        _audio_renderer = std::make_shared<CXPlayerAudioRender>();
-        if (nullptr == _audio_renderer)
-        {
-            xpu_format_string(_err, "Create CXPlayerAudioRender instance failed");
-            return false;
-        }
+        xpu_format_string(_err, "Get audio stream info failed");
+        _audio_renderer.reset();
+        _audio_renderer = nullptr;
+        return false;
     }
 
-    if (nullptr != codecpar && 
-        !_audio_renderer->create(codecpar->sample_rate, codecpar->channels, codecpar->frame_size, _volume.load()))
+    if (!_audio_renderer->create(codecpar->sample_rate, codecpar->channels, codecpar->frame_size, _volume.load()))
     {
         _err = _audio_renderer->err();
         return false;
     }
 
+    return true;
+}
+
+void CXPlayerSource::uninitAudioRenderer()
+{
+    if (nullptr != _audio_renderer)
+    {
+        _audio_renderer->destroy();
+        _audio_renderer.reset();
+        _audio_renderer = nullptr;
+    }
+}
+
+bool CXPlayerSource::initVideoRenderer(const void * wnd, int width, int height)
+{
     if (nullptr != _video_renderer)
         return true;
 
@@ -537,17 +383,12 @@ bool CXPlayerSource::initRenderer(const void * wnd, int width, int height)
     return true;
 }
 
-void CXPlayerSource::uninitRenderer()
+void CXPlayerSource::uninitVideoRenderer()
 {
     if (_video_renderer)
     {
         _video_renderer->destroy();
         CXPlayerVideoRendererFactory::destroy(_video_renderer);
-    }
-
-    if (_audio_renderer)
-    {
-        _audio_renderer->destroy();
     }
 }
 
@@ -712,37 +553,27 @@ void CXPlayerSource::audioPlayThr()
             _cur_pos_ms.store(_audio_clock.load());
         }
 
-        uint8_t * data = nullptr;
-        int len = 0;
-        if (!_audio_resampler->resampler(&frm, &data, &len))
-        {
-            _err = _audio_resampler->err();
-            av_frame_unref(&frm);
-            _state.store(XPLAYER_STATE_ERROR);
-            break;
-        }
-        av_frame_unref(&frm);
-
         if (mute_flag)
         {
             _audio_renderer->mute(false);
             mute_flag = false;
         }
 
-        if (_speed_changed.load())
-        {
-            _audio_speex->setSpeed(_speed.load());
-            _speed_changed.store(false);
-        }
+        //if (_speed_changed.load())
+        //{
+        //    _audio_speex->setSpeed(_speed.load());
+        //    _speed_changed.store(false);
+        //}
 
         if (XPLAYER_SPEED_NORMAL == _speed_mode.load())
         {
-            _audio_renderer->renderer(data, len);
+            _audio_renderer->renderer(frm.data[0], frm.linesize[0]);
             continue;
         }
 
-        _audio_speex->send(data, len);
-        audioMultiSpeedRenderer(buff, len);
+        //_audio_speex->send(data, len);
+        audioMultiSpeedRenderer(buff, frm.linesize[0]);
+        av_frame_unref(&frm);
     }
 
     _audio_renderer->mute(true);
@@ -821,24 +652,6 @@ void CXPlayerSource::videoPlayThr()
             _wnd_changed.store(false);
         }
 
-        if (!initRescaler(frm.format, frm.width, frm.height))
-        {
-            av_frame_unref(&frm);
-            _state.store(XPLAYER_STATE_ERROR);
-            break;
-        }
-
-        uint8_t * data[AV_NUM_DATA_POINTERS]{};
-        int linesize[AV_NUM_DATA_POINTERS]{};
-
-        if (!_video_rescaler->rescale(&frm, data, linesize))
-        {
-            _err = _video_rescaler->err();
-            av_frame_unref(&frm);
-            _state.store(XPLAYER_STATE_ERROR);
-            break;
-        }
-
         int64_t delay_ms = 0;
         if (-1 != _audio_stream_index.load() && _audio_clock.load() > 0)
         {
@@ -859,7 +672,7 @@ void CXPlayerSource::videoPlayThr()
             std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
 
         auto str = formatDetailString();
-        _video_renderer->renderer(frm.width, frm.height, _pixel_format.load(), data, linesize, str);
+        _video_renderer->renderer(frm.width, frm.height, stream->getPixelFormat(), frm.data, frm.linesize, str);
         _cur_frames++;
         flag = false;
         av_frame_unref(&frm);
@@ -876,21 +689,21 @@ void CXPlayerSource::audioMultiSpeedRenderer(std::vector<std::uint8_t> & buff, i
     if (XPLAYER_SPEED_NORMAL == _speed_mode.load())
         return;
 
-    if (over)
-        _audio_speex->flush();
+    //if (over)
+    //    _audio_speex->flush();
 
-    std::vector<uint8_t> cache(bytes);
-    int len = _audio_speex->recv(cache.data(), bytes);
-    while (len > 0)
-    {
-        buff.insert(buff.end(), cache.begin(), cache.begin() + len);
-        if (buff.size() >= bytes)
-        {
-            _audio_renderer->renderer(buff.data(), bytes);
-            buff.erase(buff.begin(), buff.begin() + bytes);
-        }
-        len = _audio_speex->recv(cache.data(), bytes);
-    }
+    //std::vector<uint8_t> cache(bytes);
+    //int len = _audio_speex->recv(cache.data(), bytes);
+    //while (len > 0)
+    //{
+    //    buff.insert(buff.end(), cache.begin(), cache.begin() + len);
+    //    if (buff.size() >= bytes)
+    //    {
+    //        _audio_renderer->renderer(buff.data(), bytes);
+    //        buff.erase(buff.begin(), buff.begin() + bytes);
+    //    }
+    //    len = _audio_speex->recv(cache.data(), bytes);
+    //}
     
     if (over && !buff.empty())
     {
@@ -903,7 +716,7 @@ void CXPlayerSource::audioClear(int stream_index)
 {
     _audio_renderer->mute(true);
     _streams[stream_index]->clear();
-    _audio_speex->clear();
+    //_audio_speex->clear();
 }
 
 void CXPlayerSource::processSpeed(XPLAYER_SPEED_MODE mode)
@@ -943,8 +756,8 @@ bool CXPlayerSource::processAudioStream(int stream_index)
     }
 
     const auto * codecpar = stream->codecpar;
-    _audio_speex->clear();
-    _audio_speex->update(codecpar->channels, codecpar->sample_rate, codecpar->frame_size);
+    //_audio_speex->clear();
+    //_audio_speex->update(codecpar->channels, codecpar->sample_rate, codecpar->frame_size);
 
     return true;
 }
@@ -1036,5 +849,28 @@ std::string CXPlayerSource::formatDetailString()
     }
 
     return str;
+}
+
+int CXPlayerSource::getSampleFormat(XPLAYER_SAMPLE_FORMAT_TYPE type)
+{
+    if (XPLAYER_SAMPLE_FORMAT_S16 == type)
+        return AV_SAMPLE_FMT_S16;
+    if (XPLAYER_SAMPLE_FORMAT_S32 == type)
+        return AV_SAMPLE_FMT_S32;
+    if (XPLAYER_SAMPLE_FORMAT_F32 == type)
+        return AV_SAMPLE_FMT_FLT;
+    return AV_SAMPLE_FMT_NONE;
+}
+
+XPLAYER_SAMPLE_FORMAT_TYPE CXPlayerSource::getSampleFormat(int format)
+{
+    auto type = static_cast<AVSampleFormat>(format);
+    if (AV_SAMPLE_FMT_S16 == type || AV_SAMPLE_FMT_S16P == type)
+        return XPLAYER_SAMPLE_FORMAT_S16;
+    if (AV_SAMPLE_FMT_S32 == type || AV_SAMPLE_FMT_S32P == type)
+        return XPLAYER_SAMPLE_FORMAT_S32;
+    if (AV_SAMPLE_FMT_FLT == type || AV_SAMPLE_FMT_FLTP == type)
+        return XPLAYER_SAMPLE_FORMAT_F32;
+    return XPLAYER_SAMPLE_FORMAT_NONE;
 }
 

@@ -3,6 +3,12 @@
 #include <cstring>
 #include <cstdarg>
 #include <chrono>
+#include <fstream>
+#include <inttypes.h>
+
+extern "C" {
+#include "libavutil/pixfmt.h"
+}
 
 #define XPLAYER_BUFF_MAX_LEN 256
 
@@ -49,6 +55,49 @@ std::string xpu_format_string(std::string & msg, const char * fmt, ...)
     delete[] cache;
 
     return msg;
+}
+
+bool xpu_file2str(const std::string & path, std::vector<char> & buff, std::string & err)
+{
+    std::string str;
+
+    std::ifstream fd(path, std::ios::in | std::ios::binary);
+    if (!fd.is_open())
+    {
+        xpu_format_string(err, "%s", strerror(errno));
+        return false;
+    }
+
+    fd.seekg(0, std::ios::end);
+    const auto total_bytes = static_cast<size_t>(fd.tellg());
+    fd.seekg(0, std::ios::beg);
+
+    buff.resize(total_bytes);
+
+    size_t read_bytes = 0;
+    while (read_bytes < total_bytes)
+    {
+        fd.read(buff.data() + read_bytes, static_cast<std::streamsize>(total_bytes - read_bytes));
+        std::streamsize bytes = fd.gcount();
+
+        if (bytes == 0)
+        {
+            if (fd.eof())
+            {
+                xpu_format_string(err, "File truncated: expect %zu bytes, actual %zu bytes", total_bytes, read_bytes);
+                return false;
+            }
+            else if (fd.fail())
+            {
+                xpu_format_string(err, "I/O read error: %s", strerror(errno));
+                return false;
+            }
+        }
+
+        read_bytes += static_cast<size_t>(bytes);
+    }
+
+    return true;
 }
 
 void s162flt(const uint8_t * data, int len, float * flt)
@@ -108,3 +157,78 @@ int64_t xpu_time_ms()
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch());
     return g_time_base_ms + ms.count();
 }
+
+XPLAYER_PIXEL_FORMAT_TYPE xpu_f2x(int format)
+{
+    XPLAYER_PIXEL_FORMAT_TYPE type = XPLAYER_PIXEL_FORMAT_NONE;
+
+    switch (format)
+    {
+    case AV_PIX_FMT_YUV420P:
+        type = XPLAYER_PIXEL_FORMAT_YUV420P;
+        break;
+    case AV_PIX_FMT_YUYV422:
+        type = XPLAYER_PIXEL_FORMAT_YUY2;
+        break;
+    case AV_PIX_FMT_UYVY422:
+        type = XPLAYER_PIXEL_FORMAT_UYVY;
+        break;
+    case AV_PIX_FMT_YVYU422:
+        type = XPLAYER_PIXEL_FORMAT_YVYU;
+        break;
+    case AV_PIX_FMT_YUV420P10:
+        type = XPLAYER_PIXEL_FORMAT_YUV420P10;
+        break;
+    case AV_PIX_FMT_NV12:
+        type = XPLAYER_PIXEL_FORMAT_NV12;
+        break;
+    case AV_PIX_FMT_NV21:
+        type = XPLAYER_PIXEL_FORMAT_NV21;
+        break;
+    case AV_PIX_FMT_P010:
+        type = XPLAYER_PIXEL_FORMAT_P010;
+        break;
+    default:
+        break;
+    }
+
+    return type;
+}
+
+int xpu_x2f(XPLAYER_PIXEL_FORMAT_TYPE format)
+{
+    int type = AV_PIX_FMT_NONE;
+
+    switch (format)
+    {
+    case XPLAYER_PIXEL_FORMAT_YUV420P:
+        type = AV_PIX_FMT_YUV420P;
+        break;
+    case XPLAYER_PIXEL_FORMAT_YUY2:
+        type = AV_PIX_FMT_YUYV422;
+        break;
+    case XPLAYER_PIXEL_FORMAT_UYVY:
+        type = AV_PIX_FMT_UYVY422;
+        break;
+    case XPLAYER_PIXEL_FORMAT_YVYU:
+        type = AV_PIX_FMT_YVYU422;
+        break;
+    case XPLAYER_PIXEL_FORMAT_YUV420P10:
+        type = AV_PIX_FMT_YUV420P10;
+        break;
+    case XPLAYER_PIXEL_FORMAT_NV12:
+        type = AV_PIX_FMT_NV12;
+        break;
+    case XPLAYER_PIXEL_FORMAT_NV21:
+        type = AV_PIX_FMT_NV21;
+        break;
+    case XPLAYER_PIXEL_FORMAT_P010:
+        type = AV_PIX_FMT_P010;
+        break;
+    default:
+        break;
+    }
+
+    return type;
+}
+
