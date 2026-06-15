@@ -850,27 +850,3 @@ std::string CXPlayerSource::formatDetailString()
 
     return str;
 }
-
-int CXPlayerSource::getSampleFormat(XPLAYER_SAMPLE_FORMAT_TYPE type)
-{
-    if (XPLAYER_SAMPLE_FORMAT_S16 == type)
-        return AV_SAMPLE_FMT_S16;
-    if (XPLAYER_SAMPLE_FORMAT_S32 == type)
-        return AV_SAMPLE_FMT_S32;
-    if (XPLAYER_SAMPLE_FORMAT_F32 == type)
-        return AV_SAMPLE_FMT_FLT;
-    return AV_SAMPLE_FMT_NONE;
-}
-
-XPLAYER_SAMPLE_FORMAT_TYPE CXPlayerSource::getSampleFormat(int format)
-{
-    auto type = static_cast<AVSampleFormat>(format);
-    if (AV_SAMPLE_FMT_S16 == type || AV_SAMPLE_FMT_S16P == type)
-        return XPLAYER_SAMPLE_FORMAT_S16;
-    if (AV_SAMPLE_FMT_S32 == type || AV_SAMPLE_FMT_S32P == type)
-        return XPLAYER_SAMPLE_FORMAT_S32;
-    if (AV_SAMPLE_FMT_FLT == type || AV_SAMPLE_FMT_FLTP == type)
-        return XPLAYER_SAMPLE_FORMAT_F32;
-    return XPLAYER_SAMPLE_FORMAT_NONE;
-}
-

@@ -134,11 +134,6 @@ private:
     // 格式化详细信息
     std::string formatDetailString();
 
-    // 采样格式转换
-    int getSampleFormat(XPLAYER_SAMPLE_FORMAT_TYPE type);
-    //
-    XPLAYER_SAMPLE_FORMAT_TYPE getSampleFormat(int format);
-
 private:
     // 播放状态
     std::atomic<XPLAYER_STATE> _state = { XPLAYER_STATE_NONE };
