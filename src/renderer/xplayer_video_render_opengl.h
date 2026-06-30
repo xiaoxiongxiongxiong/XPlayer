@@ -16,6 +16,15 @@ typedef struct _xplayer_opengl_option_t
     std::function<void(const int &, const int &, const int &)> render;
 } xplayer_opengl_option_t;
 
+class CXPlayerOpenGLCache
+{
+public:
+    int _width = 0;
+    int _height = 0;
+    XPLAYER_PIXEL_FORMAT_TYPE _format = XPLAYER_PIXEL_FORMAT_NONE;
+    QByteArray _data[4];
+};
+
 class CXPlayerVideoRenderOpengl : public QOpenGLWidget, protected QOpenGLFunctions_3_0, public ICXPlayerVideoRenderer
 {
 	Q_OBJECT
@@ -64,9 +73,12 @@ private:
     GLuint compileShader(GLenum type, const std::string & path);
 
     bool initShader(const XPLAYER_PIXEL_FORMAT_TYPE & format);
+    void uninitShader();
+
     bool initShader(const std::string & path, GLuint vertex, GLuint & program, const bool & flag = true);
 
-    bool initTextures(const XPLAYER_PIXEL_FORMAT_TYPE & format);
+    bool initTextures(const XPLAYER_PIXEL_FORMAT_TYPE & format, const bool & flag = false);
+    void uninitTextures(const bool & flag = false);
 
     void initVertices();
     void uninitVertices();
@@ -101,7 +113,7 @@ private:
     std::unordered_map<XPLAYER_PIXEL_FORMAT_TYPE, xplayer_opengl_option_t> _opts;
 
     // 缓冲
-    QByteArray _cache[XPLAYER_OPENGL_FRAME_CACHE][4];
+    CXPlayerOpenGLCache _cache[XPLAYER_OPENGL_FRAME_CACHE];
     // 写索引
     std::atomic_int _write_index = { 0 };
     // 读索引
@@ -115,7 +127,7 @@ private:
     GLuint _texture_loc = 1;
 
     // 图像
-    GLuint _textures[3] = {};
+    std::vector<GLuint> _textures;
     GLuint _program = 0;
     GLuint _vao = 0;
     GLuint _vbo = 0;
