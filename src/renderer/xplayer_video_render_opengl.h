@@ -9,6 +9,13 @@
 
 #define XPLAYER_OPENGL_FRAME_CACHE 3
 
+typedef struct _xplayer_opengl_option_t
+{
+    int cnt;  // texture个数
+    std::function<bool(const int &, uint8_t * data[8], int linesize[8])> cache;
+    std::function<void(const int &, const int &, const int &)> render;
+} xplayer_opengl_option_t;
+
 class CXPlayerVideoRenderOpengl : public QOpenGLWidget, protected QOpenGLFunctions_3_0, public ICXPlayerVideoRenderer
 {
 	Q_OBJECT
@@ -51,28 +58,31 @@ protected:
     void resizeGL(int w, int h) override;
 
 private:
+    // 初始化缓存处理
+    void initOptions();
+
     GLuint compileShader(GLenum type, const std::string & path);
 
     bool initShader(const XPLAYER_PIXEL_FORMAT_TYPE & format);
-    bool initShaderYUV420P(GLuint vertex);
-    bool initShaderYUY2(GLuint vertex);
-    bool initShaderUYVY(GLuint vertex);
-    bool initShaderYVYU(GLuint vertex);
-    bool initShaderYUV420P10(GLuint vertex);
-    bool initShaderNV12(GLuint vertex);
-    bool initShaderNV21(GLuint vertex);
-    bool initShaderP010(GLuint vertex);
+    bool initShader(const std::string & path, GLuint vertex, GLuint & program, const bool & flag = true);
 
-    // 初始化字体shader
-    bool initFontShader(GLuint vertex);
-
-    bool initTextures();
+    bool initTextures(const XPLAYER_PIXEL_FORMAT_TYPE & format);
 
     void initVertices();
     void uninitVertices();
 
     void initFontVertices();
     void uninitFontVertices();
+
+    // 保存图像数据
+    bool cacheYUV420P(const int & index, uint8_t * data[8], int linesize[8]);
+    bool cacheYUY2(const int & index, uint8_t * data[8], int linesize[8]);
+    bool cacheUYVY(const int & index, uint8_t * data[8], int linesize[8]);
+    bool cacheYVYU(const int & index, uint8_t * data[8], int linesize[8]);
+    bool cacheYUV420P10(const int & index, uint8_t * data[8], int linesize[8]);
+    bool cacheNV12(const int & index, uint8_t * data[8], int linesize[8]);
+    bool cacheNV21(const int & index, uint8_t * data[8], int linesize[8]);
+    bool cacheP010(const int & index, uint8_t * data[8], int linesize[8]);
 
     // 渲染yuv420p
     void renderYUV420P(const int & w, const int & h, const int & index);
@@ -84,40 +94,40 @@ private:
     void renderNV21(const int & w, const int & h, const int & index);
     void renderP010(const int & w, const int & h, const int & index);
 
-    // 渲染
+    // 渲染字体
     bool rendererText(const std::string & str);
 
 private:
-    // 纹理器 0~2 yuv 3-text
-    GLuint m_uiTexures[4] = {};
-    // YUV
-    GLuint m_uiProgram = 0;
-    // 字体
-    GLuint m_uiFontProgram = 0;
-    // yuv Location
-    GLint m_iYUVLocation[3] = { 0 };
+    std::unordered_map<XPLAYER_PIXEL_FORMAT_TYPE, xplayer_opengl_option_t> _opts;
 
     // 缓冲
-    QByteArray m_ucCache[XPLAYER_OPENGL_FRAME_CACHE][4];
+    QByteArray _cache[XPLAYER_OPENGL_FRAME_CACHE][4];
     // 写索引
-    std::atomic_int m_iWriteIndex = { 0 };
+    std::atomic_int _write_index = { 0 };
     // 读索引
-    std::atomic_int m_iReadIndex = { 0 };
+    std::atomic_int _read_index = { 0 };
     // 写次数
-    std::atomic_int m_iWriteTimes = { 0 };
+    std::atomic_int _write_times = { 0 };
     // 读次数
-    std::atomic_int m_iReadTimes = { 0 };
+    std::atomic_int _read_times = { 0 };
 
-    GLuint m_uiVertexLocation = 0;
-    GLuint m_uiTextureLocation = 1;
+    GLuint _vertex_loc = 0;
+    GLuint _texture_loc = 1;
 
-    GLuint m_uiVAO = 0;
-    GLuint m_uiVBO = 0;
-    GLuint m_uiEBO = 0;
+    // 图像
+    GLuint _textures[3] = {};
+    GLuint _program = 0;
+    GLuint _vao = 0;
+    GLuint _vbo = 0;
+    GLuint _ebo = 0;
+    GLint _locs[3] = { -1 };
 
-    GLuint m_uiFontVAO = 0;
-    GLuint m_uiFontVBO = 0;
-    GLuint m_uiFontEBO = 0;
+    // 字体
+    GLuint _font_texture = 0;
+    GLuint _font_program = 0;
+    GLuint _font_vao = 0;
+    GLuint _font_vbo = 0;
+    GLuint _font_ebo = 0;
 
     // 错误信息
     std::string _err;
