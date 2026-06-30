@@ -9,15 +9,16 @@ uniform sampler2D xplayer_TextureUV;
 
 void main()
 {
-    float y = texture(xplayer_TextureY, xplayer_TexCoord0).r;
-    vec2 uv = texture(xplayer_TextureUV, xplayer_TexCoord0).rg;
-    float u = uv.r - 0.5;
-    float v = uv.g - 0.5;
+    float y = texture(xplayer_TextureY, xplayer_TexCoord0).r - 0.0625;
+    // 核心修改点：Y 坐标乘以 0.5 以匹配 UV 纹理的实际高度
+    vec2 uv = texture(xplayer_TextureUV, xplayer_TexCoord0).rg - vec2(0.5, 0.5);
     
-    xplayer_FragData = vec4(
-        y + 1.5748 * v,
-        y - 0.1873 * u - 0.4681 * v,
-        y + 1.8556 * u,
-        1.0
-    );
+    float u = uv.r;
+    float v = uv.g;
+	
+	float r = y + 1.402 * v;
+    float g = y - 0.344 * u - 0.714 * v;
+    float b = y + 1.772 * u;
+    
+    xplayer_FragData = vec4(clamp(r, 0.0, 1.0), clamp(g, 0.0, 1.0), clamp(b, 0.0, 1.0), 1.0);
 }

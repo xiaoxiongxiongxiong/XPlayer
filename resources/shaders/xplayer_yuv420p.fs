@@ -1,6 +1,6 @@
 #version 330 core
-in lowp vec2 xplayer_TexCoord0;
 
+in lowp vec2 xplayer_TexCoord0;
 out vec4 xplayer_FragData;
 
 uniform sampler2D xplayer_TextureY;
