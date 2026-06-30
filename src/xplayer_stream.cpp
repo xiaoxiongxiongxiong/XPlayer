@@ -11,8 +11,6 @@ extern "C" {
 #include "xplayer_audio_resampler.h"
 #include "xplayer_audio_speex.h"
 
-#include <qDebug>
-
 CXPlayerStream::CXPlayerStream(int index) :
     _index(index)
 {
@@ -257,10 +255,10 @@ void CXPlayerStream::destroyFilter()
 bool CXPlayerStream::createDecoder()
 {
     // 视频优先使用硬件解码
-    //if (AVMEDIA_TYPE_VIDEO == _codecpar->codec_type)
-    //    _decoder = CXPlayerDecoderFactory::create(XPLAYER_DECODER_HARDWARE, _codecpar);
-    //if (nullptr != _decoder)
-    //    return true;
+    if (AVMEDIA_TYPE_VIDEO == _codecpar->codec_type)
+        _decoder = CXPlayerDecoderFactory::create(XPLAYER_DECODER_HARDWARE, _codecpar);
+    if (nullptr != _decoder)
+        return true;
 
     _decoder = CXPlayerDecoderFactory::create(XPLAYER_DECODER_SOFTWARE, _codecpar);
     if (nullptr == _decoder)
@@ -487,15 +485,12 @@ bool CXPlayerStream::processVideoFrame(const AVFrame & src)
 
     uint8_t * data[AV_NUM_DATA_POINTERS]{};
     int linesize[AV_NUM_DATA_POINTERS]{};
-    auto begin_ts = xpu_time_ms();
     if (!_rescaler->rescale(&src, data, linesize))
     {
         _err = _rescaler->err();
         return false;
     }
-    auto end_ts = xpu_time_ms();
-    qDebug("rescale waste %ld ms", end_ts - begin_ts);
-    begin_ts = xpu_time_ms();
+
     AVFrame * frm = av_frame_alloc();
     if (nullptr == frm)
     {
@@ -527,8 +522,6 @@ bool CXPlayerStream::processVideoFrame(const AVFrame & src)
     }
 
     av_image_copy(frm->data, frm->linesize, data, linesize, static_cast<AVPixelFormat>(frm->format), src.width, src.height);
-    end_ts = xpu_time_ms();
-    qDebug("image copy waste %ld ms", end_ts - begin_ts);
     _frms.push(frm);
 
     return true;
