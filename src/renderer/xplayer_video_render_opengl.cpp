@@ -756,6 +756,30 @@ void CXPlayerVideoRenderOpengl::renderNV21(const int & w, const int & h, const i
 
 void CXPlayerVideoRenderOpengl::renderP010(const int & w, const int & h, const int & index)
 {
+    // 2. 绑定 VAO
+    glBindVertexArray(_vao);
+
+    // 更新 Y 纹理
+    glActiveTexture(GL_TEXTURE0); // 激活纹理单元 0
+    glBindTexture(GL_TEXTURE_2D, _textures[0]);
+    if (_changed.load())
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, w, h, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, _cache[index]._data[0].constData());
+    else
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, _cache[index]._data[0].constData());
+    // 将纹理单元 0 绑定到着色器中的 uniform sampler2D textureY
+    glUniform1i(_locs[0], 0);
+
+    // 更新 UV 纹理
+    glActiveTexture(GL_TEXTURE1); // 激活纹理单元 1
+    glBindTexture(GL_TEXTURE_2D, _textures[1]);
+    if (_changed.load())
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w / 2, h / 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, _cache[index]._data[1].constData());
+    else
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w / 2, h / 2, GL_RGBA, GL_UNSIGNED_BYTE, _cache[index]._data[1].constData());
+    glUniform1i(_locs[1], 1);
+
+    // 3. 绘制
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 bool CXPlayerVideoRenderOpengl::rendererText(const std::string & str)
