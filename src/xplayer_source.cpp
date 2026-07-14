@@ -137,7 +137,7 @@ void CXPlayerSource::getStreamsInfo(std::vector<int> & ais, std::vector<int> & v
     }
 }
 
-bool CXPlayerSource::play(const void * wnd, int width, int height)
+bool CXPlayerSource::play(const void * wnd, int width, int height, const std::string & audio_device)
 {
     if (nullptr == _ctx)
     {
@@ -145,7 +145,7 @@ bool CXPlayerSource::play(const void * wnd, int width, int height)
         return false;
     }
 
-    if (!initAudioRenderer())
+    if (!initAudioRenderer(audio_device))
         return false;
 
     if (!initVideoRenderer(wnd, width, height))
@@ -317,7 +317,7 @@ void CXPlayerSource::destroyStreams()
     _streams.clear();
 }
 
-bool CXPlayerSource::initAudioRenderer()
+bool CXPlayerSource::initAudioRenderer(const std::string & device)
 {
     if (nullptr != _audio_renderer)
         return true;
@@ -342,7 +342,7 @@ bool CXPlayerSource::initAudioRenderer()
         return false;
     }
 
-    if (!_audio_renderer->create(codecpar->sample_rate, codecpar->channels, codecpar->frame_size, _volume.load()))
+    if (!_audio_renderer->create(codecpar->sample_rate, codecpar->channels, codecpar->frame_size, _volume.load(), device))
     {
         _err = _audio_renderer->err();
         return false;

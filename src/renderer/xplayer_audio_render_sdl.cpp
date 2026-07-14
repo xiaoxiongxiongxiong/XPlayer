@@ -6,14 +6,25 @@
 
 #include "utils/xplayer_utils.h"
 
-bool CXPlayerAudioRender::create(int sample_rate, int channels, int frame_size, int vol)
+void CXPlayerAudioRender::devicesList(std::vector<std::string> & devices)
+{
+    auto cnt = SDL_GetNumAudioDevices(0);
+    for (int i = 0; i < cnt; i++)
+    {
+        const char * name = SDL_GetAudioDeviceName(i, 0);
+        devices.push_back(name);
+    }
+}
+
+bool CXPlayerAudioRender::create(int sample_rate, int channels, int frame_size, int vol, const std::string & device)
 {
     SDL_AudioSpec spec = {};
     spec.freq = sample_rate;
     spec.format = AUDIO_S16SYS;
     spec.channels = channels;
     spec.samples = frame_size;
-    _dev_id = SDL_OpenAudioDevice(nullptr, 0, &spec, nullptr, 0);
+    const char * tmp = device.empty() ? nullptr : device.c_str();
+    _dev_id = SDL_OpenAudioDevice(tmp, 0, &spec, nullptr, 0);
     if (0 == _dev_id)
     {
         xpu_format_string(_err, "Failed to open audio: %s", SDL_GetError());

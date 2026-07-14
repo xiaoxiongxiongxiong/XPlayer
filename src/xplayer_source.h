@@ -53,7 +53,7 @@ public:
     void getStreamsInfo(std::vector<int> & ais, std::vector<int> & vis);
 
     // 播放
-    bool play(const void * wnd, int width, int height);
+    bool play(const void * wnd, int width, int height, const std::string & audio_device = "");
 
     // 调整窗口大小
     void resize(int width, int height);
@@ -98,7 +98,7 @@ private:
     void destroyStreams();
 
     // 初始化渲染器
-    bool initAudioRenderer();
+    bool initAudioRenderer(const std::string & device);
     // 销毁渲染器
     void uninitAudioRenderer();
 

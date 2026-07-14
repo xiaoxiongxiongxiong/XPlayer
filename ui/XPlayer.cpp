@@ -98,6 +98,12 @@ XPlayer::~XPlayer()
         m_grpAudioTracks = nullptr;
     }
 
+    if (nullptr != m_grpAudioDevices)
+    {
+        delete m_grpAudioDevices;
+        m_grpAudioDevices = nullptr;
+    }
+
     if (nullptr != m_pVolumeWidget)
     {
         delete m_pVolumeWidget;
@@ -556,28 +562,66 @@ void XPlayer::initMenuBar()
     open_menu->addAction(ui.m_actLive);
 
     auto * video_menu = ui.m_widgetMenu->addMenu(QStringLiteral("视频"));
+    auto * audio_menu = ui.m_widgetMenu->addMenu(QStringLiteral("音频"));
+
+    // 视频解码器
+    m_grpVideoDecoders = new QActionGroup(this);
+    m_grpVideoDecoders->setExclusive(true);
+
+    auto * video_decoders = video_menu->addMenu(QStringLiteral("解码器"));
+    auto * decoder = video_decoders->addAction(QStringLiteral("Hardware"));
+    decoder->setCheckable(true);
+    decoder->setChecked(true);
+    m_grpVideoDecoders->addAction(decoder);
+
+    decoder = video_decoders->addAction(QStringLiteral("Software"));
+    decoder->setCheckable(true);
+    m_grpVideoDecoders->addAction(decoder);
 
     // 视频渲染器
-    m_pmnuVideoRenderers = video_menu->addMenu(QStringLiteral("渲染器"));
     m_grpVideoRenderers = new QActionGroup(this);
-    auto * act = m_pmnuVideoRenderers->addAction(QStringLiteral("SDL2"));
+    m_grpVideoRenderers->setExclusive(true);
+    connect(m_grpVideoRenderers, &QActionGroup::triggered, this, &XPlayer::onVideoRendererTriggered);
+
+    auto * renderers_mnu = video_menu->addMenu(QStringLiteral("渲染器"));
+    auto * act = renderers_mnu->addAction(QStringLiteral("SDL2"));
     act->setCheckable(true);
     act->setChecked(true);
     act->setData(QVariant::fromValue((int)XPLAYER_VIDEO_RENDERER_SDL2));
     m_grpVideoRenderers->addAction(act);
-    act = m_pmnuVideoRenderers->addAction(QStringLiteral("OpenGL"));
+
+    act = renderers_mnu->addAction(QStringLiteral("OpenGL"));
     act->setCheckable(true);
     act->setChecked(false);
     act->setData(QVariant::fromValue((int)XPLAYER_VIDEO_RENDERER_OPENGL));
     m_grpVideoRenderers->addAction(act);
-    m_grpVideoRenderers->setExclusive(true);
-    connect(m_grpVideoRenderers, &QActionGroup::triggered, this, &XPlayer::onVideoRendererTriggered);
+
+    // 音频设备
+    auto * audio_devices = audio_menu->addMenu(QStringLiteral("设备"));
+    std::vector<std::string> devices;
+    CXPlayerAudioRender::devicesList(devices);
+
+    m_grpAudioDevices = new QActionGroup(this);
+    m_grpAudioDevices->setExclusive(true);
+
+    act = audio_devices->addAction(QStringLiteral("默认"));
+    act->setCheckable(true);
+    act->setChecked(true);
+    m_grpAudioDevices->addAction(act);
+
+    for (const auto & dn : devices)
+    {
+        act = audio_devices->addAction(QString::fromStdString(dn));
+        act->setCheckable(true);
+        act->setChecked(false);
+        m_grpAudioDevices->addAction(act);
+    }
 
     // 视频轨道
     m_pmnuVideoTracks = video_menu->addMenu(QStringLiteral("轨道"));
     m_pmnuVideoTracks->addAction(ui.m_actDisableVideo);
 
-    m_pmnuAudioTracks = ui.m_widgetMenu->addMenu(QStringLiteral("音频"));
+    m_pmnuAudioTracks = audio_menu->addMenu(QStringLiteral("轨道"));
     m_pmnuAudioTracks->addAction(ui.m_actDisableAudio);
 
     m_grpVideoTracks = new QActionGroup(this);
@@ -719,7 +763,17 @@ void XPlayer::play(const std::string & url)
     ui.m_wndScreen->show();
     int width = 0, height = 0;
     getDisplaySize(width, height);
-    if (!CXPlayerSource::uniqueInstance().play(ui.m_wndScreen, width, height))
+
+    QString device;
+    auto * act = m_grpAudioDevices->checkedAction();
+    if (nullptr != act)
+    {
+        device = act->text();
+        if (QStringLiteral("默认") == device)
+            device.clear();
+    }
+
+    if (!CXPlayerSource::uniqueInstance().play(ui.m_wndScreen, width, height, device.toStdString()))
     {
         auto * err = CXPlayerSource::uniqueInstance().err();
         QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("%1！").arg(err));

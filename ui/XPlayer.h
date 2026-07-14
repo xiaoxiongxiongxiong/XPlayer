@@ -86,13 +86,14 @@ private:
     QRect m_recStart;
     bool m_blPressed = false;
 
-    QMenu * m_pmnuVideoRenderers = nullptr;
     QMenu * m_pmnuVideoTracks = nullptr;
     QMenu * m_pmnuAudioTracks = nullptr;
 
+    QActionGroup * m_grpVideoDecoders = nullptr;
     QActionGroup * m_grpVideoRenderers = nullptr;
     QActionGroup * m_grpVideoTracks = nullptr;
     QActionGroup * m_grpAudioTracks = nullptr;
+    QActionGroup * m_grpAudioDevices = nullptr;
 
     CRecordWidget * m_pVodWidget = nullptr;
     CRecordWidget * m_pLiveWidget = nullptr;

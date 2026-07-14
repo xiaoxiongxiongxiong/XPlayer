@@ -4,6 +4,7 @@
 #include <cstdbool>
 #include <cstdint>
 #include <atomic>
+#include <vector>
 #include <string>
 
 class CXPlayerAudioRender
@@ -12,8 +13,11 @@ public:
     CXPlayerAudioRender() = default;
     ~CXPlayerAudioRender() = default;
 
+    // 设备列表
+    static void devicesList(std::vector<std::string> & devices);
+
     // 创建
-    bool create(int sample_rate, int channels, int frame_size, int vol);
+    bool create(int sample_rate, int channels, int frame_size, int vol, const std::string & device = "");
     // 销毁
     void destroy();
 
