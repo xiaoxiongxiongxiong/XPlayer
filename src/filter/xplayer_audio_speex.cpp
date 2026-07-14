@@ -4,9 +4,12 @@
 #include "soundtouch/SoundTouch.h"
 #include "xplayer_utils.h"
 
+CXPlayerAudioSpeex::CXPlayerAudioSpeex() = default;
+CXPlayerAudioSpeex::~CXPlayerAudioSpeex() = default;
+
 bool CXPlayerAudioSpeex::create(int channels, int sample_rate, int samples)
 {
-    _ctx = std::make_shared<soundtouch::SoundTouch>();
+    _ctx = std::make_unique<soundtouch::SoundTouch>();
     if (nullptr == _ctx)
     {
         xpu_format_string(_err, "Create SoundTouch instance failed");

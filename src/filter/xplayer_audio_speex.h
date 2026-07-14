@@ -13,8 +13,8 @@ namespace soundtouch
 class CXPlayerAudioSpeex
 {
 public:
-	CXPlayerAudioSpeex() = default;
-	~CXPlayerAudioSpeex() = default;
+	CXPlayerAudioSpeex();
+	~CXPlayerAudioSpeex();
 
 	// 创建
 	bool create(int channels, int sample_rate, int samples);
@@ -43,7 +43,7 @@ public:
 
 private:
     // 实例
-	std::shared_ptr<soundtouch::SoundTouch> _ctx = nullptr;
+	std::unique_ptr<soundtouch::SoundTouch> _ctx = nullptr;
 
 	// 声道数
 	int _channels = 0;
