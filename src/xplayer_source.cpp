@@ -451,21 +451,20 @@ void CXPlayerSource::readPacketsThr()
         while (_is_running.load() && !_is_skip.load() && stream->isFull())
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
+        bool succ = false;
         if (_audio_stream_index.load() == pkt.stream_index)
         {
-            stream->send(pkt);
+            succ = stream->send(pkt);
             _audio_cond.notify_one();
         }
         else if (_video_stream_index.load() == pkt.stream_index)
         {
-            stream->send(pkt);
+            succ = stream->send(pkt);
             _video_cond.notify_one();
         }
-        else
-        {
+
+        if (!succ)
             av_packet_unref(&pkt);
-            continue;
-        }
     }
 }
 
@@ -493,19 +492,17 @@ void CXPlayerSource::audioPlayThr()
         {
             if (!mute_flag)
             {
-                audioClear(stream_index);
+                _audio_renderer->mute(true);
+                _streams[stream_index]->clear();
                 _audio_clock.store(-1LL);
+                stream_index = _audio_stream_index.load();
                 mute_flag = true;
             }
             continue;
         }
 
-        if (stream_index != _audio_stream_index.load())
-        {
-            processAudioStream(stream_index);
-        }
+        changeStream(stream_index, _audio_stream_index.load());
 
-        stream_index = _audio_stream_index.load();
         const auto & stream = _streams[stream_index];
 
         if (_is_skip.load())
@@ -513,11 +510,18 @@ void CXPlayerSource::audioPlayThr()
             if (!_audio_skip_over)
             {
                 _cur_pos_ms.store(-1LL);
-                audioClear(stream_index);
+                _audio_renderer->mute(true);
+                _streams[stream_index]->clear();
                 mute_flag = true;
                 _audio_skip_over.store(true);
             }
             continue;
+        }
+
+        if (_speed_changed.load())
+        {
+            stream->setSpeed(_speed.load());
+            _speed_changed.store(false);
         }
 
         AVFrame frm{};
@@ -532,7 +536,6 @@ void CXPlayerSource::audioPlayThr()
 
         if (over)
         {
-            audioMultiSpeedRenderer(buff, 4096, true);
             _audio_play_over.store(over);
             if (_audio_play_over && _video_play_over)
             {
@@ -559,20 +562,7 @@ void CXPlayerSource::audioPlayThr()
             mute_flag = false;
         }
 
-        //if (_speed_changed.load())
-        //{
-        //    _audio_speex->setSpeed(_speed.load());
-        //    _speed_changed.store(false);
-        //}
-
-        if (XPLAYER_SPEED_NORMAL == _speed_mode.load())
-        {
-            _audio_renderer->renderer(frm.data[0], frm.linesize[0]);
-            continue;
-        }
-
-        //_audio_speex->send(data, len);
-        audioMultiSpeedRenderer(buff, frm.linesize[0]);
+        _audio_renderer->renderer(frm.data[0], frm.linesize[0]);
         av_frame_unref(&frm);
     }
 
@@ -599,12 +589,14 @@ void CXPlayerSource::videoPlayThr()
             {
                 _streams[stream_index]->clear();
                 _video_renderer->clear();
+                stream_index = _video_stream_index.load();
                 flag = true;
             }
             continue;
         }
 
-        stream_index = _video_stream_index.load();
+        changeStream(stream_index, _video_stream_index.load());
+
         const auto & stream = _streams[stream_index];
 
         if (_is_skip.load())
@@ -684,39 +676,22 @@ void CXPlayerSource::videoPlayThr()
     _last_frames.store(0);
 }
 
-void CXPlayerSource::audioMultiSpeedRenderer(std::vector<std::uint8_t> & buff, int bytes, const bool & over)
+void CXPlayerSource::changeStream(int & src, const int & dst)
 {
-    if (XPLAYER_SPEED_NORMAL == _speed_mode.load())
+    if (src == dst)
         return;
 
-    //if (over)
-    //    _audio_speex->flush();
-
-    //std::vector<uint8_t> cache(bytes);
-    //int len = _audio_speex->recv(cache.data(), bytes);
-    //while (len > 0)
-    //{
-    //    buff.insert(buff.end(), cache.begin(), cache.begin() + len);
-    //    if (buff.size() >= bytes)
-    //    {
-    //        _audio_renderer->renderer(buff.data(), bytes);
-    //        buff.erase(buff.begin(), buff.begin() + bytes);
-    //    }
-    //    len = _audio_speex->recv(cache.data(), bytes);
-    //}
-    
-    if (over && !buff.empty())
+    if (src > -1)
     {
-        _audio_renderer->renderer(buff.data(), buff.size());
-        buff.clear();
+        _streams[src]->clear();
     }
-}
 
-void CXPlayerSource::audioClear(int stream_index)
-{
-    _audio_renderer->mute(true);
-    _streams[stream_index]->clear();
-    //_audio_speex->clear();
+    if (dst > -1)
+    {
+        _streams[dst]->setSpeed(_speed.load());
+    }
+
+    src = dst;
 }
 
 void CXPlayerSource::processSpeed(XPLAYER_SPEED_MODE mode)
@@ -742,24 +717,6 @@ void CXPlayerSource::processSpeed(XPLAYER_SPEED_MODE mode)
         _speed.store(1.0);
         break;
     }
-}
-
-bool CXPlayerSource::processAudioStream(int stream_index)
-{
-    _streams[stream_index]->clear();
-
-    const auto * stream = _ctx->getStreamInfo(_audio_stream_index.load());
-    if (nullptr == stream)
-    {
-        xpu_format_string(_err, "Find audio stream by index '%d' failed", _audio_stream_index.load());
-        return false;
-    }
-
-    const auto * codecpar = stream->codecpar;
-    //_audio_speex->clear();
-    //_audio_speex->update(codecpar->channels, codecpar->sample_rate, codecpar->frame_size);
-
-    return true;
 }
 
 double CXPlayerSource::calcFrameRate()

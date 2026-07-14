@@ -32,6 +32,9 @@ public:
     // 销毁
     void uninit();
 
+    // 设置倍速
+    void setSpeed(double speed);
+
     // 发包
     bool send(AVPacket & pkt, const bool & over = false);
     // 收帧
@@ -92,6 +95,9 @@ private:
     // 处理音频帧
     bool processAudioFrame(const AVFrame & src);
 
+    // 构造音频帧
+    AVFrame * makeAudioFrame(const AVFrame & src, const uint8_t * data, int len);
+
     // 重置
     void reset();
 
@@ -131,6 +137,10 @@ private:
 
     // 音频倍速过滤器
     std::unique_ptr<CXPlayerAudioSpeex> _speex = nullptr;
+    // 当前倍速
+    std::atomic<double> _speed = { 1.0 };
+    // 缓冲
+    std::vector<uint8_t> _cache;
 
     // 队列长度上限
     int _max_pkts = 0;

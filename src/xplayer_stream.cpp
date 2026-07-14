@@ -81,6 +81,16 @@ void CXPlayerStream::uninit()
     avcodec_parameters_free(&_codecpar);
     destroyDecoder();
     destroyFilter();
+    uninitAudioSpeex();
+    uninitResampler();
+    uninitRescaler();
+}
+
+void CXPlayerStream::setSpeed(double speed)
+{
+    if (_speex)
+        _speex->setSpeed(speed);
+    _speed.store(speed);
 }
 
 bool CXPlayerStream::send(AVPacket & pkt, const bool & over)
@@ -375,6 +385,11 @@ void CXPlayerStream::uninitResampler()
 
 bool CXPlayerStream::initAudioSpeex(int channels, int sample_rate, int frame_size)
 {
+    if (_speex)
+    {
+        return true;
+    }
+
     _speex = std::make_unique<CXPlayerAudioSpeex>();
     if (nullptr == _speex)
     {
@@ -390,7 +405,7 @@ bool CXPlayerStream::initAudioSpeex(int channels, int sample_rate, int frame_siz
         return false;
     }
 
-    //_speex->setSpeed(_speed.load());
+    _speex->setSpeed(_speed.load());
 
     return true;
 }
@@ -540,6 +555,50 @@ bool CXPlayerStream::processAudioFrame(const AVFrame & src)
         return false;
     }
 
+    if (1.0 == _speed.load())
+    {
+        auto * frm = makeAudioFrame(src, data, len);
+        if (nullptr == frm)
+            return false;
+
+        _frms.push(frm);
+        return true;
+    }
+
+    if (!initAudioSpeex(2, src.sample_rate, _codecpar->frame_size))
+        return false;
+
+    if (!_speex->send(data, len))
+    {
+        _err = _speex->err();
+        return false;
+    }
+
+    int bytes = 0;
+    do 
+    {
+        std::vector<uint8_t> cache(len);
+        bytes = _speex->recv(cache.data(), len);
+        if (bytes <= 0)
+            continue;
+
+        _cache.insert(_cache.end(), cache.begin(), cache.begin() + bytes);
+        if (_cache.size() < len)
+            continue;
+
+        auto * frm = makeAudioFrame(src, _cache.data(), len);
+        if (nullptr == frm)
+            return false;
+
+        _frms.push(frm);
+        _cache.erase(_cache.begin(), _cache.begin() + len);
+    } while (bytes > 0);
+
+    return true;
+}
+
+AVFrame * CXPlayerStream::makeAudioFrame(const AVFrame & src, const uint8_t * data, int len)
+{
     AVFrame * frm = av_frame_alloc();
     if (nullptr == frm)
     {
@@ -576,9 +635,7 @@ bool CXPlayerStream::processAudioFrame(const AVFrame & src)
     memcpy(frm->data[0], data, len);
     frm->linesize[0] = len;
 
-    _frms.push(frm);
-
-    return true;
+    return frm;
 }
 
 void CXPlayerStream::reset()
@@ -599,4 +656,6 @@ void CXPlayerStream::reset()
     _frms.clear();
     _pkt_dts = AV_NOPTS_VALUE;
     _decoder->clear();
+    if (_speex)
+        _speex->clear();
 }

@@ -116,17 +116,11 @@ private:
     // 视频播放线程
     void videoPlayThr();
 
-    // 音频多倍速渲染
-    void audioMultiSpeedRenderer(std::vector<std::uint8_t> & buff, int bytes, const bool & over = false);
-
-    // 音频清理
-    void audioClear(int stream_index);
+    // 切换流
+    void changeStream(int & src, const int & dst);
 
     // 处理倍速
     void processSpeed(XPLAYER_SPEED_MODE mode);
-
-    // 处理音频流切换
-    bool processAudioStream(int stream_index);
 
     // 计算实时帧率
     double calcFrameRate();
