@@ -2,6 +2,7 @@
 
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QListWidget>
+#include <QMenu>
 #include "ui_XPlayer.h"
 
 class QMenuBar;
@@ -36,6 +37,7 @@ private slots:
     void onBtnClickedVolume();
     void onBtnClickedVod();
     void onBtnClickedLive();
+    void onBtnClickedCamera();
     void onBtnClickedCtrl();
     void onBtnClickedStop();
     void onBtnClickedBackward();
@@ -57,6 +59,15 @@ private:
 
     // 初始化菜单栏
     void initMenuBar();
+
+    // 初始化菜单栏媒体部分
+    void initMediaMenuBar();
+    // 初始化菜单栏视频部分
+    void initVideoMenuBar();
+    // 初始化菜单栏音频部分
+    void initAudioMenuBar();
+    // 初始化菜单栏设置部分
+    void initSettingMenuBar();
 
     // 更新鼠标形状
     void updateCursorShape(const QPoint & pt);
@@ -86,11 +97,13 @@ private:
     QRect m_recStart;
     bool m_blPressed = false;
 
+    // 视频
     QMenu * m_pmnuVideoTracks = nullptr;
-    QMenu * m_pmnuAudioTracks = nullptr;
-
     QActionGroup * m_grpVideoDecoders = nullptr;
     QActionGroup * m_grpVideoRenderers = nullptr;
+
+    // 音频
+    QMenu * m_pmnuAudioTracks = nullptr;
     QActionGroup * m_grpVideoTracks = nullptr;
     QActionGroup * m_grpAudioTracks = nullptr;
     QActionGroup * m_grpAudioDevices = nullptr;

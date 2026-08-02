@@ -428,6 +428,11 @@ void XPlayer::onBtnClickedCtrl()
     }
 }
 
+void XPlayer::onBtnClickedCamera()
+{
+    QMessageBox::information(this, QStringLiteral("提示"), QStringLiteral("暂未实现！"));
+}
+
 void XPlayer::onBtnClickedStop()
 {
     cleanup();
@@ -546,35 +551,48 @@ void XPlayer::moveCenter()
 
 void XPlayer::initMenuBar()
 {
-    ui.m_actDisableAudio->setCheckable(true);
-    ui.m_actDisableVideo->setCheckable(true);
-    ui.m_actDisableAudio->setData(QVariant::fromValue(-1));
-    ui.m_actDisableVideo->setData(QVariant::fromValue(-1));
+    initMediaMenuBar();
+    initVideoMenuBar();
+    initAudioMenuBar();
+    initSettingMenuBar();
 
-    ui.m_actVod->setIcon(QIcon(":/XPlayer/res/vod.ico"));
-    ui.m_actLive->setIcon(QIcon(":/XPlayer/res/live.ico"));
+    connect(ui.m_widgetMenu, &CMenuWidget::minimizeClicked, this, &XPlayer::onBtnClickedMinimize);
+    connect(ui.m_widgetMenu, &CMenuWidget::maximizeClicked, this, &XPlayer::onBtnClickedMaximize);
+    connect(ui.m_widgetMenu, &CMenuWidget::closeClicked, this, &XPlayer::onBtnClickedClose);
+}
 
-    ui.m_actVod->setShortcut(QKeySequence::Open);
-    ui.m_actLive->setShortcut(QKeySequence::Underline);
+void XPlayer::initMediaMenuBar()
+{
+    auto * mnu = ui.m_widgetMenu->addMenu(QStringLiteral("媒体"));
+    auto * act = mnu->addAction(QStringLiteral("文件"));
+    act->setIcon(QIcon(":/XPlayer/res/vod.ico"));
+    act->setShortcut(QKeySequence::Open);
+    connect(act, &QAction::triggered, this, &XPlayer::onBtnClickedVod);
 
-    auto * open_menu = ui.m_widgetMenu->addMenu(QStringLiteral("媒体"));
-    open_menu->addAction(ui.m_actVod);
-    open_menu->addAction(ui.m_actLive);
+    act = mnu->addAction(QStringLiteral("链接"));
+    act->setIcon(QIcon(":/XPlayer/res/live.ico"));
+    act->setShortcut(QKeySequence::Underline);
+    connect(act, &QAction::triggered, this, &XPlayer::onBtnClickedLive);
 
-    auto * video_menu = ui.m_widgetMenu->addMenu(QStringLiteral("视频"));
-    auto * audio_menu = ui.m_widgetMenu->addMenu(QStringLiteral("音频"));
+    act = mnu->addAction(QStringLiteral("摄像头"));
+    connect(act, &QAction::triggered, this, &XPlayer::onBtnClickedCamera);
+}
+
+void XPlayer::initVideoMenuBar()
+{
+    auto * mnu = ui.m_widgetMenu->addMenu(QStringLiteral("视频"));
 
     // 视频解码器
     m_grpVideoDecoders = new QActionGroup(this);
     m_grpVideoDecoders->setExclusive(true);
 
-    auto * video_decoders = video_menu->addMenu(QStringLiteral("解码器"));
-    auto * decoder = video_decoders->addAction(QStringLiteral("Hardware"));
+    auto * decoders = mnu->addMenu(QStringLiteral("解码器"));
+    auto * decoder = decoders->addAction(QStringLiteral("Hardware"));
     decoder->setCheckable(true);
     decoder->setChecked(true);
     m_grpVideoDecoders->addAction(decoder);
 
-    decoder = video_decoders->addAction(QStringLiteral("Software"));
+    decoder = decoders->addAction(QStringLiteral("Software"));
     decoder->setCheckable(true);
     m_grpVideoDecoders->addAction(decoder);
 
@@ -583,63 +601,78 @@ void XPlayer::initMenuBar()
     m_grpVideoRenderers->setExclusive(true);
     connect(m_grpVideoRenderers, &QActionGroup::triggered, this, &XPlayer::onVideoRendererTriggered);
 
-    auto * renderers_mnu = video_menu->addMenu(QStringLiteral("渲染器"));
-    auto * act = renderers_mnu->addAction(QStringLiteral("SDL2"));
-    act->setCheckable(true);
-    act->setChecked(true);
-    act->setData(QVariant::fromValue((int)XPLAYER_VIDEO_RENDERER_SDL2));
-    m_grpVideoRenderers->addAction(act);
+    auto * renderers = mnu->addMenu(QStringLiteral("渲染器"));
+    auto * renderer = renderers->addAction(QStringLiteral("SDL2"));
+    renderer->setCheckable(true);
+    renderer->setChecked(true);
+    renderer->setData(QVariant::fromValue((int)XPLAYER_VIDEO_RENDERER_SDL2));
+    m_grpVideoRenderers->addAction(renderer);
 
-    act = renderers_mnu->addAction(QStringLiteral("OpenGL"));
-    act->setCheckable(true);
-    act->setChecked(false);
-    act->setData(QVariant::fromValue((int)XPLAYER_VIDEO_RENDERER_OPENGL));
-    m_grpVideoRenderers->addAction(act);
+    renderer = renderers->addAction(QStringLiteral("OpenGL"));
+    renderer->setCheckable(true);
+    renderer->setChecked(false);
+    renderer->setData(QVariant::fromValue((int)XPLAYER_VIDEO_RENDERER_OPENGL));
+    m_grpVideoRenderers->addAction(renderer);
+
+    // 视频轨道
+    m_grpVideoTracks = new QActionGroup(this);
+    m_grpVideoTracks->setExclusive(true);
+    connect(m_grpVideoTracks, &QActionGroup::triggered, this, &XPlayer::onVideoTracksTriggered);
+
+    m_pmnuVideoTracks = mnu->addMenu(QStringLiteral("轨道"));
+    auto * track = m_pmnuVideoTracks->addAction(QStringLiteral("禁用"));
+    track->setCheckable(true);
+    track->setChecked(true);
+    track->setData(QVariant::fromValue(-1));
+    m_grpVideoTracks->addAction(track);
+}
+
+void XPlayer::initAudioMenuBar()
+{
+    auto * mnu = ui.m_widgetMenu->addMenu(QStringLiteral("音频"));
 
     // 音频设备
-    auto * audio_devices = audio_menu->addMenu(QStringLiteral("设备"));
-    std::vector<std::string> devices;
-    CXPlayerAudioRender::devicesList(devices);
-
     m_grpAudioDevices = new QActionGroup(this);
     m_grpAudioDevices->setExclusive(true);
 
-    act = audio_devices->addAction(QStringLiteral("默认"));
-    act->setCheckable(true);
-    act->setChecked(true);
-    m_grpAudioDevices->addAction(act);
+    auto * devices = mnu->addMenu(QStringLiteral("设备"));
+    auto * device = devices->addAction(QStringLiteral("默认"));
+    device->setCheckable(true);
+    device->setChecked(true);
+    m_grpAudioDevices->addAction(device);
 
-    for (const auto & dn : devices)
+    std::vector<std::string> lst;
+    CXPlayerAudioRender::devicesList(lst);
+    for (const auto & tmp : lst)
     {
-        act = audio_devices->addAction(QString::fromStdString(dn));
-        act->setCheckable(true);
-        act->setChecked(false);
-        m_grpAudioDevices->addAction(act);
+        device = devices->addAction(QString::fromStdString(tmp));
+        device->setCheckable(true);
+        device->setChecked(false);
+        m_grpAudioDevices->addAction(device);
     }
 
-    // 视频轨道
-    m_pmnuVideoTracks = video_menu->addMenu(QStringLiteral("轨道"));
-    m_pmnuVideoTracks->addAction(ui.m_actDisableVideo);
-
-    m_pmnuAudioTracks = audio_menu->addMenu(QStringLiteral("轨道"));
-    m_pmnuAudioTracks->addAction(ui.m_actDisableAudio);
-
-    m_grpVideoTracks = new QActionGroup(this);
-    m_grpVideoTracks->setExclusive(true);
-    m_grpVideoTracks->addAction(ui.m_actDisableVideo);
-    connect(m_grpVideoTracks, &QActionGroup::triggered, this, &XPlayer::onVideoTracksTriggered);
-
+    // 音频轨道
     m_grpAudioTracks = new QActionGroup(this);
     m_grpAudioTracks->setExclusive(true);
-    m_grpAudioTracks->addAction(ui.m_actDisableAudio);
     connect(m_grpAudioTracks, &QActionGroup::triggered, this, &XPlayer::onAudioTracksTriggered);
 
-    connect(ui.m_actVod, &QAction::triggered, this, &XPlayer::onBtnClickedVod);
-    connect(ui.m_actLive, &QAction::triggered, this, &XPlayer::onBtnClickedLive);
+    m_pmnuAudioTracks = mnu->addMenu(QStringLiteral("轨道"));
+    auto * track = m_pmnuAudioTracks->addAction(QStringLiteral("禁用"));
+    track->setCheckable(true);
+    track->setChecked(true);
+    track->setData(QVariant::fromValue(-1));
+    m_grpAudioTracks->addAction(track);
+}
 
-    connect(ui.m_widgetMenu, &CMenuWidget::minimizeClicked, this, &XPlayer::onBtnClickedMinimize);
-    connect(ui.m_widgetMenu, &CMenuWidget::maximizeClicked, this, &XPlayer::onBtnClickedMaximize);
-    connect(ui.m_widgetMenu, &CMenuWidget::closeClicked, this, &XPlayer::onBtnClickedClose);
+void XPlayer::initSettingMenuBar()
+{
+    auto * mnu = ui.m_widgetMenu->addMenu(QStringLiteral("设置"));
+
+    // 字体
+    auto * font = mnu->addMenu(QStringLiteral("字体"));
+    font->addAction(QStringLiteral("路径"));
+    font->addAction(QStringLiteral("大小"));
+    font->addAction(QStringLiteral("颜色"));
 }
 
 void XPlayer::updateCursorShape(const QPoint & pt)
@@ -804,7 +837,7 @@ void XPlayer::cleanup()
     auto actions = m_grpVideoTracks->actions();
     for (auto & action : actions)
     {
-        if (ui.m_actDisableVideo->objectName() == action->objectName())
+        if (-1 == action->data().toInt())
             continue;
         m_grpVideoTracks->removeAction(action);
     }
@@ -812,7 +845,7 @@ void XPlayer::cleanup()
     actions = m_grpAudioTracks->actions();
     for (auto & action : actions)
     {
-        if (ui.m_actDisableAudio->objectName() == action->objectName())
+        if (-1 == action->data().toInt())
             continue;
         m_grpAudioTracks->removeAction(action);
     }
@@ -820,7 +853,7 @@ void XPlayer::cleanup()
     actions = m_pmnuAudioTracks->actions();
     for (auto & action : actions)
     {
-        if (ui.m_actDisableAudio->objectName() == action->objectName())
+        if (-1 == action->data().toInt())
             continue;
 
         m_pmnuAudioTracks->removeAction(action);
@@ -831,7 +864,7 @@ void XPlayer::cleanup()
     actions = m_pmnuVideoTracks->actions();
     for (auto & action : actions)
     {
-        if (ui.m_actDisableVideo->objectName() == action->objectName())
+        if (-1 == action->data().toInt())
             continue;
 
         m_pmnuVideoTracks->removeAction(action);
