@@ -566,7 +566,8 @@ void CXPlayerSource::audioPlayThr()
         av_frame_unref(&frm);
     }
 
-    _audio_renderer->mute(true);
+    if (_audio_renderer)
+        _audio_renderer->mute(true);
 }
 
 void CXPlayerSource::videoPlayThr()
@@ -670,7 +671,8 @@ void CXPlayerSource::videoPlayThr()
         av_frame_unref(&frm);
     }
 
-    _video_renderer->clear();
+    if (_video_renderer)
+        _video_renderer->clear();
     _last_ts = 0;
     _cur_frames.store(0);
     _last_frames.store(0);
