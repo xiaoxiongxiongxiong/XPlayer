@@ -85,6 +85,7 @@ target_link_libraries(${PROJECT_NAME}
         avutil
         avformat
         avcodec
+        avfilter
         swresample
         swscale
         SDL2
