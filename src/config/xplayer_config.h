@@ -3,6 +3,47 @@
 
 #include <cstdbool>
 #include <string>
+#include "nlohmann/json.hpp"
+
+struct xplayer_color_t
+{
+    int red;
+    int green;
+    int blue;
+    xplayer_color_t() = default;
+    explicit xplayer_color_t(const char * str);
+};
+
+inline void to_json(nlohmann::ordered_json & body, const xplayer_color_t & c)
+{
+    body = std::to_string(c.red) + "," + std::to_string(c.green) + "," + std::to_string(c.blue);
+}
+
+inline void from_json(const nlohmann::ordered_json & body, xplayer_color_t & c)
+{
+    auto str = body.get<std::string>();
+    c = xplayer_color_t(str.c_str());
+}
+
+struct xplayer_record_flag_t {};
+struct xplayer_common_speed_t {};
+struct xplayer_common_detail_t{};
+struct xplayer_common_cache_t {};
+
+struct xplayer_audio_volume_t {};
+struct xplayer_audio_device_t {};
+
+struct xplayer_video_renderer_t {};
+struct xplayer_video_decoder_t {};
+
+struct xplayer_font_size_t {};
+struct xplayer_font_path_t {};
+struct xplayer_font_color_t {};
+
+template <typename Tag>
+struct xplayer_config_trait_t;
+
+#include "xplayer_config.inl"
 
 class CXPlayerConfig final
 {
@@ -20,47 +61,32 @@ public:
     }
 
     // 加载配置文件
-    bool loadConfig(const std::string & path);
+    bool load(const std::string & path);
     // 卸载配置文件
-    void unloadConfig();
+    void unload();
 
-    // 设置音量
-    void setVolume(int vol);
-    // 获取音量
-    int getVolume();
+    // 获取值
+    template <typename Tag>
+    typename xplayer_config_trait_t<Tag>::type get() const;
 
-    // 设置播放记录显示标记
-    void setRecordVisible(bool flag);
-    // 获取播放记录显示标记
-    bool getRecordVisible();
-
-    // 设置字体文件路径
-    void setFontPath(const std::string & path);
-    // 获取字体文件路径
-    const std::string & getFontPath();
-
-    // 设置字体大小
-    void setFontSize(int size);
-    // 获取字体大小
-    int getFontSize();
+    // 设置值
+    template <typename Tag>
+    void set(typename xplayer_config_trait_t<Tag>::type val);
 
     // 错误信息
     const char * err() const;
 
 private:
+    template <typename Tag>
+    void apply_default(); // 只有声明，没有实现
+
+    void init_defaults(); // 普通成员函数，只有声明
+
+private:
     CXPlayerConfig() = default;
     ~CXPlayerConfig() = default;
 
-    // 音量
-    int _vol = 64;
-
-    // 播放记录标记
-    bool _record_flag = false;
-
-    // 字体文件路径
-    std::string _font_path;
-    // 字体大小
-    int _font_size = 24;
+    nlohmann::ordered_json _ctx;
 
     // 配置文件路径
     std::string _path;

@@ -1,141 +1,184 @@
 #include "xplayer_config.h"
 #include <type_traits>
-#include "jansson.h"
+#include <fstream>
+#include <iostream>
+#include <sstream>
+
 #include "xplayer_utils.h"
 
-template <typename T> 
-static bool xplayer_parse_object(json_t * jso, const char * key, T & t, std::string & err)
+xplayer_color_t::xplayer_color_t(const char * str)
 {
-    json_t * obj = json_object_get(jso, key);
-    if (nullptr == obj)
+    char comma;
+    std::istringstream iss(str);
+    if (!(iss >> red >> comma >> green >> comma >> blue))
     {
-        xpu_format_string(err, "Lack key word '%s'", key);
-        return false;
+        red = 255;
+        green = 0;
+        blue = 0;
     }
-
-    if constexpr (std::is_same_v<T, std::string>)
-    {
-        auto * val = json_string_value(obj);
-        t = val ? val : std::string{};
-    }
-    else if constexpr (std::is_integral_v<T>)
-    {
-        auto val = json_integer_value(obj);
-        t = static_cast<T>(val);
-    }
-
-    return true;
 }
 
-template <typename T>
-static bool xplayer_object_set(json_t * jso, const char * key, const T & t, std::string & err)
+bool CXPlayerConfig::load(const std::string & path)
 {
-    json_t * obj = nullptr;
-    if constexpr (std::is_same_v<T, std::string>)
-    {
-        obj = json_string(t.c_str());
-    }
-    else if constexpr (std::is_integral_v<T>)
-    {
-        obj = json_integer(static_cast<json_int_t>(t));
-    }
+    if (!_path.empty())
+        return true;
 
-    if (nullptr == obj)
-    {
-        xpu_format_string(err, "build object for '%s' failed", key);
-        return false;
-    }
-
-    json_object_set_new(jso, key, obj);
-
-    return true;
-}
-
-bool CXPlayerConfig::loadConfig(const std::string & path)
-{
-    json_error_t jso_err = {};
     _path = path;
-    json_t * jso_root = json_load_file(path.c_str(), 0, &jso_err);
-    if (nullptr == jso_root)
+
+    std::ifstream fp(path, std::ios::in | std::ios::binary);
+    if (fp.is_open())
     {
-        xpu_format_string(_err, "json_loads %s failed, pos: %d, source: %s",
-                          path.c_str(), jso_err.position, jso_err.source);
+        try
+        {
+            fp >> _ctx;
+        }
+        catch (...)
+        {
+            xpu_format_string(_err, "Parse error");
+            _ctx = nlohmann::ordered_json::object();
+            init_defaults();
+            return false;
+        }
+    }
+    else
+    {
+        xpu_format_string(_err, "File not found, using defaults");
+        _ctx = nlohmann::ordered_json::object();
+        init_defaults();
         return false;
     }
-
-    xplayer_parse_object(jso_root, "volume", _vol, _err);
-    xplayer_parse_object(jso_root, "record_flag", _record_flag, _err);
-    xplayer_parse_object(jso_root, "font_path", _font_path, _err);
-    xplayer_parse_object(jso_root, "font_size", _font_size, _err);
-
-    json_decref(jso_root);
 
     return true;
 }
 
-void CXPlayerConfig::unloadConfig()
+void CXPlayerConfig::unload()
 {
     if (_path.empty())
         return;
 
-    auto * jso_root = json_object();
-    if (nullptr == jso_root)
+    //init_defaults();
+
+    try
     {
-        xpu_format_string(_err, "json_object failed");
-        return;
+        std::ofstream fp(_path, std::ios::out | std::ios::binary);
+        fp << _ctx.dump(4, ' ', false, nlohmann::ordered_json::error_handler_t::replace);
+    }
+    catch (const std::exception & e)
+    {
+        xpu_format_string(_err, "%s", e.what());
+    }
+}
+
+template <typename Tag>
+typename xplayer_config_trait_t<Tag>::type CXPlayerConfig::get() const
+{
+    using Type = typename xplayer_config_trait_t<Tag>::type;
+    auto ptr = nlohmann::ordered_json::json_pointer(xplayer_config_trait_t<Tag>::path);
+
+    if constexpr (std::is_same_v<typename xplayer_config_trait_t<Tag>::type, xplayer_font_color_t>)
+    {
+        std::string str = _ctx.at(ptr).get<std::string>();
+        return xplayer_color_t(str.c_str());
     }
 
-    xplayer_object_set(jso_root, "volume", _vol, _err);
-    xplayer_object_set(jso_root, "record_flag", _record_flag, _err);
-    xplayer_object_set(jso_root, "font_path", _font_path, _err);
-    xplayer_object_set(jso_root, "font_size", _font_size, _err);
-
-    json_dump_file(jso_root, _path.c_str(), JSON_INDENT(4) | JSON_ENSURE_ASCII);
-    json_decref(jso_root);
+    if (!_ctx.contains(ptr))
+        return Type(xplayer_config_trait_t<Tag>::val);
+    return _ctx.at(ptr).get<Type>();
 }
 
-void CXPlayerConfig::setVolume(int vol)
+template <typename Tag>
+void CXPlayerConfig::set(typename xplayer_config_trait_t<Tag>::type val)
 {
-    _vol = vol;
+    auto ptr = nlohmann::ordered_json::json_pointer(xplayer_config_trait_t<Tag>::path);
+
+    if constexpr (std::is_same_v<typename xplayer_config_trait_t<Tag>::type, xplayer_font_color_t>)
+    {
+        std::string str = std::to_string(val.red) + "," +
+            std::to_string(val.green) + "," +
+            std::to_string(val.blue);
+        _ctx[ptr] = str;
+    }
+    else
+        _ctx[ptr] = val;
 }
 
-int CXPlayerConfig::getVolume()
-{
-    return _vol;
-}
-
-void CXPlayerConfig::setRecordVisible(bool flag)
-{
-    _record_flag = flag;
-}
-
-bool CXPlayerConfig::getRecordVisible()
-{
-    return _record_flag;
-}
-
-void CXPlayerConfig::setFontPath(const std::string & path)
-{
-    _font_path = path;
-}
-
-const std::string & CXPlayerConfig::getFontPath()
-{
-    return _font_path;
-}
-
-void CXPlayerConfig::setFontSize(int size)
-{
-    _font_size = size;
-}
-
-int CXPlayerConfig::getFontSize()
-{
-    return _font_size;
-}
 
 const char * CXPlayerConfig::err() const
 {
     return _err.c_str();
 }
+
+template <typename Tag>
+void CXPlayerConfig::apply_default()
+{
+    auto ptr = nlohmann::ordered_json::json_pointer(xplayer_config_trait_t<Tag>::path);
+    if (_ctx.contains(ptr))
+        return;
+
+    using Type = typename xplayer_config_trait_t<Tag>::type;
+    if constexpr (std::is_same_v<Type, xplayer_font_color_t>)
+        _ctx[ptr] = Type(xplayer_config_trait_t<Tag>::val);
+    else
+        _ctx[ptr] = xplayer_config_trait_t<Tag>::val;
+}
+
+void CXPlayerConfig::init_defaults()
+{
+    apply_default<xplayer_record_flag_t>();
+    apply_default<xplayer_common_speed_t>();
+    apply_default<xplayer_common_detail_t>();
+    apply_default<xplayer_common_cache_t>();
+    apply_default<xplayer_audio_volume_t>();
+    apply_default<xplayer_audio_device_t>();
+    apply_default<xplayer_video_renderer_t>();
+    apply_default<xplayer_video_decoder_t>();
+    apply_default<xplayer_font_size_t>();
+    apply_default<xplayer_font_path_t>();
+    apply_default<xplayer_font_color_t>();
+}
+
+template bool CXPlayerConfig::get<xplayer_record_flag_t>() const;
+template void CXPlayerConfig::set<xplayer_record_flag_t>(bool);
+
+template float CXPlayerConfig::get<xplayer_common_speed_t>() const;
+template void CXPlayerConfig::set<xplayer_common_speed_t>(float);
+
+template bool CXPlayerConfig::get<xplayer_common_detail_t>() const;
+template void CXPlayerConfig::set<xplayer_common_detail_t>(bool);
+
+template int CXPlayerConfig::get<xplayer_common_cache_t>() const;
+template void CXPlayerConfig::set<xplayer_common_cache_t>(int);
+
+template int CXPlayerConfig::get<xplayer_audio_volume_t>() const;
+template void CXPlayerConfig::set<xplayer_audio_volume_t>(int);
+
+template std::string CXPlayerConfig::get<xplayer_audio_device_t>() const;
+template void CXPlayerConfig::set<xplayer_audio_device_t>(std::string);
+
+template std::string CXPlayerConfig::get<xplayer_video_renderer_t>() const;
+template void CXPlayerConfig::set<xplayer_video_renderer_t>(std::string);
+
+template std::string CXPlayerConfig::get<xplayer_video_decoder_t>() const;
+template void CXPlayerConfig::set<xplayer_video_decoder_t>(std::string);
+
+template int CXPlayerConfig::get<xplayer_font_size_t>() const;
+template void CXPlayerConfig::set<xplayer_font_size_t>(int);
+
+template std::string CXPlayerConfig::get<xplayer_font_path_t>() const;
+template void CXPlayerConfig::set<xplayer_font_path_t>(std::string);
+
+template xplayer_color_t CXPlayerConfig::get<xplayer_font_color_t>() const;
+template void CXPlayerConfig::set<xplayer_font_color_t>(xplayer_color_t);
+
+template void CXPlayerConfig::apply_default<xplayer_record_flag_t>();
+template void CXPlayerConfig::apply_default<xplayer_common_speed_t>();
+template void CXPlayerConfig::apply_default<xplayer_common_detail_t>();
+template void CXPlayerConfig::apply_default<xplayer_common_cache_t>();
+template void CXPlayerConfig::apply_default<xplayer_audio_volume_t>();
+template void CXPlayerConfig::apply_default<xplayer_audio_device_t>();
+template void CXPlayerConfig::apply_default<xplayer_video_renderer_t>();
+template void CXPlayerConfig::apply_default<xplayer_video_decoder_t>();
+template void CXPlayerConfig::apply_default<xplayer_font_size_t>();
+template void CXPlayerConfig::apply_default<xplayer_font_path_t>();
+template void CXPlayerConfig::apply_default<xplayer_font_color_t>();
 

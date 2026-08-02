@@ -474,9 +474,9 @@ void XPlayer::onBtnClickedNext()
 
 void XPlayer::onBtnClickedRecord()
 {
-    auto flag = CXPlayerConfig::uniqueInstance().getRecordVisible();
+    auto flag = CXPlayerConfig::uniqueInstance().get<xplayer_record_flag_t>();
     ui.m_tabRecord->setVisible(!flag);
-    CXPlayerConfig::uniqueInstance().setRecordVisible(!flag);
+    CXPlayerConfig::uniqueInstance().set<xplayer_record_flag_t>(!flag);
 
     ui.horizontalLayout->activate();
 
@@ -507,7 +507,7 @@ void XPlayer::onVolumeChanged(int vol)
     else
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
     CXPlayerSource::uniqueInstance().setVolume(vol);
-    CXPlayerConfig::uniqueInstance().setVolume(vol);
+    CXPlayerConfig::uniqueInstance().set<xplayer_audio_volume_t>(vol);
 }
 
 void XPlayer::onLstDbclickedRecord(QListWidgetItem * item)
@@ -880,30 +880,31 @@ bool XPlayer::loadConfig()
     const auto strVodPath = path + "/config/vod.json";
     const auto strLivePath = path + "/config/live.json";
 
-    CXPlayerConfig::uniqueInstance().loadConfig(strConfigPath.toLocal8Bit().toStdString());
-    auto strFontPath = QString::fromStdString(CXPlayerConfig::uniqueInstance().getFontPath());
+    CXPlayerConfig::uniqueInstance().load(strConfigPath.toLocal8Bit().toStdString());
+    auto strFontPath = QString::fromStdString(CXPlayerConfig::uniqueInstance().get<xplayer_font_path_t>());
     if (strFontPath.isEmpty())
     {
         strFontPath = path + QStringLiteral("/fonts/微软雅黑.ttc");
-        CXPlayerConfig::uniqueInstance().setFontPath(strFontPath.toUtf8().toStdString());
+        CXPlayerConfig::uniqueInstance().set<xplayer_font_path_t>(strFontPath.toUtf8().toStdString());
     }
 
     m_pVodWidget->loadRecord(strVodPath);
     m_pLiveWidget->loadRecord(strLivePath);
 
     CXPlayerSource::uniqueInstance().setFontPath(strFontPath.toUtf8().toStdString());
-    CXPlayerSource::uniqueInstance().setFontSize(CXPlayerConfig::uniqueInstance().getFontSize());
+    CXPlayerSource::uniqueInstance().setFontSize(CXPlayerConfig::uniqueInstance().get<xplayer_font_size_t>());
 
-    m_pVolumeWidget->setVolume(CXPlayerConfig::uniqueInstance().getVolume());
-    CXPlayerSource::uniqueInstance().setVolume(CXPlayerConfig::uniqueInstance().getVolume());
-    ui.m_tabRecord->setVisible(CXPlayerConfig::uniqueInstance().getRecordVisible());
+    const auto vol = CXPlayerConfig::uniqueInstance().get<xplayer_audio_volume_t>();
+    m_pVolumeWidget->setVolume(vol);
+    CXPlayerSource::uniqueInstance().setVolume(vol);
+    ui.m_tabRecord->setVisible(CXPlayerConfig::uniqueInstance().get<xplayer_record_flag_t>());
 
     return true;
 }
 
 void XPlayer::unloadConfig()
 {
-    CXPlayerConfig::uniqueInstance().unloadConfig();
+    CXPlayerConfig::uniqueInstance().unload();
 
     if (nullptr != m_pVodWidget)
     {
