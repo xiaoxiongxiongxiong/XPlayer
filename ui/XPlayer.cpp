@@ -14,12 +14,11 @@
 
 #include "MenuWidget.h"
 #include "RecordWidget.h"
-#include "VolumeWidget.h"
+#include "SliderWidget.h"
 #include "LinkWidget.h"
 #include "utils/xplayer_utils.h"
 #include "config/xplayer_config.h"
 #include "renderer/xplayer_audio_render_sdl.h"
-#include "renderer/xplayer_video_render_sdl.h"
 #include "xplayer_source.h"
 
 XPlayer::XPlayer(QWidget * parent)
@@ -62,7 +61,7 @@ XPlayer::XPlayer(QWidget * parent)
     ui.m_tabRecord->setMouseTracking(true);
 
     // 创建音量滑块（初始隐藏）
-    m_pVolumeWidget = new CVolumeWidget(this);
+    m_pVolumeWidget = new CSliderWidget(this);
     m_pVolumeWidget->hide();
 
     ui.m_btnVolume->installEventFilter(this);
@@ -72,7 +71,7 @@ XPlayer::XPlayer(QWidget * parent)
     m_tmVolume->setSingleShot(true);
     m_tmVolume->setInterval(200);
     connect(m_tmVolume, &QTimer::timeout, this, &XPlayer::onVolumeButtonEnter);
-    connect(m_pVolumeWidget, &CVolumeWidget::volumeChanged, this, &XPlayer::onVolumeChanged);
+    connect(m_pVolumeWidget, &CSliderWidget::valueChanged, this, &XPlayer::onVolumeChanged);
 
     loadConfig();
     m_uiSpeed = XPLAYER_SPEED_NORMAL;
@@ -269,7 +268,7 @@ bool XPlayer::eventFilter(QObject * obj, QEvent * event)
         else if (QEvent::Leave == event->type())
         {
             m_tmVolume->stop();
-            m_pVolumeWidget->hideVolume();
+            m_pVolumeWidget->hideSlider();
             return true;
         }
         else if (QEvent::Wheel == event->type())
@@ -278,10 +277,10 @@ bool XPlayer::eventFilter(QObject * obj, QEvent * event)
             //if (!m_isMuted) {
             int delta = wheel->angleDelta().y();
             int step = (delta > 0) ? 1 : -1;
-            int current = m_pVolumeWidget->getVolume();
+            int current = m_pVolumeWidget->getValue();
             int vol = qBound(0, current + step, 128);
 
-            m_pVolumeWidget->setVolume(vol);
+            m_pVolumeWidget->setValue(vol);
             onVolumeChanged(vol);
             //}
             return true;
@@ -355,16 +354,16 @@ void XPlayer::onBtnClickedClose()
 
 void XPlayer::onBtnClickedVolume()
 {
-    auto val = m_pVolumeWidget->getVolume();
+    auto val = m_pVolumeWidget->getValue();
     if (val > 0)
     {
-        m_pVolumeWidget->setVolume(0);
+        m_pVolumeWidget->setValue(0);
         CXPlayerSource::uniqueInstance().setVolume(0);
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/silence.ico"));
     }
     else
     {
-        m_pVolumeWidget->setVolume(50);
+        m_pVolumeWidget->setValue(50);
         CXPlayerSource::uniqueInstance().setVolume(64);
         ui.m_btnVolume->setIcon(QIcon(":/XPlayer/res/voice.ico"));
     }
@@ -496,7 +495,7 @@ void XPlayer::onVolumeButtonEnter()
         QPoint tlr = ui.m_btnVolume->mapToGlobal(rect.topLeft());
         int height = m_pVolumeWidget->height();
         QPoint pos(tlr.x(), tlr.y() - height);
-        m_pVolumeWidget->showVolume(pos);
+        m_pVolumeWidget->showSlider(pos);
     }
 }
 
@@ -895,7 +894,7 @@ bool XPlayer::loadConfig()
     CXPlayerSource::uniqueInstance().setFontSize(CXPlayerConfig::uniqueInstance().get<xplayer_font_size_t>());
 
     const auto vol = CXPlayerConfig::uniqueInstance().get<xplayer_audio_volume_t>();
-    m_pVolumeWidget->setVolume(vol);
+    m_pVolumeWidget->setValue(vol);
     CXPlayerSource::uniqueInstance().setVolume(vol);
     ui.m_tabRecord->setVisible(CXPlayerConfig::uniqueInstance().get<xplayer_record_flag_t>());
 

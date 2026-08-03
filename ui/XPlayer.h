@@ -6,7 +6,7 @@
 #include "ui_XPlayer.h"
 
 class QMenuBar;
-class CVolumeWidget;
+class CSliderWidget;
 class CRecordWidget;
 
 class XPlayer : public QMainWindow
@@ -88,7 +88,7 @@ private:
 private:
     Ui::XPlayerClass ui;
 
-    CVolumeWidget * m_pVolumeWidget = nullptr;
+    CSliderWidget * m_pVolumeWidget = nullptr;
     QTimer * m_tmVolume = nullptr;
 
     // 边界

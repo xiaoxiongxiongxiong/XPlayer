@@ -3,24 +3,24 @@
 #include <QWidget>
 #include <QTimer>
 #include <QPaintEvent>
-#include "ui_VolumeWidget.h"
+#include "ui_SliderWidget.h"
 
-class CVolumeWidget : public QWidget
+class CSliderWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    CVolumeWidget(QWidget *parent = nullptr);
-    ~CVolumeWidget();
+    CSliderWidget(QWidget *parent = nullptr);
+    ~CSliderWidget();
 
-    int getVolume() const;
-    void setVolume(int vol);
+    int getValue() const;
+    void setValue(int vol);
 
-    void showVolume(const QPoint & pos);
-    void hideVolume();
+    void showSlider(const QPoint & pos);
+    void hideSlider();
 
 signals:
-    void volumeChanged(int volume);
+    void valueChanged(int volume);
 
 private slots:
     void onSliderValueChanged(int value);
@@ -36,8 +36,8 @@ protected:
     void leaveEvent(QEvent * event) override;
 
 private:
-    Ui::CVolumeWidgetClass ui;
+    Ui::CSliderWidgetClass ui;
 
-    QTimer * m_tmVolume = nullptr;
+    QTimer * m_ptrTimer = nullptr;
 };
 

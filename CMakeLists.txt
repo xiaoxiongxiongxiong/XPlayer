@@ -38,6 +38,10 @@ file(GLOB XPLAYER_SRC_FILES
 file(GLOB XPLAYER_UI_FILES
     "ui/*.cpp"
     "ui/*.ui"
+    "ui/widgets/*.cpp"
+    "ui/widgets/*.ui"
+    "ui/font/*.cpp"
+    "ui/font/*.ui"
 )
 
 if(QT_VERSION VERSION_LESS 6.0)
@@ -60,6 +64,8 @@ set_target_properties(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
     PRIVATE
     dep/include
+    ui/widgets
+    ui/font
     src/config
     src/decoder
     src/demuxer

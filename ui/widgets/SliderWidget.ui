@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>CVolumeWidgetClass</class>
- <widget class="QWidget" name="CVolumeWidgetClass">
+ <class>CSliderWidgetClass</class>
+ <widget class="QWidget" name="CSliderWidgetClass">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -23,7 +23,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>CVolumeWidget</string>
+   <string>CSliderWidget</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <property name="leftMargin">
@@ -39,9 +39,9 @@
     <number>2</number>
    </property>
    <item row="1" column="0">
-    <layout class="QVBoxLayout" name="m_layoutVolume">
+    <layout class="QVBoxLayout" name="m_layoutSlider">
      <item>
-      <widget class="QSlider" name="m_sldVolume">
+      <widget class="QSlider" name="m_sldSlider">
        <property name="styleSheet">
         <string notr="true">QSlider::groove:vertical { 
     border: 1px solid gray;
