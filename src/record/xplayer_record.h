@@ -7,19 +7,16 @@
 
 #include "xplayer_definitions.h"
 
-class CXPlayerRecordInfo
+struct xplayer_record_info_t
 {
-public:
-	CXPlayerRecordInfo() = default;
+	std::string name;
+	std::string path;
+};
 
-	// 文件路径
-	std::string _path;
-
-	// 文件名
-	std::string _name;
-
-	// 类型
-	XPLAYER_RECORD_MODE _mode = XPLAYER_RECORD_NONE;
+struct xplayer_record_config_t
+{
+	XPLAYER_RECORD_MODE mode;
+    std::vector<xplayer_record_info_t> ris;
 };
 
 class CXPlayerRecord
@@ -29,19 +26,21 @@ public:
 	~CXPlayerRecord() = default;
 
 	// 加载播放记录文件
-	bool loadRecordFile(const std::string & path);
+	bool load(const std::string & path);
 	// 卸载播放记录文件
-	void unloadRecordFile();
+	void unload();
 
-	// 获取播放列表
-	bool getRecordList(std::vector<CXPlayerRecordInfo> & pl);
 	// 添加播放记录
-	bool addRecord(const CXPlayerRecordInfo & pri);
+	bool addRecord(const xplayer_record_info_t & ri);
 	// 删除播放记录
-	bool delRecord(const CXPlayerRecordInfo & pri);
+	bool delRecord(const xplayer_record_info_t & ri);
 	// 修改播放记录
-	bool updateRecord(const CXPlayerRecordInfo & pri);
+	bool updateRecord(const xplayer_record_info_t & ri);
+    // 获取播放列表
+    bool getRecord(std::vector<xplayer_record_info_t> & ris);
 
+	// 设置类型
+	bool setMode(XPLAYER_RECORD_MODE mode);
 	// 获取类型
 	XPLAYER_RECORD_MODE getMode() const;
 
@@ -49,15 +48,12 @@ public:
 	const char * err()const;
 
 private:
-	// 记录类型
-	XPLAYER_RECORD_MODE _mode = XPLAYER_RECORD_NONE;
 	// 文件路径
 	std::string _path;
 	// 错误信息
 	std::string _err;
 
-	//
-	std::vector<CXPlayerRecordInfo> _lst;
+	xplayer_record_config_t _ctx{};
 };
 
 #endif

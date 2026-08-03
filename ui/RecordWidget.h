@@ -47,7 +47,7 @@ private:
     Ui::CRecordWidgetClass ui;
 
     // 记录实例
-    CXPlayerRecord * m_ptrContext = nullptr;
+    std::unique_ptr<CXPlayerRecord> m_ptrContext = nullptr;
 
     // 记录类型
     int m_iRecordMode = -1;

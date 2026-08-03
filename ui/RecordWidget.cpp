@@ -40,27 +40,27 @@ bool CRecordWidget::loadRecord(const QString & path)
         return false;
     }
 
-    m_ptrContext = new(std::nothrow) CXPlayerRecord();
+    m_ptrContext = std::make_unique<CXPlayerRecord>();
     if (nullptr == m_ptrContext)
     {
         QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("加载点播记录失败！"));
         return false;
     }
 
-    if (!m_ptrContext->loadRecordFile(path.toLocal8Bit().toStdString()))
+    if (!m_ptrContext->load(path.toLocal8Bit().toStdString()))
     {
         QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("加载点播记录失败！"));
-        delete m_ptrContext;
+        m_ptrContext.reset();
         m_ptrContext = nullptr;
         return true;
     }
 
-    std::vector<CXPlayerRecordInfo> elems;
-    m_ptrContext->getRecordList(elems);
+    std::vector<xplayer_record_info_t> elems;
+    m_ptrContext->getRecord(elems);
     for (const auto & elem : elems)
     {
-        auto * item = new QListWidgetItem(QString::fromStdString(elem._name));
-        item->setData(Qt::UserRole + 1, QVariant::fromValue(QString::fromStdString(elem._path)));
+        auto * item = new QListWidgetItem(QString::fromStdString(elem.name));
+        item->setData(Qt::UserRole + 1, QVariant::fromValue(QString::fromStdString(elem.path)));
         ui.m_lstRecord->addItem(item);
     }
 
@@ -71,8 +71,9 @@ void CRecordWidget::unloadRecord()
 {
     if (nullptr != m_ptrContext)
     {
-        m_ptrContext->unloadRecordFile();
-        delete m_ptrContext;
+        m_ptrContext->setMode(static_cast<XPLAYER_RECORD_MODE>(m_iRecordMode));
+        m_ptrContext->unload();
+        m_ptrContext.reset();
         m_ptrContext = nullptr;
     }
 
@@ -112,10 +113,9 @@ bool CRecordWidget::addRecord(const QString & name, const QString & path)
         return false;
     }
 
-    CXPlayerRecordInfo pi;
-    pi._mode = static_cast<XPLAYER_RECORD_MODE>(m_iRecordMode);
-    pi._name = name.toStdString();
-    pi._path = path.toStdString();
+    xplayer_record_info_t pi{};
+    pi.name = name.toStdString();
+    pi.path = path.toStdString();
     if (!m_ptrContext->addRecord(pi))
     {
         return false;
@@ -201,10 +201,9 @@ void CRecordWidget::onBtnClickedDelete()
     std::vector<int> rows;
     for (const auto & item : items)
     {
-        CXPlayerRecordInfo ri;
-        ri._name = item->text().toStdString();
-        ri._path = item->data(Qt::UserRole + 1).toString().toStdString();
-        ri._mode = static_cast<XPLAYER_RECORD_MODE>(m_iRecordMode);
+        xplayer_record_info_t ri{};
+        ri.name = item->text().toStdString();
+        ri.path = item->data(Qt::UserRole + 1).toString().toStdString();
         m_ptrContext->delRecord(ri);
         rows.push_back(ui.m_lstRecord->row(item));
     }

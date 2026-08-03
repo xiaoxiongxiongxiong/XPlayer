@@ -96,7 +96,6 @@ target_link_libraries(${PROJECT_NAME}
         swscale
         SDL2
         SDL2_ttf
-        jansson
         SoundTouch
 )
 

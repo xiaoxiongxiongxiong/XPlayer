@@ -1,9 +1,49 @@
 #include "xplayer_record.h"
-#include "jansson.h"
 #include <filesystem>
+#include <fstream>
+#include <iostream>
+
+#include "nlohmann/json.hpp"
+
 #include "xplayer_utils.h"
 
-bool CXPlayerRecord::loadRecordFile(const std::string & path)
+static inline void from_json(const nlohmann::ordered_json & j, xplayer_record_info_t & p)
+{
+    j.at("name").get_to(p.name);
+    j.at("path").get_to(p.path);
+}
+
+static inline void to_json(nlohmann::ordered_json & j, const xplayer_record_info_t & p)
+{
+    j = nlohmann::ordered_json{ {"name", p.name}, {"path", p.path} };
+}
+
+static inline void from_json(const nlohmann::ordered_json & j, xplayer_record_config_t & c)
+{
+    std::string mode;
+    j.at("mode").get_to(mode);
+    if ("vod" == mode)
+        c.mode = XPLAYER_RECORD_VOD;
+    else if ("live" == mode)
+        c.mode = XPLAYER_RECORD_LIVE;
+    else
+        c.mode = XPLAYER_RECORD_NONE;
+    j.at("playlist").get_to(c.ris);
+}
+
+static inline void to_json(nlohmann::ordered_json & j, const xplayer_record_config_t & c)
+{
+    std::string mode;
+    if (XPLAYER_RECORD_VOD == c.mode)
+        mode = "vod";
+    else if (XPLAYER_RECORD_LIVE == c.mode)
+        mode = "live";
+    else
+        mode = "none";
+    j = nlohmann::ordered_json{ {"mode", mode}, {"playlist", c.ris} };
+}
+
+bool CXPlayerRecord::load(const std::string & path)
 {
     if (!std::filesystem::exists(path))
     {
@@ -20,121 +60,65 @@ bool CXPlayerRecord::loadRecordFile(const std::string & path)
         return true;
     }
 
-    json_error_t jso_err = {};
-    json_t * jso_root = json_load_file(path.c_str(), 0, &jso_err);
-    if (nullptr == jso_root)
+    std::ifstream ifs(path, std::ios::in | std::ios::binary);
+    if (!ifs.is_open())
     {
-        xpu_format_string(_err, "json_loads %s failed, pos: %d, source: %s",
-                          path.c_str(), jso_err.position, jso_err.source);
+        xpu_format_string(_err, "Open %s failed", path.c_str());
         return false;
     }
 
-    json_t * jso_mode = json_object_get(jso_root, "mode");
-    if (nullptr == jso_mode)
+    try
     {
-        xpu_format_string(_err, "Get key word 'mode' failed");
-        json_decref(jso_root);
+        nlohmann::ordered_json body = nlohmann::ordered_json::parse(ifs);
+        _ctx = body.get<xplayer_record_config_t>();
+    }
+    catch (const nlohmann::ordered_json::parse_error & e)
+    {
+        xpu_format_string(_err, "JSON ∏Ò Ω¥ÌŒÛ: %s", e.what());
+        return false;
+    }
+    catch (const nlohmann::ordered_json::type_error & e)
+    {
+        xpu_format_string(_err, "JSON ¿‡–Õ¥ÌŒÛ: %s", e.what());
+        return false;
+    }
+    catch (const nlohmann::ordered_json::out_of_range & e)
+    {
+        xpu_format_string(_err, "JSON ◊÷∂Œ»± ß: %s", e.what());
         return false;
     }
 
-    const auto * mode = json_string_value(jso_mode);
-    if (nullptr == mode)
-    {
-        xpu_format_string(_err, "Get key word 'mode' value failed");
-        json_decref(jso_root);
-        return false;
-    }
-
-    if (0 == strcmp(mode, "vod"))
-        _mode = XPLAYER_RECORD_VOD;
-    else if (0 == strcmp(mode, "live"))
-        _mode = XPLAYER_RECORD_LIVE;
-    else
-    {
-        xpu_format_string(_err, "Unsupported mode '%s'", mode);
-        json_decref(jso_root);
-        return false;
-    }
-
-    json_t * jso_lst = json_object_get(jso_root, "playlist");
-    if (nullptr == jso_lst)
-    {
-        xpu_format_string(_err, "Get key word 'playlist' failed");
-        json_decref(jso_root);
-        return false;
-    }
-
-    const auto cnt = json_array_size(jso_lst);
-    json_t * jso_record = nullptr;
-    size_t index = 0ul;
-    json_array_foreach(jso_lst, index, jso_record)
-    {
-        json_t * jso_name = json_object_get(jso_record, "name");
-        if (nullptr == jso_name)
-        {
-            xpu_format_string(_err, "Get key word 'name' failed");
-            json_decref(jso_root);
-            return false;
-        }
-
-        json_t * jso_path = json_object_get(jso_record, "path");
-        if (nullptr == jso_path)
-        {
-            xpu_format_string(_err, "Get key word 'path' failed");
-            json_decref(jso_root);
-            return false;
-        }
-
-        CXPlayerRecordInfo tmp;
-        tmp._name = json_string_value(jso_name);
-        tmp._path = json_string_value(jso_path);
-        tmp._mode = _mode;
-        _lst.emplace_back(std::move(tmp));
-    }
-
-    json_decref(jso_root);
     _path = path;
 
     return true;
 }
 
-void CXPlayerRecord::unloadRecordFile()
+void CXPlayerRecord::unload()
 {
     if (_path.empty())
         return;
 
-    std::string mode_str;
-    if (XPLAYER_RECORD_VOD == _mode)
-        mode_str = "vod";
-    else if (XPLAYER_RECORD_LIVE == _mode)
-        mode_str = "live";
-    else
-        return;
+    nlohmann::ordered_json body = _ctx;
 
-    json_t * jso_root = json_pack("{s: s, s: o}", "mode", mode_str.c_str(), "playlist", json_array());
-    if (nullptr == jso_root)
+    std::ofstream ofs(_path, std::ios::out | std::ios::binary);
+    if (!ofs.is_open())
     {
-        xpu_format_string(_err, "json_pack failed");
+        xpu_format_string(_err, "Open file %s failed", _path.c_str());
         return;
     }
 
-    json_t * jso_lst = json_object_get(jso_root, "playlist");
-    for (const auto & elem : _lst)
+    ofs << body.dump(4, ' ', false, nlohmann::ordered_json::error_handler_t::replace);
+
+    if (!ofs.good())
     {
-        json_t * jso_record = json_pack("{s: s, s: s}", "name", elem._name.c_str(), "path", elem._path.c_str());
-        if (nullptr == jso_record)
-        {
-            json_decref(jso_root);
-            return;
-        }
-        json_array_append_new(jso_lst, jso_record);
+        xpu_format_string(_err, "Write to file %s failed", _path.c_str());
+        return;
     }
 
-    json_dump_file(jso_root, _path.c_str(), JSON_INDENT(4) | JSON_ENSURE_ASCII);
-    json_decref(jso_root);
+    ofs.close();
 }
 
-bool CXPlayerRecord::getRecordList(std::vector<CXPlayerRecordInfo> & pl)
+bool CXPlayerRecord::addRecord(const xplayer_record_info_t & ri)
 {
     if (_path.empty())
     {
@@ -142,45 +126,24 @@ bool CXPlayerRecord::getRecordList(std::vector<CXPlayerRecordInfo> & pl)
         return false;
     }
 
-    pl = _lst;
-
-    return true;
-}
-
-bool CXPlayerRecord::addRecord(const CXPlayerRecordInfo & pri)
-{
-    if (_path.empty())
+    const auto & path = ri.path;
+    auto found = std::find_if(_ctx.ris.begin(), _ctx.ris.end(),
+                              [&path](const xplayer_record_info_t & tmp)
     {
-        xpu_format_string(_err, "No opened file");
-        return false;
-    }
-
-    if (XPLAYER_RECORD_NONE == _mode)
-        _mode = pri._mode;
-    if (_mode != pri._mode)
-    {
-        xpu_format_string(_err, "Record mode mismatch for %s", _path.c_str());
-        return false;
-    }
-
-    const auto & path = pri._path;
-    auto found = std::find_if(_lst.begin(), _lst.end(),
-                              [&path](const CXPlayerRecordInfo & tmp)
-    {
-        return path == tmp._path;
+        return path == tmp.path;
     });
-    if (_lst.end() != found)
+    if (_ctx.ris.end() != found)
     {
         xpu_format_string(_err, "Repeated path %s", path.c_str());
         return false;
     }
 
-    _lst.emplace_back(pri);
+    _ctx.ris.emplace_back(ri);
 
     return true;
 }
 
-bool CXPlayerRecord::delRecord(const CXPlayerRecordInfo & pri)
+bool CXPlayerRecord::delRecord(const xplayer_record_info_t & ri)
 {
     if (_path.empty())
     {
@@ -188,24 +151,24 @@ bool CXPlayerRecord::delRecord(const CXPlayerRecordInfo & pri)
         return false;
     }
 
-    const auto & path = pri._path;
-    auto found = std::find_if(_lst.begin(), _lst.end(),
-                              [&path](const CXPlayerRecordInfo & tmp)
+    const auto & path = ri.path;
+    auto found = std::find_if(_ctx.ris.begin(), _ctx.ris.end(),
+                              [&path](const xplayer_record_info_t & tmp)
     {
-        return path == tmp._path;
+        return path == tmp.path;
     });
-    if (_lst.end() == found)
+    if (_ctx.ris.end() == found)
     {
         xpu_format_string(_err, "Found record '%s' failed", path.c_str());
         return false;
     }
 
-    _lst.erase(found);
+    _ctx.ris.erase(found);
 
     return true;
 }
 
-bool CXPlayerRecord::updateRecord(const CXPlayerRecordInfo & pri)
+bool CXPlayerRecord::updateRecord(const xplayer_record_info_t & ri)
 {
     if (_path.empty())
     {
@@ -213,33 +176,53 @@ bool CXPlayerRecord::updateRecord(const CXPlayerRecordInfo & pri)
         return false;
     }
 
-    const auto & path = pri._path;
-    auto found = std::find_if(_lst.begin(), _lst.end(),
-                              [&path](const CXPlayerRecordInfo & tmp)
+    const auto & path = ri.path;
+    auto found = std::find_if(_ctx.ris.begin(), _ctx.ris.end(),
+                              [&path](const xplayer_record_info_t & tmp)
     {
-        return path == tmp._path;
+        return path == tmp.path;
     });
-    if (_lst.end() == found)
+    if (_ctx.ris.end() == found)
     {
         xpu_format_string(_err, "Found record '%s' failed", path.c_str());
         return false;
     }
 
-    if (XPLAYER_RECORD_NONE != pri._mode && (*found)._mode != pri._mode)
+    (*found).name = ri.name;
+    (*found).path = ri.path;
+
+    return true;
+}
+
+bool CXPlayerRecord::getRecord(std::vector<xplayer_record_info_t> & ris)
+{
+    if (_path.empty())
     {
-        xpu_format_string(_err, "Record '%s' mode changed", path.c_str());
+        xpu_format_string(_err, "No opened file");
         return false;
     }
 
-    (*found)._name = pri._name;
-    (*found)._path = pri._path;
+    ris = _ctx.ris;
+
+    return true;
+}
+
+bool CXPlayerRecord::setMode(XPLAYER_RECORD_MODE mode)
+{
+    if (mode <= XPLAYER_RECORD_NONE || mode >= XPLAYER_RECORD_MAX)
+    {
+        xpu_format_string(_err, "Unsupported mode: %d", mode);
+        return false;
+    }
+
+    _ctx.mode = mode;
 
     return true;
 }
 
 XPLAYER_RECORD_MODE CXPlayerRecord::getMode() const
 {
-    return _mode;
+    return _ctx.mode;
 }
 
 const char * CXPlayerRecord::err()const
