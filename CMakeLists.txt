@@ -22,26 +22,13 @@ find_package(Qt${QT_VERSION_MAJOR}
 )
 qt_standard_project_setup()
 
-file(GLOB XPLAYER_SRC_FILES
-    "src/*.cpp"
-    "src/config/*.cpp"
-    "src/decoder/*.cpp"
-    "src/demuxer/*.cpp"
-    "src/filter/*.cpp"
-    "src/record/*.cpp"
-    "src/renderer/*.cpp"
-    "src/resampler/*.cpp"
-    "src/rescaler/*.cpp"
-    "src/utils/*.cpp"  
+file(GLOB_RECURSE XPLAYER_SRC_FILES
+    src/*.cpp
 )
 
-file(GLOB XPLAYER_UI_FILES
-    "ui/*.cpp"
-    "ui/*.ui"
-    "ui/widgets/*.cpp"
-    "ui/widgets/*.ui"
-    "ui/font/*.cpp"
-    "ui/font/*.ui"
+file (GLOB_RECURSE XPLAYER_UI_FILES 
+    ui/*.cpp
+    ui/*.ui
 )
 
 if(QT_VERSION VERSION_LESS 6.0)
@@ -66,6 +53,7 @@ target_include_directories(${PROJECT_NAME}
     dep/include
     ui/widgets
     ui/font
+    ui/more
     src/config
     src/decoder
     src/demuxer

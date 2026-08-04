@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CSpeedWidget</class>
+ <widget class="QWidget" name="CSpeedWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>240</width>
+    <height>300</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">#CSpeedWidget
+{
+    background-color: white;
+    border-radius: 12px;
+}</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QRadioButton" name="m_radCustom">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>32</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>32</height>
+          </size>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">#m_radCustom {
+    background-color: transparent;
+    text-align: left;
+    color: #333333;
+    padding: 0px 5px;
+    border: none;
+    spacing: 5px; 
+}
+#m_radCustom::indicator {
+    width: 18px;
+    height: 18px;
+    subcontrol-position: center left; 
+    margin-right: 10px;
+}
+#m_radCustom::indicator:unchecked {
+    image: none; 
+}
+#m_radCustom::indicator:checked {
+    image: url(:/XPlayer/res/selected.png); 
+}
+#m_radCustom:hover {
+    background-color: #F5F5F5;
+    border-radius: 6px; 
+}</string>
+         </property>
+         <property name="text">
+          <string>自定义</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSlider" name="m_sldSpeed">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>16</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>16</height>
+          </size>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QSlider {
+    padding-left: 25px;
+}
+QSlider::groove:horizontal { 
+	border: 1px solid gray;
+	height: 2px; 
+	left: 15px; 
+	right: 10px; 
+} 
+QSlider::handle:horizontal { 
+	border: 1px solid gray; 
+	background:white;
+	border-radius: 5px;
+	width: 10px; 
+	height: 10px; 
+	margin: -5px; 
+} 
+QSlider::sub-page:horizontal{ 
+	background: rgb(0, 255, 0); 
+}</string>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="m_rad2Point0">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">#m_rad2Point0 {
+    background-color: transparent;
+    color: #333333;
+    padding: 0px 5px;
+    border: none;
+    spacing: 5px; 
+}
+#m_rad2Point0::indicator {
+    width: 18px;
+    height: 18px;
+    subcontrol-position: center left; 
+    margin-right: 10px;
+}
+#m_rad2Point0::indicator:unchecked {
+    image: none; 
+}
+#m_rad2Point0::indicator:checked {
+    image: url(:/XPlayer/res/selected.png); 
+}
+#m_rad2Point0:hover {
+    background-color: #F5F5F5;
+    border-radius: 6px; 
+}</string>
+       </property>
+       <property name="text">
+        <string>2.0</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="m_rad1Point5">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">#m_rad1Point5 {
+    background-color: transparent;
+    color: #333333;
+    padding: 0px 5px;
+    border: none;
+    spacing: 5px; 
+}
+#m_rad1Point5::indicator {
+    width: 18px;
+    height: 18px;
+    subcontrol-position: center left; 
+    margin-right: 10px;
+}
+#m_rad1Point5::indicator:unchecked {
+    image: none; 
+}
+#m_rad1Point5::indicator:checked {
+    image: url(:/XPlayer/res/selected.png); 
+}
+#m_rad1Point5:hover {
+    background-color: #F5F5F5;
+    border-radius: 6px; 
+}</string>
+       </property>
+       <property name="text">
+        <string>1.5</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="m_radNormal">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">#m_radNormal {
+    background-color: transparent;
+    color: #333333;
+    padding: 0px 5px;
+    border: none;
+    spacing: 5px; 
+}
+#m_radNormal::indicator {
+    width: 18px;
+    height: 18px;
+    subcontrol-position: center left; 
+    margin-right: 10px;
+}
+#m_radNormal::indicator:unchecked {
+    image: none; 
+}
+#m_radNormal::indicator:checked {
+    image: url(:/XPlayer/res/selected.png); 
+}
+#m_radNormal:hover {
+    background-color: #F5F5F5;
+    border-radius: 6px; 
+}</string>
+       </property>
+       <property name="text">
+        <string>1.0(正常)</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="m_rad0Point7">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">#m_rad0Point7 {
+    background-color: transparent;
+    color: #333333;
+    padding: 0px 5px;
+    border: none;
+    spacing: 5px; 
+}
+#m_rad0Point7::indicator {
+    width: 18px;
+    height: 18px;
+    subcontrol-position: center left; 
+    margin-right: 10px;
+}
+#m_rad0Point7::indicator:unchecked {
+    image: none; 
+}
+#m_rad0Point7::indicator:checked {
+    image: url(:/XPlayer/res/selected.png); 
+}
+#m_rad0Point7:hover {
+    background-color: #F5F5F5;
+    border-radius: 6px; 
+}</string>
+       </property>
+       <property name="text">
+        <string>0.7</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="m_rad0Point5">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">#m_rad0Point5 {
+    background-color: transparent;
+    color: #333333;
+    padding: 0px 5px;
+    border: none;
+    spacing: 5px; 
+}
+#m_rad0Point5::indicator {
+    width: 18px;
+    height: 18px;
+    subcontrol-position: center left; 
+    margin-right: 10px;
+}
+#m_rad0Point5::indicator:unchecked {
+    image: none; 
+}
+#m_rad0Point5::indicator:checked {
+    image: url(:/XPlayer/res/selected.png); 
+}
+#m_rad0Point5:hover {
+    background-color: #F5F5F5;
+    border-radius: 6px; 
+}</string>
+       </property>
+       <property name="text">
+        <string>0.5</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

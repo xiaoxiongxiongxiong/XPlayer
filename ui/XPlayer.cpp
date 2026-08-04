@@ -16,6 +16,8 @@
 #include "RecordWidget.h"
 #include "SliderWidget.h"
 #include "LinkWidget.h"
+#include "SpeedWidget.h"
+
 #include "utils/xplayer_utils.h"
 #include "config/xplayer_config.h"
 #include "renderer/xplayer_audio_render_sdl.h"
@@ -40,10 +42,8 @@ XPlayer::XPlayer(QWidget * parent)
     connect(ui.m_btnCtrl, SIGNAL(clicked()), this, SLOT(onBtnClickedCtrl()));
     connect(ui.m_btnNext, SIGNAL(clicked()), this, SLOT(onBtnClickedNext()));
     connect(ui.m_btnLast, SIGNAL(clicked()), this, SLOT(onBtnClickedLast()));
-    connect(ui.m_btnBackward, SIGNAL(clicked()), this, SLOT(onBtnClickedBackward()));
-    connect(ui.m_btnForward, SIGNAL(clicked()), this, SLOT(onBtnClickedForward()));
     connect(ui.m_btnStop, SIGNAL(clicked()), this, SLOT(onBtnClickedStop()));
-    connect(ui.m_btnRecord, SIGNAL(clicked()), this, SLOT(onBtnClickedRecord()));
+    connect(ui.m_btnMore, SIGNAL(clicked()), this, SLOT(onBtnClickedMore()));
 
     ui.m_tabRecord->hide();
 
@@ -74,7 +74,6 @@ XPlayer::XPlayer(QWidget * parent)
     connect(m_pVolumeWidget, &CSliderWidget::valueChanged, this, &XPlayer::onVolumeChanged);
 
     loadConfig();
-    m_uiSpeed = XPLAYER_SPEED_NORMAL;
 }
 
 XPlayer::~XPlayer()
@@ -107,6 +106,12 @@ XPlayer::~XPlayer()
     {
         delete m_pVolumeWidget;
         m_pVolumeWidget = nullptr;
+    }
+
+    if (nullptr != m_pSpeedWidget)
+    {
+        delete m_pSpeedWidget;
+        m_pSpeedWidget = nullptr;
     }
 
     unloadConfig();
@@ -437,24 +442,6 @@ void XPlayer::onBtnClickedStop()
     cleanup();
 }
 
-void XPlayer::onBtnClickedBackward()
-{
-    if (m_uiSpeed > XPLAYER_SPEED_ONE_QUATER)
-    {
-        m_uiSpeed--;
-        CXPlayerSource::uniqueInstance().setSpeed(static_cast<XPLAYER_SPEED_MODE>(m_uiSpeed));
-    }
-}
-
-void XPlayer::onBtnClickedForward()
-{
-    if (m_uiSpeed < XPLAYER_SPEED_QUADRUPLE)
-    {
-        m_uiSpeed++;
-        CXPlayerSource::uniqueInstance().setSpeed(static_cast<XPLAYER_SPEED_MODE>(m_uiSpeed));
-    }
-}
-
 void XPlayer::onBtnClickedLast()
 {
     if (nullptr != m_pVodWidget)
@@ -469,6 +456,33 @@ void XPlayer::onBtnClickedNext()
     {
         m_pVodWidget->nextRecord();
     }
+}
+
+void XPlayer::onBtnClickedMore()
+{
+    auto rect = ui.m_btnMore->geometry();
+    QPoint pos(rect.left(), rect.top() - m_pmnuMore->sizeHint().height());
+    m_pmnuMore->exec(ui.m_btnMore->parentWidget()->mapToGlobal(pos));
+}
+
+void XPlayer::onBtnClickedSpeed()
+{
+    if (nullptr == m_pSpeedWidget)
+        m_pSpeedWidget = new CSpeedWidget(this);
+
+    if (nullptr == m_pSpeedWidget)
+    {
+        QMessageBox::critical(this, QStringLiteral("错误"), QStringLiteral("倍速控制界面实例化失败！"));
+        return;
+    }
+
+    auto tmp = m_pSpeedWidget->geometry();
+    auto rect = ui.m_btnMore->geometry();
+    const auto x = rect.left() - tmp.width() + rect.width();
+    const auto y = rect.top() - tmp.height();
+    QPoint pos(x, y);
+    m_pSpeedWidget->move(ui.m_btnMore->parentWidget()->mapToGlobal(pos));
+    m_pSpeedWidget->show();
 }
 
 void XPlayer::onBtnClickedRecord()
@@ -554,6 +568,7 @@ void XPlayer::initMenuBar()
     initVideoMenuBar();
     initAudioMenuBar();
     initSettingMenuBar();
+    initMoreMenuBar();
 
     connect(ui.m_widgetMenu, &CMenuWidget::minimizeClicked, this, &XPlayer::onBtnClickedMinimize);
     connect(ui.m_widgetMenu, &CMenuWidget::maximizeClicked, this, &XPlayer::onBtnClickedMaximize);
@@ -672,6 +687,40 @@ void XPlayer::initSettingMenuBar()
     font->addAction(QStringLiteral("路径"));
     font->addAction(QStringLiteral("大小"));
     font->addAction(QStringLiteral("颜色"));
+}
+
+void XPlayer::initMoreMenuBar()
+{
+    m_pmnuMore = new QMenu(this);
+    m_pmnuMore->setStyleSheet(
+        "QMenu {"
+        "   background-color: black;"
+        "   color: white;"
+        "   border: none;"            // 去掉默认边框
+        "   padding: 8px 8px;"        // 上下留出一点内边距
+        "}"
+        "QMenu::item {"
+        "   padding: 2px 5px;"       // 菜单项的左右内边距
+        "}"
+        "QMenu::item:selected {"
+        "   background-color: #333333;" // 鼠标悬停时背景变为深灰色
+        "}"
+        "QMenu::separator {"
+        "   height: 1px;"
+        "   background-color: white;"
+        "   margin: 4px 5px;"
+        "}"
+    );
+
+    auto * act = m_pmnuMore->addAction(QStringLiteral("播放倍速"));
+    act->setIcon(QIcon(":/XPlayer/res/forward.ico"));
+    connect(act, &QAction::triggered, this, &XPlayer::onBtnClickedSpeed);
+
+    m_pmnuMore->addSeparator();
+
+    act = m_pmnuMore->addAction(QStringLiteral("播放记录"));
+    act->setIcon(QIcon(":/XPlayer/res/RecordList.ico"));
+    connect(act, &QAction::triggered, this, &XPlayer::onBtnClickedRecord);
 }
 
 void XPlayer::updateCursorShape(const QPoint & pt)

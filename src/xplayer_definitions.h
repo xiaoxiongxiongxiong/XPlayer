@@ -13,16 +13,6 @@ typedef enum _XPLAYER_STATE
     XPLAYER_STATE_MAX
 } XPLAYER_STATE;
 
-// 播放倍速
-typedef enum _XPLAYER_SPEED_MODE
-{
-    XPLAYER_SPEED_ONE_QUATER,  // 0.25
-    XPLAYER_SPEED_ONE_HALF,    // 0.5
-    XPLAYER_SPEED_NORMAL,      // 1.0
-    XPLAYER_SPEED_DOUBLE,      // 2
-    XPLAYER_SPEED_QUADRUPLE,   // 4倍速
-} XPLAYER_SPEED_MODE;
-
 // 解码器类型
 typedef enum _XPLAYER_DECODER_TYPE
 {

@@ -8,6 +8,7 @@
 class QMenuBar;
 class CSliderWidget;
 class CRecordWidget;
+class CSpeedWidget;
 
 class XPlayer : public QMainWindow
 {
@@ -40,10 +41,13 @@ private slots:
     void onBtnClickedCamera();
     void onBtnClickedCtrl();
     void onBtnClickedStop();
-    void onBtnClickedBackward();
-    void onBtnClickedForward();
     void onBtnClickedLast();
     void onBtnClickedNext();
+    void onBtnClickedMore();
+
+    // 播放倍速
+    void onBtnClickedSpeed();
+    // 播放记录
     void onBtnClickedRecord();
 
     void onVolumeButtonEnter();
@@ -68,6 +72,9 @@ private:
     void initAudioMenuBar();
     // 初始化菜单栏设置部分
     void initSettingMenuBar();
+
+    // 初始化更多菜单栏
+    void initMoreMenuBar();
 
     // 更新鼠标形状
     void updateCursorShape(const QPoint & pt);
@@ -108,8 +115,12 @@ private:
     QActionGroup * m_grpAudioTracks = nullptr;
     QActionGroup * m_grpAudioDevices = nullptr;
 
+    // 更多菜单栏
+    QMenu * m_pmnuMore = nullptr;
+
     CRecordWidget * m_pVodWidget = nullptr;
     CRecordWidget * m_pLiveWidget = nullptr;
+    CSpeedWidget * m_pSpeedWidget = nullptr;
 
     // 是否全屏
     bool m_blFullScreen = false;
@@ -117,6 +128,4 @@ private:
     QWidget * m_wndScreenParent = nullptr;
 
     int m_iTid = -1;
-    // 倍速
-    uint32_t m_uiSpeed = 0;
 };

@@ -20,5 +20,7 @@
         <file>res/maximize_hover.ico</file>
         <file>res/XPlayer.ico</file>
         <file>res/RecordList.ico</file>
+        <file>res/more.ico</file>
+        <file>res/selected.png</file>
     </qresource>
 </RCC>

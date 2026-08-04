@@ -129,6 +129,12 @@ QSlider::sub-page:horizontal{
           </item>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <property name="leftMargin">
+             <number>6</number>
+            </property>
+            <property name="rightMargin">
+             <number>6</number>
+            </property>
             <property name="bottomMargin">
              <number>6</number>
             </property>
@@ -171,41 +177,6 @@ QSlider::sub-page:horizontal{
               <property name="icon">
                <iconset resource="../resources/XPlayer.qrc">
                 <normaloff>:/XPlayer/res/last.ico</normaloff>:/XPlayer/res/last.ico</iconset>
-              </property>
-              <property name="iconSize">
-               <size>
-                <width>40</width>
-                <height>40</height>
-               </size>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="m_btnBackward">
-              <property name="minimumSize">
-               <size>
-                <width>32</width>
-                <height>32</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>32</width>
-                <height>32</height>
-               </size>
-              </property>
-              <property name="toolTip">
-               <string>慢进</string>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">border-style:solid;</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="icon">
-               <iconset resource="../resources/XPlayer.qrc">
-                <normaloff>:/XPlayer/res/backward.ico</normaloff>:/XPlayer/res/backward.ico</iconset>
               </property>
               <property name="iconSize">
                <size>
@@ -289,41 +260,6 @@ QSlider::sub-page:horizontal{
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="m_btnForward">
-              <property name="minimumSize">
-               <size>
-                <width>32</width>
-                <height>32</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>32</width>
-                <height>32</height>
-               </size>
-              </property>
-              <property name="toolTip">
-               <string>快进</string>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">border-style:solid;</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="icon">
-               <iconset resource="../resources/XPlayer.qrc">
-                <normaloff>:/XPlayer/res/forward.ico</normaloff>:/XPlayer/res/forward.ico</iconset>
-              </property>
-              <property name="iconSize">
-               <size>
-                <width>40</width>
-                <height>40</height>
-               </size>
-              </property>
-             </widget>
-            </item>
-            <item>
              <widget class="QPushButton" name="m_btnNext">
               <property name="minimumSize">
                <size>
@@ -398,12 +334,15 @@ QSlider::sub-page:horizontal{
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="m_btnRecord">
+             <widget class="QPushButton" name="m_btnMore">
               <property name="maximumSize">
                <size>
                 <width>32</width>
                 <height>32</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>更多</string>
               </property>
               <property name="styleSheet">
                <string notr="true">border-style:solid;</string>
@@ -413,12 +352,12 @@ QSlider::sub-page:horizontal{
               </property>
               <property name="icon">
                <iconset resource="../resources/XPlayer.qrc">
-                <normaloff>:/XPlayer/res/RecordList.ico</normaloff>:/XPlayer/res/RecordList.ico</iconset>
+                <normaloff>:/XPlayer/res/more.ico</normaloff>:/XPlayer/res/more.ico</iconset>
               </property>
               <property name="iconSize">
                <size>
-                <width>40</width>
-                <height>40</height>
+                <width>30</width>
+                <height>30</height>
                </size>
               </property>
              </widget>

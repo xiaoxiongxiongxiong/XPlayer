@@ -77,7 +77,7 @@ public:
     void setVolume(int volume);
 
     // 设置播放倍速
-    void setSpeed(XPLAYER_SPEED_MODE speed);
+    void setSpeed(float speed);
 
     // 显示详细信息
     void showDetail(bool flag);
@@ -119,9 +119,6 @@ private:
     // 切换流
     void changeStream(int & src, const int & dst);
 
-    // 处理倍速
-    void processSpeed(XPLAYER_SPEED_MODE mode);
-
     // 计算实时帧率
     double calcFrameRate();
 
@@ -131,10 +128,8 @@ private:
 private:
     // 播放状态
     std::atomic<XPLAYER_STATE> _state = { XPLAYER_STATE_NONE };
-    // 播放倍速
-    std::atomic<XPLAYER_SPEED_MODE> _speed_mode = { XPLAYER_SPEED_NORMAL };
     // 倍速值
-    std::atomic<double> _speed = { 1.0 };
+    std::atomic<float> _speed = { 1.0f };
     // 播放倍速改变
     std::atomic_bool _speed_changed = { false };
     // 是否显示详细信息

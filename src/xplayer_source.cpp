@@ -237,12 +237,13 @@ void CXPlayerSource::setVolume(int volume)
     }
 }
 
-void CXPlayerSource::setSpeed(XPLAYER_SPEED_MODE speed)
+void CXPlayerSource::setSpeed(const float speed)
 {
-    if (_speed_mode.load() != speed)
+    const float epsilon = 1e-6f;
+    const auto diff = _speed.load() - speed;
+    if (std::abs(diff) > epsilon)
     {
-        _speed_mode.store(speed);
-        processSpeed(speed);
+        _speed.store(speed);
         _speed_changed.store(true);
     }
 }
@@ -694,31 +695,6 @@ void CXPlayerSource::changeStream(int & src, const int & dst)
     }
 
     src = dst;
-}
-
-void CXPlayerSource::processSpeed(XPLAYER_SPEED_MODE mode)
-{
-    switch (mode)
-    {
-    case XPLAYER_SPEED_NORMAL:
-        _speed.store(1.0);
-        break;
-    case XPLAYER_SPEED_ONE_QUATER:
-        _speed.store(0.25);
-        break;
-    case XPLAYER_SPEED_ONE_HALF:
-        _speed.store(0.5);
-        break;
-    case XPLAYER_SPEED_DOUBLE:
-        _speed.store(2.0);
-        break;
-    case XPLAYER_SPEED_QUADRUPLE:
-        _speed.store(4.0);
-        break;
-    default:
-        _speed.store(1.0);
-        break;
-    }
 }
 
 double CXPlayerSource::calcFrameRate()
