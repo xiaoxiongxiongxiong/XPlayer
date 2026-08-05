@@ -6,6 +6,17 @@
 
 #include "xplayer_utils.h"
 
+static inline void to_json(nlohmann::ordered_json & body, const xplayer_color_t & c)
+{
+    body = std::to_string(c.red) + "," + std::to_string(c.green) + "," + std::to_string(c.blue);
+}
+
+static inline void from_json(const nlohmann::ordered_json & body, xplayer_color_t & c)
+{
+    auto str = body.get<std::string>();
+    c = xplayer_color_t(str.c_str());
+}
+
 xplayer_color_t::xplayer_color_t(const char * str)
 {
     char comma;
@@ -125,7 +136,8 @@ void CXPlayerConfig::apply_default()
 void CXPlayerConfig::init_defaults()
 {
     apply_default<xplayer_record_flag_t>();
-    apply_default<xplayer_common_speed_t>();
+    apply_default<xplayer_speed_val_t>();
+    apply_default<xplayer_speed_id_t>();
     apply_default<xplayer_common_detail_t>();
     apply_default<xplayer_common_cache_t>();
     apply_default<xplayer_audio_volume_t>();
@@ -140,8 +152,11 @@ void CXPlayerConfig::init_defaults()
 template bool CXPlayerConfig::get<xplayer_record_flag_t>() const;
 template void CXPlayerConfig::set<xplayer_record_flag_t>(bool);
 
-template float CXPlayerConfig::get<xplayer_common_speed_t>() const;
-template void CXPlayerConfig::set<xplayer_common_speed_t>(float);
+template float CXPlayerConfig::get<xplayer_speed_val_t>() const;
+template void CXPlayerConfig::set<xplayer_speed_val_t>(float);
+
+template int CXPlayerConfig::get<xplayer_speed_id_t>() const;
+template void CXPlayerConfig::set<xplayer_speed_id_t>(int);
 
 template bool CXPlayerConfig::get<xplayer_common_detail_t>() const;
 template void CXPlayerConfig::set<xplayer_common_detail_t>(bool);
@@ -170,8 +185,9 @@ template void CXPlayerConfig::set<xplayer_font_path_t>(std::string);
 template xplayer_color_t CXPlayerConfig::get<xplayer_font_color_t>() const;
 template void CXPlayerConfig::set<xplayer_font_color_t>(xplayer_color_t);
 
+template void CXPlayerConfig::apply_default<xplayer_speed_val_t>();
+template void CXPlayerConfig::apply_default<xplayer_speed_id_t>();
 template void CXPlayerConfig::apply_default<xplayer_record_flag_t>();
-template void CXPlayerConfig::apply_default<xplayer_common_speed_t>();
 template void CXPlayerConfig::apply_default<xplayer_common_detail_t>();
 template void CXPlayerConfig::apply_default<xplayer_common_cache_t>();
 template void CXPlayerConfig::apply_default<xplayer_audio_volume_t>();

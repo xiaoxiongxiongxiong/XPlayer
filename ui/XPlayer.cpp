@@ -854,6 +854,8 @@ void XPlayer::play(const std::string & url)
             device.clear();
     }
 
+    auto speed = CXPlayerConfig::uniqueInstance().get<xplayer_speed_val_t>();
+    CXPlayerSource::uniqueInstance().setSpeed(speed);
     if (!CXPlayerSource::uniqueInstance().play(ui.m_wndScreen, width, height, device.toStdString()))
     {
         auto * err = CXPlayerSource::uniqueInstance().err();

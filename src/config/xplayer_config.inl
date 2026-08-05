@@ -9,7 +9,8 @@
          };
 
 XPLAYER_CONFIG_TRAIT(xplayer_record_flag_t, bool, "/record_flag", false)
-XPLAYER_CONFIG_TRAIT(xplayer_common_speed_t, float, "/common/speed", 1.0f)
+XPLAYER_CONFIG_TRAIT(xplayer_speed_val_t, float, "/speed/val", 1.0f)
+XPLAYER_CONFIG_TRAIT(xplayer_speed_id_t, int, "/speed/id", 3)
 XPLAYER_CONFIG_TRAIT(xplayer_common_detail_t, bool, "/common/detail", false)
 XPLAYER_CONFIG_TRAIT(xplayer_common_cache_t, int, "/common/cache", 1)
 XPLAYER_CONFIG_TRAIT(xplayer_audio_volume_t, int, "/audio/volume", 64)

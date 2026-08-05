@@ -24,26 +24,21 @@
    <item row="0" column="0">
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
-      <layout class="QVBoxLayout" name="verticalLayout_2">
-       <property name="spacing">
-        <number>0</number>
+      <widget class="QRadioButton" name="m_radCustom">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>32</height>
+        </size>
        </property>
-       <item>
-        <widget class="QRadioButton" name="m_radCustom">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>32</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>32</height>
-          </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">#m_radCustom {
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>32</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">#m_radCustom {
     background-color: transparent;
     text-align: left;
     color: #333333;
@@ -67,37 +62,63 @@
     background-color: #F5F5F5;
     border-radius: 6px; 
 }</string>
-         </property>
-         <property name="text">
-          <string>自定义</string>
-         </property>
-        </widget>
-       </item>
+       </property>
+       <property name="text">
+        <string>自定义 (1.0)</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <property name="spacing">
+        <number>0</number>
+       </property>
        <item>
-        <widget class="QSlider" name="m_sldSpeed">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>16</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>16</height>
-          </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">QSlider {
-    padding-left: 25px;
-}
-QSlider::groove:horizontal { 
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Policy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QSlider" name="m_sldSpeed">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>16</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>16</height>
+            </size>
+           </property>
+           <property name="mouseTracking">
+            <bool>true</bool>
+           </property>
+           <property name="tabletTracking">
+            <bool>false</bool>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">#m_sldSpeed::groove:horizontal { 
 	border: 1px solid gray;
 	height: 2px; 
-	left: 15px; 
-	right: 10px; 
+    left: 5px;
+	right: 5px; 
 } 
-QSlider::handle:horizontal { 
+#m_sldSpeed::handle:horizontal { 
 	border: 1px solid gray; 
 	background:white;
 	border-radius: 5px;
@@ -105,14 +126,31 @@ QSlider::handle:horizontal {
 	height: 10px; 
 	margin: -5px; 
 } 
-QSlider::sub-page:horizontal{ 
+#m_sldSpeed::sub-page:horizontal{ 
 	background: rgb(0, 255, 0); 
 }</string>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Orientation::Horizontal</enum>
-         </property>
-        </widget>
+           </property>
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="value">
+            <number>33</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="invertedAppearance">
+            <bool>false</bool>
+           </property>
+           <property name="invertedControls">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
      </item>

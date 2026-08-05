@@ -14,19 +14,11 @@ struct xplayer_color_t
     explicit xplayer_color_t(const char * str);
 };
 
-inline void to_json(nlohmann::ordered_json & body, const xplayer_color_t & c)
-{
-    body = std::to_string(c.red) + "," + std::to_string(c.green) + "," + std::to_string(c.blue);
-}
-
-inline void from_json(const nlohmann::ordered_json & body, xplayer_color_t & c)
-{
-    auto str = body.get<std::string>();
-    c = xplayer_color_t(str.c_str());
-}
+// 播放倍速
+struct xplayer_speed_val_t {};
+struct xplayer_speed_id_t {};
 
 struct xplayer_record_flag_t {};
-struct xplayer_common_speed_t {};
 struct xplayer_common_detail_t{};
 struct xplayer_common_cache_t {};
 
