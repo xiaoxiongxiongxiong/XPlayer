@@ -17,6 +17,7 @@
 #include "SliderWidget.h"
 #include "LinkWidget.h"
 #include "SpeedWidget.h"
+#include "FontWidget.h"
 
 #include "utils/xplayer_utils.h"
 #include "config/xplayer_config.h"
@@ -39,6 +40,7 @@ XPlayer::XPlayer(QWidget * parent)
     initMenuBar();
 
     connect(ui.m_btnVolume, SIGNAL(clicked()), this, SLOT(onBtnClickedVolume()));
+    connect(ui.m_btnMode, SIGNAL(clicked()), this, SLOT(onBtnClickedMode()));
     connect(ui.m_btnCtrl, SIGNAL(clicked()), this, SLOT(onBtnClickedCtrl()));
     connect(ui.m_btnNext, SIGNAL(clicked()), this, SLOT(onBtnClickedNext()));
     connect(ui.m_btnLast, SIGNAL(clicked()), this, SLOT(onBtnClickedLast()));
@@ -412,6 +414,18 @@ void XPlayer::onBtnClickedLive()
     play(url.toStdString());
 }
 
+void XPlayer::onBtnClickedFont()
+{
+    FontWidget fw;
+    fw.init();
+    fw.exec();
+}
+
+void XPlayer::onBtnClickedMode()
+{
+
+}
+
 void XPlayer::onBtnClickedCtrl()
 {
     const auto & state = CXPlayerSource::uniqueInstance().state();
@@ -525,6 +539,9 @@ void XPlayer::onVolumeChanged(int vol)
 
 void XPlayer::onLstDbclickedRecord(QListWidgetItem * item)
 {
+    if (nullptr == item)
+        return;
+
     cleanup();
 
     auto path = item->data(Qt::UserRole + 1).toString();
@@ -534,18 +551,27 @@ void XPlayer::onLstDbclickedRecord(QListWidgetItem * item)
 
 void XPlayer::onVideoRendererTriggered(QAction * action)
 {
+    if (nullptr == action)
+        return;
+
     auto mode = static_cast<XPLAYER_VIDEO_RENDERER_TYPE>(action->data().toInt());
     CXPlayerSource::uniqueInstance().selectVideoRenderer(mode);
 }
 
 void XPlayer::onVideoTracksTriggered(QAction * action)
 {
+    if (nullptr == action)
+        return;
+
     auto index = action->data().toInt();
     CXPlayerSource::uniqueInstance().selectStream(index, true);
 }
 
 void XPlayer::onAudioTracksTriggered(QAction * action)
 {
+    if (nullptr == action)
+        return;
+
     auto index = action->data().toInt();
     CXPlayerSource::uniqueInstance().selectStream(index, false);
 }
@@ -682,11 +708,8 @@ void XPlayer::initSettingMenuBar()
 {
     auto * mnu = ui.m_widgetMenu->addMenu(QStringLiteral("设置"));
 
-    // 字体
-    auto * font = mnu->addMenu(QStringLiteral("字体"));
-    font->addAction(QStringLiteral("路径"));
-    font->addAction(QStringLiteral("大小"));
-    font->addAction(QStringLiteral("颜色"));
+    auto * font = mnu->addAction(QStringLiteral("字体"));
+    connect(font, &QAction::triggered, this, &XPlayer::onBtnClickedFont);
 }
 
 void XPlayer::initMoreMenuBar()

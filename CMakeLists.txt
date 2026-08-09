@@ -10,6 +10,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+add_compile_options(/utf-8)
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS=1)
 add_compile_definitions(_SILENCE_CXX17_C_HEADER_DEPRECATION_WARNING)
 
@@ -54,6 +55,7 @@ target_include_directories(${PROJECT_NAME}
     ui/widgets
     ui/font
     ui/more
+    ui/
     src/config
     src/decoder
     src/demuxer

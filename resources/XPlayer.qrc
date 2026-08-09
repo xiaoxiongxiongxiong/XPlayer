@@ -22,5 +22,7 @@
         <file>res/RecordList.ico</file>
         <file>res/more.ico</file>
         <file>res/selected.png</file>
+        <file>res/cycle.ico</file>
+        <file>res/random.ico</file>
     </qresource>
 </RCC>

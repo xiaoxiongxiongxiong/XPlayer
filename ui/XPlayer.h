@@ -39,6 +39,8 @@ private slots:
     void onBtnClickedVod();
     void onBtnClickedLive();
     void onBtnClickedCamera();
+    void onBtnClickedFont();
+    void onBtnClickedMode();
     void onBtnClickedCtrl();
     void onBtnClickedStop();
     void onBtnClickedLast();

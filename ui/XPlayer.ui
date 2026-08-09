@@ -152,6 +152,38 @@ QSlider::sub-page:horizontal{
              </spacer>
             </item>
             <item>
+             <widget class="QPushButton" name="m_btnMode">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">border-style:solid;</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../resources/XPlayer.qrc">
+                <normaloff>:/XPlayer/res/cycle.ico</normaloff>:/XPlayer/res/cycle.ico</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QPushButton" name="m_btnLast">
               <property name="minimumSize">
                <size>
@@ -177,41 +209,6 @@ QSlider::sub-page:horizontal{
               <property name="icon">
                <iconset resource="../resources/XPlayer.qrc">
                 <normaloff>:/XPlayer/res/last.ico</normaloff>:/XPlayer/res/last.ico</iconset>
-              </property>
-              <property name="iconSize">
-               <size>
-                <width>40</width>
-                <height>40</height>
-               </size>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="m_btnStop">
-              <property name="minimumSize">
-               <size>
-                <width>32</width>
-                <height>32</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>32</width>
-                <height>32</height>
-               </size>
-              </property>
-              <property name="toolTip">
-               <string>停止</string>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">border-style:solid;</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="icon">
-               <iconset resource="../resources/XPlayer.qrc">
-                <normaloff>:/XPlayer/res/stop.ico</normaloff>:/XPlayer/res/stop.ico</iconset>
               </property>
               <property name="iconSize">
                <size>
@@ -285,6 +282,41 @@ QSlider::sub-page:horizontal{
               <property name="icon">
                <iconset resource="../resources/XPlayer.qrc">
                 <normaloff>:/XPlayer/res/next.ico</normaloff>:/XPlayer/res/next.ico</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>40</width>
+                <height>40</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="m_btnStop">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="toolTip">
+               <string>停止</string>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">border-style:solid;</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="../resources/XPlayer.qrc">
+                <normaloff>:/XPlayer/res/stop.ico</normaloff>:/XPlayer/res/stop.ico</iconset>
               </property>
               <property name="iconSize">
                <size>

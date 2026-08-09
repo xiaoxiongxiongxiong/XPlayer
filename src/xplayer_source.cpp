@@ -735,6 +735,7 @@ std::string CXPlayerSource::formatDetailString()
         _last_ts = 0;
     }
 
+    auto fps = calcFrameRate();
     if (!_show.load() || nullptr == _ctx)
     {
         return str;
@@ -762,7 +763,7 @@ std::string CXPlayerSource::formatDetailString()
             avcodec_get_name(codecpar->codec_id),
             codecpar->width, codecpar->height,
             av_get_pix_fmt_name(static_cast<AVPixelFormat>(codecpar->format)),
-            av_q2d(codecpar->framerate), calcFrameRate()
+            av_q2d(codecpar->framerate), fps
         );
         str.append(video_info);
     }
