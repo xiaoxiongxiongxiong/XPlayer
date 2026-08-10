@@ -74,17 +74,17 @@ bool CXPlayerRecord::load(const std::string & path)
     }
     catch (const nlohmann::ordered_json::parse_error & e)
     {
-        xpu_format_string(_err, "JSON ¸ñÊ½´íÎó: %s", e.what());
+        xpu_format_string(_err, "JSON æ ¼å¼é”™è¯¯: %s", e.what());
         return false;
     }
     catch (const nlohmann::ordered_json::type_error & e)
     {
-        xpu_format_string(_err, "JSON ÀàĞÍ´íÎó: %s", e.what());
+        xpu_format_string(_err, "JSON ç±»å‹é”™è¯¯: %s", e.what());
         return false;
     }
     catch (const nlohmann::ordered_json::out_of_range & e)
     {
-        xpu_format_string(_err, "JSON ×Ö¶ÎÈ±Ê§: %s", e.what());
+        xpu_format_string(_err, "JSON å­—æ®µç¼ºå¤±: %s", e.what());
         return false;
     }
 
