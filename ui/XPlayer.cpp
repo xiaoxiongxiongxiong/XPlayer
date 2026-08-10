@@ -835,6 +835,10 @@ void XPlayer::play(const std::string & url)
     std::vector<int> vis;
     CXPlayerSource::uniqueInstance().getStreamsInfo(ais, vis);
 
+    auto actions = m_grpAudioTracks->actions();
+    if (1 == actions.size() && !ais.empty())
+        actions.at(0)->setChecked(false);
+
     for (auto iter = ais.cbegin(); iter != ais.cend(); ++iter)
     {
         const auto index = static_cast<int>(std::distance(ais.cbegin(), iter));
@@ -847,6 +851,10 @@ void XPlayer::play(const std::string & url)
         m_pmnuAudioTracks->addAction(act);
         m_grpAudioTracks->addAction(act);
     }
+
+    actions = m_grpVideoTracks->actions();
+    if (1 == actions.size() && !vis.empty())
+        actions.at(0)->setChecked(false);
 
     for (auto iter = vis.cbegin(); iter != vis.cend(); iter++)
     {
@@ -910,7 +918,10 @@ void XPlayer::cleanup()
     for (auto & action : actions)
     {
         if (-1 == action->data().toInt())
+        {
+            action->setChecked(true);
             continue;
+        }
         m_grpVideoTracks->removeAction(action);
     }
 
@@ -918,7 +929,10 @@ void XPlayer::cleanup()
     for (auto & action : actions)
     {
         if (-1 == action->data().toInt())
+        {
+            action->setChecked(true);
             continue;
+        }
         m_grpAudioTracks->removeAction(action);
     }
 
