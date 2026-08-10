@@ -4,11 +4,17 @@
 #include <iostream>
 #include <sstream>
 
+#include "nlohmann/json.hpp"
 #include "xplayer_utils.h"
+
+struct xplayer_config_t
+{
+    nlohmann::ordered_json ctx;
+};
 
 static inline void to_json(nlohmann::ordered_json & body, const xplayer_color_t & c)
 {
-    body = std::to_string(c.red) + "," + std::to_string(c.green) + "," + std::to_string(c.blue);
+    body = std::to_string(c.red) + "," + std::to_string(c.green) + "," + std::to_string(c.blue) + "," + std::to_string(c.alpha);
 }
 
 static inline void from_json(const nlohmann::ordered_json & body, xplayer_color_t & c)
@@ -21,18 +27,32 @@ xplayer_color_t::xplayer_color_t(const char * str)
 {
     char comma;
     std::istringstream iss(str);
-    if (!(iss >> red >> comma >> green >> comma >> blue))
+    if (!(iss >> red >> comma >> green >> comma >> blue >> comma >> alpha))
     {
         red = 255;
         green = 0;
         blue = 0;
+        alpha = 255;
     }
 }
+
+CXPlayerConfig::CXPlayerConfig() = default;
+CXPlayerConfig::~CXPlayerConfig() = default;
 
 bool CXPlayerConfig::load(const std::string & path)
 {
     if (!_path.empty())
         return true;
+
+    if (nullptr == _ctx)
+    {
+        _ctx = std::make_unique<xplayer_config_t>();
+        if (nullptr == _ctx)
+        {
+            xpu_format_string(_err, "make_unique failed");
+            return false;
+        }
+    }
 
     _path = path;
 
@@ -41,12 +61,12 @@ bool CXPlayerConfig::load(const std::string & path)
     {
         try
         {
-            fp >> _ctx;
+            fp >> _ctx->ctx;
         }
         catch (...)
         {
             xpu_format_string(_err, "Parse error");
-            _ctx = nlohmann::ordered_json::object();
+            _ctx->ctx = nlohmann::ordered_json::object();
             init_defaults();
             return false;
         }
@@ -54,7 +74,7 @@ bool CXPlayerConfig::load(const std::string & path)
     else
     {
         xpu_format_string(_err, "File not found, using defaults");
-        _ctx = nlohmann::ordered_json::object();
+        _ctx->ctx = nlohmann::ordered_json::object();
         init_defaults();
         return false;
     }
@@ -67,12 +87,20 @@ void CXPlayerConfig::unload()
     if (_path.empty())
         return;
 
-    //init_defaults();
+    if (nullptr == _ctx)
+    {
+        _ctx = std::make_unique<xplayer_config_t>();
+        if (nullptr == _ctx)
+        {
+            xpu_format_string(_err, "make_unique failed");
+            return;
+        }
+    }
 
     try
     {
         std::ofstream fp(_path, std::ios::out | std::ios::binary);
-        fp << _ctx.dump(4, ' ', false, nlohmann::ordered_json::error_handler_t::replace);
+        fp << _ctx->ctx.dump(4, ' ', false, nlohmann::ordered_json::error_handler_t::replace);
     }
     catch (const std::exception & e)
     {
@@ -88,13 +116,13 @@ typename xplayer_config_trait_t<Tag>::type CXPlayerConfig::get() const
 
     if constexpr (std::is_same_v<typename xplayer_config_trait_t<Tag>::type, xplayer_font_color_t>)
     {
-        std::string str = _ctx.at(ptr).get<std::string>();
+        std::string str = _ctx->ctx.at(ptr).get<std::string>();
         return xplayer_color_t(str.c_str());
     }
 
-    if (!_ctx.contains(ptr))
+    if (!_ctx->ctx.contains(ptr))
         return Type(xplayer_config_trait_t<Tag>::val);
-    return _ctx.at(ptr).get<Type>();
+    return _ctx->ctx.at(ptr).get<Type>();
 }
 
 template <typename Tag>
@@ -106,11 +134,12 @@ void CXPlayerConfig::set(typename xplayer_config_trait_t<Tag>::type val)
     {
         std::string str = std::to_string(val.red) + "," +
             std::to_string(val.green) + "," +
-            std::to_string(val.blue);
-        _ctx[ptr] = str;
+            std::to_string(val.blue) + "," + 
+            std::to_string(val.alpha);
+        _ctx->ctx[ptr] = str;
     }
     else
-        _ctx[ptr] = val;
+        _ctx->ctx[ptr] = val;
 }
 
 
@@ -123,14 +152,14 @@ template <typename Tag>
 void CXPlayerConfig::apply_default()
 {
     auto ptr = nlohmann::ordered_json::json_pointer(xplayer_config_trait_t<Tag>::path);
-    if (_ctx.contains(ptr))
+    if (_ctx->ctx.contains(ptr))
         return;
 
     using Type = typename xplayer_config_trait_t<Tag>::type;
     if constexpr (std::is_same_v<Type, xplayer_font_color_t>)
-        _ctx[ptr] = Type(xplayer_config_trait_t<Tag>::val);
+        _ctx->ctx[ptr] = Type(xplayer_config_trait_t<Tag>::val);
     else
-        _ctx[ptr] = xplayer_config_trait_t<Tag>::val;
+        _ctx->ctx[ptr] = xplayer_config_trait_t<Tag>::val;
 }
 
 void CXPlayerConfig::init_defaults()

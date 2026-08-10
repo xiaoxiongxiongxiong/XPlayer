@@ -3,16 +3,19 @@
 
 #include <cstdbool>
 #include <string>
-#include "nlohmann/json.hpp"
+#include <memory>
 
 struct xplayer_color_t
 {
     int red;
     int green;
     int blue;
+    int alpha;
     xplayer_color_t() = default;
     explicit xplayer_color_t(const char * str);
 };
+
+struct xplayer_config_t;
 
 // 播放倍速
 struct xplayer_speed_val_t {};
@@ -75,10 +78,10 @@ private:
     void init_defaults(); // 普通成员函数，只有声明
 
 private:
-    CXPlayerConfig() = default;
-    ~CXPlayerConfig() = default;
+    CXPlayerConfig();
+    ~CXPlayerConfig();
 
-    nlohmann::ordered_json _ctx;
+    std::unique_ptr<xplayer_config_t> _ctx = nullptr;
 
     // 配置文件路径
     std::string _path;

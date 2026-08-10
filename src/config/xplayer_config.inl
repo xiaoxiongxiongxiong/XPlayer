@@ -19,4 +19,4 @@ XPLAYER_CONFIG_TRAIT(xplayer_video_renderer_t, std::string, "/video/renderer", "
 XPLAYER_CONFIG_TRAIT(xplayer_video_decoder_t, std::string, "/video/decoder", "software")
 XPLAYER_CONFIG_TRAIT(xplayer_font_size_t, int, "/font/size", 24)
 XPLAYER_CONFIG_TRAIT(xplayer_font_path_t, std::string, "/font/path", "")
-XPLAYER_CONFIG_TRAIT(xplayer_font_color_t, xplayer_color_t, "/font/color", "255,0,255")
+XPLAYER_CONFIG_TRAIT(xplayer_font_color_t, xplayer_color_t, "/font/color", "255,0,255,100")
