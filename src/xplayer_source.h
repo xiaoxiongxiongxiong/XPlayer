@@ -40,6 +40,8 @@ public:
     void setFontPath(const std::string & path);
     // 设置字体大小 需在open之前调用
     void setFontSize(int size);
+    // 设置字体颜色
+    void setFontColor(int red, int green, int blue, int alpha);
 
     // 打开
     bool open(const std::string & url, const std::string & params = "");

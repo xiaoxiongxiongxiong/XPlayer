@@ -41,6 +41,24 @@ bool CXPlayerVideoRenderOpengl::supportedPixelFormat(std::vector<XPLAYER_PIXEL_F
     return true;
 }
 
+void CXPlayerVideoRenderOpengl::setFontPath(const std::string & path)
+{
+    _font_path = path;
+}
+
+void CXPlayerVideoRenderOpengl::setFontSize(int size)
+{
+    _font_size = size;
+}
+
+void CXPlayerVideoRenderOpengl::setFontColor(int red, int green, int blue, int alpha)
+{
+    _font_color.setX(static_cast<float>(red) / 255.f);
+    _font_color.setY(static_cast<float>(green) / 255.f);
+    _font_color.setZ(static_cast<float>(blue) / 255.f);
+    _font_color.setW(static_cast<float>(alpha) / 100.f);
+}
+
 bool CXPlayerVideoRenderOpengl::create(const void * wnd, int width, int height, const std::string & path, const int & size)
 {
     if (nullptr == wnd || width <= 0 || height <= 0 || path.empty() || size <= 0)
@@ -791,7 +809,7 @@ bool CXPlayerVideoRenderOpengl::rendererText(const std::string & str)
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, _font_texture);
     glUniform1i(glGetUniformLocation(_font_program, "xplayer_TextureStr"), 3);
-    glUniform4f(glGetUniformLocation(_font_program, "xplayer_FontColor"), 1.0f, 0.0f, 0.0f, 1.0f);
+    glUniform4f(glGetUniformLocation(_font_program, "xplayer_FontColor"), _font_color.x(), _font_color.y(), _font_color.z(), _font_color.w());
 
     glBindVertexArray(_font_vao);
 

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>480</width>
-    <height>320</height>
+    <height>360</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -59,6 +59,11 @@
               <height>24</height>
              </size>
             </property>
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+             </font>
+            </property>
            </widget>
           </item>
          </layout>
@@ -89,6 +94,11 @@
               <width>80</width>
               <height>24</height>
              </size>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+             </font>
             </property>
             <property name="minimum">
              <number>10</number>
@@ -130,6 +140,14 @@
                 <height>32</height>
                </size>
               </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">color: rgb(255, 0, 0);</string>
+              </property>
               <property name="text">
                <string>红色:</string>
               </property>
@@ -137,11 +155,60 @@
             </item>
             <item>
              <widget class="QSlider" name="m_sldRed">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>16</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">#m_sldRed::groove:horizontal { 
+	border: 1px solid gray;
+	height: 2px; 
+    left: 5px;
+	right: 5px; 
+} 
+#m_sldRed::handle:horizontal { 
+	border: 1px solid gray; 
+	background:white;
+	border-radius: 5px;
+	width: 10px; 
+	height: 10px; 
+	margin: -5px; 
+} 
+#m_sldRed::sub-page:horizontal{ 
+	background: rgb(0, 255, 0); 
+}</string>
+              </property>
               <property name="maximum">
                <number>255</number>
               </property>
               <property name="orientation">
                <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="m_labRedValue">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>0</string>
               </property>
              </widget>
             </item>
@@ -163,6 +230,14 @@
                 <height>32</height>
                </size>
               </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">color: rgb(0, 255, 0);</string>
+              </property>
               <property name="text">
                <string>绿色:</string>
               </property>
@@ -170,11 +245,60 @@
             </item>
             <item>
              <widget class="QSlider" name="m_sldGreen">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>16</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">#m_sldGreen::groove:horizontal { 
+	border: 1px solid gray;
+	height: 2px; 
+    left: 5px;
+	right: 5px; 
+} 
+#m_sldGreen::handle:horizontal { 
+	border: 1px solid gray; 
+	background:white;
+	border-radius: 5px;
+	width: 10px; 
+	height: 10px; 
+	margin: -5px; 
+} 
+#m_sldGreen::sub-page:horizontal{ 
+	background: rgb(0, 255, 0); 
+}</string>
+              </property>
               <property name="maximum">
                <number>255</number>
               </property>
               <property name="orientation">
                <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="m_labGreenValue">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>0</string>
               </property>
              </widget>
             </item>
@@ -196,6 +320,14 @@
                 <height>32</height>
                </size>
               </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">color: rgb(0, 85, 255);</string>
+              </property>
               <property name="text">
                <string>蓝色:</string>
               </property>
@@ -203,11 +335,150 @@
             </item>
             <item>
              <widget class="QSlider" name="m_sldBlue">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>16</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">#m_sldBlue::groove:horizontal { 
+	border: 1px solid gray;
+	height: 2px; 
+    left: 5px;
+	right: 5px; 
+} 
+#m_sldBlue::handle:horizontal { 
+	border: 1px solid gray; 
+	background:white;
+	border-radius: 5px;
+	width: 10px; 
+	height: 10px; 
+	margin: -5px; 
+} 
+#m_sldBlue::sub-page:horizontal{ 
+	background: rgb(0, 255, 0); 
+}</string>
+              </property>
               <property name="maximum">
                <number>255</number>
               </property>
               <property name="orientation">
                <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="m_labBlueValue">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>0</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout">
+            <item>
+             <widget class="QLabel" name="m_labAlpha">
+              <property name="minimumSize">
+               <size>
+                <width>56</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>56</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>透明度</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSlider" name="m_sldAlpha">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>16</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">#m_sldAlpha::groove:horizontal { 
+	border: 1px solid gray;
+	height: 2px; 
+    left: 5px;
+	right: 5px; 
+} 
+#m_sldAlpha::handle:horizontal { 
+	border: 1px solid gray; 
+	background:white;
+	border-radius: 5px;
+	width: 10px; 
+	height: 10px; 
+	margin: -5px; 
+} 
+#m_sldAlpha::sub-page:horizontal{ 
+	background: rgb(0, 255, 0); 
+}</string>
+              </property>
+              <property name="maximum">
+               <number>100</number>
+              </property>
+              <property name="value">
+               <number>100</number>
+              </property>
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="m_labAlphaValue">
+              <property name="minimumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>32</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>1.0</string>
               </property>
              </widget>
             </item>
@@ -226,6 +497,12 @@
        <layout class="QVBoxLayout" name="verticalLayout_5">
         <item>
          <widget class="QLabel" name="m_labSample">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>60</height>
+           </size>
+          </property>
           <property name="text">
            <string>字体样本</string>
           </property>

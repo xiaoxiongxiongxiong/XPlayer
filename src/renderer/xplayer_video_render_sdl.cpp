@@ -18,6 +18,27 @@ bool CXPlayerVideoRenderSDL::supportedPixelFormat(std::vector<XPLAYER_PIXEL_FORM
     return true;
 }
 
+void CXPlayerVideoRenderSDL::setFontPath(const std::string & path)
+{
+    _font_path = path;
+}
+
+void CXPlayerVideoRenderSDL::setFontSize(int size)
+{
+    _font_size = size;
+}
+
+void CXPlayerVideoRenderSDL::setFontColor(int red, int green, int blue, int alpha)
+{
+    SDL_Color color{};
+    color.r = static_cast<uint8_t>(red);
+    color.g = static_cast<uint8_t>(green);
+    color.b = static_cast<uint8_t>(blue);
+
+    auto a = static_cast<float>(alpha) * 2.55f;
+    color.a = static_cast<uint8_t>(std::round(a));
+}
+
 bool CXPlayerVideoRenderSDL::create(const void * wnd, int width, int height, const std::string & path, const int & size)
 {
     if (nullptr == wnd || width <= 0 || height <= 0 || path.empty() || size <= 0)

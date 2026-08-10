@@ -2,12 +2,10 @@
 #define __XPLAYER_VIDEO_RENDER_SDL_H__
 
 #include "xplayer_video_renderer.h"
-#include <cstdint>
 
 typedef struct SDL_Window SDL_Window;
 typedef struct SDL_Renderer SDL_Renderer;
 typedef struct SDL_Texture SDL_Texture;
-typedef struct TTF_Font TTF_Font;
 
 class CXPlayerVideoRenderSDL : public ICXPlayerVideoRenderer
 {
@@ -17,6 +15,13 @@ public:
 
 	// 是否支持对应像素格式
 	bool supportedPixelFormat(std::vector<XPLAYER_PIXEL_FORMAT_TYPE> & formats) override;
+
+	// 设置字体路径
+	void setFontPath(const std::string & path) override;
+	// 设置字体大小
+	void setFontSize(int size) override;
+	// 设置字体颜色
+	void setFontColor(int red, int green, int blue, int alpha) override;
 
 	// 创建
 	bool create(const void * wnd, int width, int height, const std::string & path, const int & size) override;

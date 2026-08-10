@@ -20,6 +20,13 @@ bool CXPlayerAudioSpeex::create(int channels, int sample_rate, int samples)
     _ctx->setChannels(channels);
     _ctx->setPitch(1.0);
 
+    _ctx->setSetting(SETTING_USE_AA_FILTER, 1);
+
+    // 优化时间拉伸效果的参数配置
+    _ctx->setSetting(SETTING_SEQUENCE_MS, 40);   // 分段长度
+    _ctx->setSetting(SETTING_SEEKWINDOW_MS, 15); // 搜索窗
+    _ctx->setSetting(SETTING_OVERLAP_MS, 12);    // 重叠区
+
     _channels = channels;
     _sample_rate = sample_rate;
     _samples = samples;

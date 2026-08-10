@@ -6,6 +6,7 @@
 #include <QOpenGLFunctions_3_0>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLContext>
+#include <QVector4D>
 
 #define XPLAYER_OPENGL_FRAME_CACHE 3
 
@@ -34,6 +35,13 @@ public:
 
     // 是否支持对应像素格式
     bool supportedPixelFormat(std::vector<XPLAYER_PIXEL_FORMAT_TYPE> & formats) override;
+
+    // 设置字体路径
+    void setFontPath(const std::string & path) override;
+    // 设置字体大小
+    void setFontSize(int size) override;
+    // 设置字体颜色
+    void setFontColor(int red, int green, int blue, int alpha) override;
 
     // 创建
     bool create(const void * wnd, int width, int height, const std::string & path, const int & size) override;
@@ -140,6 +148,7 @@ private:
     GLuint _font_vao = 0;
     GLuint _font_vbo = 0;
     GLuint _font_ebo = 0;
+    QVector4D _font_color;
 
     // 错误信息
     std::string _err;

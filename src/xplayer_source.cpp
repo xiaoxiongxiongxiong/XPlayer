@@ -26,6 +26,11 @@ void CXPlayerSource::setFontSize(int size)
     _font_size = size;
 }
 
+void CXPlayerSource::setFontColor(int red, int green, int blue, int alpha)
+{
+
+}
+
 bool CXPlayerSource::open(const std::string & url, const std::string & params)
 {
     _ctx = std::make_unique<CXPlayerDemuxImpl>();

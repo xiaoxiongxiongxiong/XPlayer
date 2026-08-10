@@ -1,7 +1,6 @@
 ﻿#ifndef __XPLAYER_VIDEO_RENDERER_H__
 #define __XPLAYER_VIDEO_RENDERER_H__
 
-#include <cstdbool>
 #include <string>
 #include <atomic>
 #include <vector>
@@ -23,6 +22,30 @@ public:
     * @return true/false
     */
     virtual bool supportedPixelFormat(std::vector<XPLAYER_PIXEL_FORMAT_TYPE> & formats) = 0;
+
+    /*
+    * setFontPath
+    * @brief 设置字体路径
+    * @param path  字体路径
+    */
+    virtual void setFontPath(const std::string & path) = 0;
+    
+    /*
+    * setFontSize
+    * @brief 设置字体大小
+    * @param size  字体大小
+    */
+    virtual void setFontSize(int size) = 0;
+
+    /*
+    * setFontColor
+    * @brief 设置字体颜色
+    * @param red   红色(0~255)
+    * @param green 绿色(0~255)
+    * @param blue  蓝色(0~255)
+    * @param alpha 透明度(0~100)
+    */
+    virtual void setFontColor(int red, int green, int blue, int alpha) = 0;
 
     /*
     * create
