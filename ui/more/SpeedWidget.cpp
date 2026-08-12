@@ -20,7 +20,7 @@ CSpeedWidget::CSpeedWidget(QWidget *parent)
     ui.m_sldSpeed->installEventFilter(this);
     connect(ui.m_sldSpeed, &QSlider::valueChanged, this, &CSpeedWidget::onSliderValueChanged);
 
-    auto speed = CXPlayerConfig::uniqueInstance().get<xplayer_speed_val_t>();
+    auto speed = CXPlayerConfig::uniqueInstance().get<xplayer_speed_custom_t>();
     auto str = QString::number(speed, 'f', 1);
     ui.m_radCustom->setText(QStringLiteral("自定义 (%1)").arg(str));
     ui.m_radCustom->setProperty("speed", speed);
@@ -43,6 +43,8 @@ CSpeedWidget::CSpeedWidget(QWidget *parent)
     auto id = CXPlayerConfig::uniqueInstance().get<xplayer_speed_id_t>();
     auto * rad = m_grpSpeed->button(id);
     rad->setChecked(true);
+    if (0 != id)
+        ui.m_sldSpeed->setEnabled(false);
 
     connect(m_grpSpeed, SIGNAL(buttonToggled(int, bool)), this, SLOT(onRadioButtonToggled(int, bool)));
 }
@@ -67,7 +69,7 @@ void CSpeedWidget::onRadioButtonToggled(int id, bool checked)
     auto * rad = m_grpSpeed->button(id);
     auto speed = rad->property("speed").toFloat();
     CXPlayerSource::uniqueInstance().setSpeed(speed);
-    CXPlayerConfig::uniqueInstance().set<xplayer_speed_val_t>(speed);
+    CXPlayerConfig::uniqueInstance().set<xplayer_speed_realtime_t>(speed);
     CXPlayerConfig::uniqueInstance().set<xplayer_speed_id_t>(id);
 }
 
@@ -78,7 +80,8 @@ void CSpeedWidget::onSliderValueChanged(int value)
     ui.m_radCustom->setText(QStringLiteral("自定义 (%1)").arg(str));
     ui.m_radCustom->setProperty("speed", speed);
     CXPlayerSource::uniqueInstance().setSpeed(speed);
-    CXPlayerConfig::uniqueInstance().set<xplayer_speed_val_t>(speed);
+    CXPlayerConfig::uniqueInstance().set<xplayer_speed_realtime_t>(speed);
+    CXPlayerConfig::uniqueInstance().set<xplayer_speed_custom_t>(speed);
 }
 
 void CSpeedWidget::paintEvent(QPaintEvent * event)
@@ -98,6 +101,9 @@ void CSpeedWidget::paintEvent(QPaintEvent * event)
 
 bool CSpeedWidget::eventFilter(QObject * obj, QEvent * event)
 {
+    if (obj == ui.m_sldSpeed && !ui.m_sldSpeed->isEnabled())
+        return QObject::eventFilter(obj, event);
+
     if (obj == ui.m_sldSpeed && (QEvent::MouseButtonPress == event->type() || QEvent::MouseButtonRelease == event->type()))
     {
         auto * ev = static_cast<QMouseEvent *>(event);

@@ -9,12 +9,15 @@
 
 struct xplayer_config_t;
 
+struct xplayer_record_flag_t {};
+
+struct xplayer_common_detail_t {};
+
 // 播放倍速
-struct xplayer_speed_val_t {};
+struct xplayer_speed_realtime_t {}; // 实时倍速
+struct xplayer_speed_custom_t {};   // 自定义倍速
 struct xplayer_speed_id_t {};
 
-struct xplayer_record_flag_t {};
-struct xplayer_common_detail_t{};
 struct xplayer_common_cache_t {};
 
 struct xplayer_audio_volume_t {};
