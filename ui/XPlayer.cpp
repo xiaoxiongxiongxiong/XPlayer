@@ -18,6 +18,7 @@
 #include "LinkWidget.h"
 #include "SpeedWidget.h"
 #include "FontWidget.h"
+#include "CacheWidget.h"
 
 #include "utils/xplayer_utils.h"
 #include "config/xplayer_config.h"
@@ -420,6 +421,12 @@ void XPlayer::onBtnClickedFont()
     fw.exec();
 }
 
+void XPlayer::onBtnClickedCache()
+{
+    CacheWidget cw;
+    cw.exec();
+}
+
 void XPlayer::onBtnClickedMode()
 {
 
@@ -709,6 +716,9 @@ void XPlayer::initSettingMenuBar()
 
     auto * font = mnu->addAction(QStringLiteral("字体"));
     connect(font, &QAction::triggered, this, &XPlayer::onBtnClickedFont);
+
+    auto * cache = mnu->addAction(QStringLiteral("缓冲"));
+    connect(cache, &QAction::triggered, this, &XPlayer::onBtnClickedCache);
 }
 
 void XPlayer::initMoreMenuBar()

@@ -5,6 +5,7 @@ extern "C" {
 }
 
 #include "xplayer_utils.h"
+#include "xplayer_config.h"
 #include "xplayer_filter_bsf.h"
 #include "xplayer_decoder.h"
 #include "xplayer_video_rescaler.h"
@@ -30,13 +31,18 @@ bool CXPlayerStream::init(const AVCodecParameters * codecpar, const AVRational &
         return false;
     }
 
+    const auto cache_duration = CXPlayerConfig::uniqueInstance().get<xplayer_cache_duration_t>();
+    const auto radio = static_cast<float>(cache_duration) / 1000.0f;
+
     if (AVMEDIA_TYPE_AUDIO == codecpar->codec_type)
     {
-        _max_pkts = static_cast<int>(ceil(static_cast<double>(codecpar->sample_rate) / static_cast<double>(codecpar->frame_size)));
+        auto pkts = static_cast<float>(codecpar->sample_rate) / static_cast<float>(codecpar->frame_size);
+        _max_pkts = static_cast<int>(ceil(radio * pkts));
     }
     else if (AVMEDIA_TYPE_VIDEO == codecpar->codec_type)
     {
-        _max_pkts = static_cast<int>(ceil(av_q2d(codecpar->framerate)));
+        auto pkts = static_cast<float>(av_q2d(codecpar->framerate));
+        _max_pkts = static_cast<int>(ceil(radio * pkts));
     }
     else
     {
@@ -62,6 +68,7 @@ bool CXPlayerStream::init(const AVCodecParameters * codecpar, const AVRational &
     }
 
     _timebase = timebase;
+    _max_frms = CXPlayerConfig::uniqueInstance().get<xplayer_cache_frame_t>();
 
     return true;
 }
@@ -73,9 +80,7 @@ void CXPlayerStream::uninit()
 
     _running.store(false);
     if (_thr.joinable())
-    {
         _thr.join();
-    }
 
     reset();
     avcodec_parameters_free(&_codecpar);

@@ -151,10 +151,11 @@ void CXPlayerConfig::init_defaults()
 {
     apply_default<xplayer_record_flag_t>();
     apply_default<xplayer_common_detail_t>();
-    apply_default<xplayer_common_cache_t>();
     apply_default<xplayer_speed_realtime_t>();
     apply_default<xplayer_speed_custom_t>();
     apply_default<xplayer_speed_id_t>();
+    apply_default<xplayer_cache_duration_t>();
+    apply_default<xplayer_cache_frame_t>();
     apply_default<xplayer_audio_volume_t>();
     apply_default<xplayer_audio_device_t>();
     apply_default<xplayer_video_renderer_t>();
@@ -179,8 +180,11 @@ template void CXPlayerConfig::set<xplayer_speed_id_t>(int);
 template bool CXPlayerConfig::get<xplayer_common_detail_t>() const;
 template void CXPlayerConfig::set<xplayer_common_detail_t>(bool);
 
-template int CXPlayerConfig::get<xplayer_common_cache_t>() const;
-template void CXPlayerConfig::set<xplayer_common_cache_t>(int);
+template int CXPlayerConfig::get<xplayer_cache_duration_t>() const;
+template void CXPlayerConfig::set<xplayer_cache_duration_t>(int);
+
+template int CXPlayerConfig::get<xplayer_cache_frame_t>() const;
+template void CXPlayerConfig::set<xplayer_cache_frame_t>(int);
 
 template int CXPlayerConfig::get<xplayer_audio_volume_t>() const;
 template void CXPlayerConfig::set<xplayer_audio_volume_t>(int);
@@ -205,10 +209,11 @@ template void CXPlayerConfig::set<xplayer_font_color_t>(xplayer_color_t);
 
 template void CXPlayerConfig::apply_default<xplayer_record_flag_t>();
 template void CXPlayerConfig::apply_default<xplayer_common_detail_t>();
-template void CXPlayerConfig::apply_default<xplayer_common_cache_t>();
 template void CXPlayerConfig::apply_default<xplayer_speed_realtime_t>();
 template void CXPlayerConfig::apply_default<xplayer_speed_custom_t>();
 template void CXPlayerConfig::apply_default<xplayer_speed_id_t>();
+template void CXPlayerConfig::apply_default<xplayer_cache_duration_t>();
+template void CXPlayerConfig::apply_default<xplayer_cache_frame_t>();
 template void CXPlayerConfig::apply_default<xplayer_audio_volume_t>();
 template void CXPlayerConfig::apply_default<xplayer_audio_device_t>();
 template void CXPlayerConfig::apply_default<xplayer_video_renderer_t>();

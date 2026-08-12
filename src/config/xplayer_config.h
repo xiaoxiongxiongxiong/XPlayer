@@ -18,7 +18,8 @@ struct xplayer_speed_realtime_t {}; // 实时倍速
 struct xplayer_speed_custom_t {};   // 自定义倍速
 struct xplayer_speed_id_t {};
 
-struct xplayer_common_cache_t {};
+struct xplayer_cache_duration_t {};
+struct xplayer_cache_frame_t {};
 
 struct xplayer_audio_volume_t {};
 struct xplayer_audio_device_t {};
