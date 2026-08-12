@@ -21,10 +21,10 @@ public:
 	// 设置字体大小
 	void setFontSize(int size) override;
 	// 设置字体颜色
-	void setFontColor(int red, int green, int blue, int alpha) override;
+	void setFontColor(const xplayer_color_t & color) override;
 
 	// 创建
-	bool create(const void * wnd, int width, int height, const std::string & path, const int & size) override;
+	bool create(const void * wnd, int width, int height) override;
 	// 销毁
 	void destroy() override;
 

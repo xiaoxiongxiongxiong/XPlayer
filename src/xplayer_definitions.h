@@ -1,6 +1,8 @@
 ﻿#ifndef __XPLAYER_DEFINITIONS_H__
 #define __XPLAYER_DEFINITIONS_H__
 
+#include <sstream>
+
 // 播放器状态
 typedef enum _XPLAYER_STATE
 {
@@ -54,5 +56,27 @@ typedef enum _XPLAYER_RECORD_MODE
     XPLAYER_RECORD_LIVE,   // 直播
     XPLAYER_RECORD_MAX
 } XPLAYER_RECORD_MODE;
+
+// 颜色
+struct xplayer_color_t
+{
+    int red;
+    int green;
+    int blue;
+    int alpha;
+    xplayer_color_t() = default;
+    explicit xplayer_color_t(const char * str)
+    {
+        char comma;
+        std::istringstream iss(str);
+        if (!(iss >> red >> comma >> green >> comma >> blue >> comma >> alpha))
+        {
+            red = 255;
+            green = 0;
+            blue = 0;
+            alpha = 255;
+        }
+    }
+};
 
 #endif

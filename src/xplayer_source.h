@@ -41,7 +41,7 @@ public:
     // 设置字体大小 需在open之前调用
     void setFontSize(int size);
     // 设置字体颜色
-    void setFontColor(int red, int green, int blue, int alpha);
+    void setFontColor(const xplayer_color_t & color);
 
     // 打开
     bool open(const std::string & url, const std::string & params = "");
@@ -203,6 +203,10 @@ private:
     std::string _font_path;
     // 字体大小
     int _font_size = 24;
+    // 字体颜色
+    xplayer_color_t _font_color = {};
+    // 字体发生改变
+    std::atomic_bool _font_changed = { false };
 
     // 上下文
     std::unique_ptr<CXPlayerDemuxImpl> _ctx = nullptr;

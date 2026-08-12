@@ -43,9 +43,9 @@ public:
     * @param red   红色(0~255)
     * @param green 绿色(0~255)
     * @param blue  蓝色(0~255)
-    * @param alpha 透明度(0~100)
+    * @param alpha 透明度(0~255)
     */
-    virtual void setFontColor(int red, int green, int blue, int alpha) = 0;
+    virtual void setFontColor(const xplayer_color_t & color) = 0;
 
     /*
     * create
@@ -53,11 +53,9 @@ public:
     * @param  wnd    窗口句柄
     * @param  width  窗口宽度
     * @param  height 窗口高度
-    * @param  path   字体路径
-    * @param  size   字体大小
     * @return true/false
     */
-    virtual bool create(const void * wnd, int width, int height, const std::string & path, const int & size) = 0;
+    virtual bool create(const void * wnd, int width, int height) = 0;
     
     /*
     * destroy
@@ -126,6 +124,8 @@ protected:
     std::string _font_path;
     // 字体大小
     int _font_size = 24;
+    // 字体颜色
+    xplayer_color_t _font_color{};
     // 字体上下文
     TTF_Font * _font_ctx = nullptr;
 

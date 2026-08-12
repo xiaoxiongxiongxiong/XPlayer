@@ -53,7 +53,7 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE
     dep/include
     ui/widgets
-    ui/font
+    ui/setting
     ui/more
     ui/
     src/config

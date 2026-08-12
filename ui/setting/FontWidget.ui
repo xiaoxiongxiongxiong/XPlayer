@@ -177,7 +177,7 @@
 	margin: -5px; 
 } 
 #m_sldRed::sub-page:horizontal{ 
-	background: rgb(0, 255, 0); 
+	background: rgb(255, 0, 0); 
 }</string>
               </property>
               <property name="maximum">
@@ -357,7 +357,7 @@
 	margin: -5px; 
 } 
 #m_sldBlue::sub-page:horizontal{ 
-	background: rgb(0, 255, 0); 
+	background: rgb(0, 0, 255); 
 }</string>
               </property>
               <property name="maximum">

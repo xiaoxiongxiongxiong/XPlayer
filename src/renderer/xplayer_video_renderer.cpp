@@ -29,9 +29,6 @@ bool ICXPlayerVideoRenderer::openFont(const std::string & path, int size)
 		return false;
 	}
 
-	_font_path = path;
-	_font_size = size;
-
 	return true;
 }
 

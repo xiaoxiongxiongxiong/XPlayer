@@ -12,6 +12,8 @@ FontWidget::FontWidget(QWidget *parent)
 {
     ui.setupUi(this);
 
+    setWindowFlag(Qt::WindowContextHelpButtonHint, false);
+
     traversePath();
 
     auto size = CXPlayerConfig::uniqueInstance().get<xplayer_font_size_t>();
@@ -53,7 +55,7 @@ void FontWidget::onSliderValueChanged(int value)
     CXPlayerConfig::uniqueInstance().set<xplayer_font_size_t>(size);
 
     CXPlayerSource::uniqueInstance().setFontSize(size);
-    CXPlayerSource::uniqueInstance().setFontColor(color.red, color.green, color.blue, color.alpha);
+    CXPlayerSource::uniqueInstance().setFontColor(color);
 }
 
 void FontWidget::onComboxSelected(int index)

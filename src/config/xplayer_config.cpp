@@ -1,8 +1,6 @@
 #include "xplayer_config.h"
 #include <type_traits>
 #include <fstream>
-#include <iostream>
-#include <sstream>
 
 #include "nlohmann/json.hpp"
 #include "xplayer_utils.h"
@@ -21,19 +19,6 @@ static inline void from_json(const nlohmann::ordered_json & body, xplayer_color_
 {
     auto str = body.get<std::string>();
     c = xplayer_color_t(str.c_str());
-}
-
-xplayer_color_t::xplayer_color_t(const char * str)
-{
-    char comma;
-    std::istringstream iss(str);
-    if (!(iss >> red >> comma >> green >> comma >> blue >> comma >> alpha))
-    {
-        red = 255;
-        green = 0;
-        blue = 0;
-        alpha = 255;
-    }
 }
 
 CXPlayerConfig::CXPlayerConfig() = default;

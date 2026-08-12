@@ -979,8 +979,7 @@ bool XPlayer::loadConfig()
 
     CXPlayerSource::uniqueInstance().setFontPath(strFontPath.toUtf8().toStdString());
     CXPlayerSource::uniqueInstance().setFontSize(CXPlayerConfig::uniqueInstance().get<xplayer_font_size_t>());
-    auto color = CXPlayerConfig::uniqueInstance().get<xplayer_font_color_t>();
-    CXPlayerSource::uniqueInstance().setFontColor(color.red, color.green, color.blue, color.alpha);
+    CXPlayerSource::uniqueInstance().setFontColor(CXPlayerConfig::uniqueInstance().get<xplayer_font_color_t>());
 
     const auto vol = CXPlayerConfig::uniqueInstance().get<xplayer_audio_volume_t>();
     m_pVolumeWidget->setValue(vol);

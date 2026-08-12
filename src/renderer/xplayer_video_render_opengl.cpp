@@ -51,17 +51,19 @@ void CXPlayerVideoRenderOpengl::setFontSize(int size)
     _font_size = size;
 }
 
-void CXPlayerVideoRenderOpengl::setFontColor(int red, int green, int blue, int alpha)
+void CXPlayerVideoRenderOpengl::setFontColor(const xplayer_color_t & color)
 {
-    _font_color.setX(static_cast<float>(red) / 255.f);
-    _font_color.setY(static_cast<float>(green) / 255.f);
-    _font_color.setZ(static_cast<float>(blue) / 255.f);
-    _font_color.setW(static_cast<float>(alpha) / 100.f);
+    _font_color = color;
+
+    _color.setX(static_cast<float>(color.red) / 255.f);
+    _color.setY(static_cast<float>(color.green) / 255.f);
+    _color.setZ(static_cast<float>(color.blue) / 255.f);
+    _color.setW(static_cast<float>(color.alpha) / 255.f);
 }
 
-bool CXPlayerVideoRenderOpengl::create(const void * wnd, int width, int height, const std::string & path, const int & size)
+bool CXPlayerVideoRenderOpengl::create(const void * wnd, int width, int height)
 {
-    if (nullptr == wnd || width <= 0 || height <= 0 || path.empty() || size <= 0)
+    if (nullptr == wnd || width <= 0 || height <= 0)
     {
         xpu_format_string(_err, "Input param is invalid");
         return false;
@@ -73,7 +75,7 @@ bool CXPlayerVideoRenderOpengl::create(const void * wnd, int width, int height, 
     _write_times.store(0);
     _read_times.store(0);
 
-    return openFont(path, size);
+    return openFont(_font_path, _font_size);
 }
 
 void CXPlayerVideoRenderOpengl::destroy()
@@ -809,7 +811,7 @@ bool CXPlayerVideoRenderOpengl::rendererText(const std::string & str)
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, _font_texture);
     glUniform1i(glGetUniformLocation(_font_program, "xplayer_TextureStr"), 3);
-    glUniform4f(glGetUniformLocation(_font_program, "xplayer_FontColor"), _font_color.x(), _font_color.y(), _font_color.z(), _font_color.w());
+    glUniform4f(glGetUniformLocation(_font_program, "xplayer_FontColor"), _color.x(), _color.y(), _color.z(), _color.w());
 
     glBindVertexArray(_font_vao);
 
@@ -821,6 +823,14 @@ bool CXPlayerVideoRenderOpengl::rendererText(const std::string & str)
     const auto screen_ratio_y = 2.0f / static_cast<float>(this->height());
     float cur_height = margin;
 
+    TTF_SetFontSize(_font_ctx, _font_size);
+
+    SDL_Color font_color = { 0 };
+    font_color.r = static_cast<uint8_t>(_font_color.red);
+    font_color.g = static_cast<uint8_t>(_font_color.green);
+    font_color.b = static_cast<uint8_t>(_font_color.blue);
+    font_color.a = static_cast<uint8_t>(_font_color.alpha);
+
     std::string val;
     std::istringstream iss(str);
     while (getline(iss, val, '\n'))
@@ -828,7 +838,6 @@ bool CXPlayerVideoRenderOpengl::rendererText(const std::string & str)
         if (val.empty())
             continue;
 
-        SDL_Color font_color = { 255, 0, 0, 255 };
         SDL_Surface * surface = TTF_RenderUTF8_Blended(_font_ctx, val.c_str(), font_color);
         if (nullptr == surface)
         {

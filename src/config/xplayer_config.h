@@ -5,15 +5,7 @@
 #include <string>
 #include <memory>
 
-struct xplayer_color_t
-{
-    int red;
-    int green;
-    int blue;
-    int alpha;
-    xplayer_color_t() = default;
-    explicit xplayer_color_t(const char * str);
-};
+#include "xplayer_definitions.h"
 
 struct xplayer_config_t;
 

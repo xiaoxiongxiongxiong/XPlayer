@@ -28,20 +28,14 @@ void CXPlayerVideoRenderSDL::setFontSize(int size)
     _font_size = size;
 }
 
-void CXPlayerVideoRenderSDL::setFontColor(int red, int green, int blue, int alpha)
+void CXPlayerVideoRenderSDL::setFontColor(const xplayer_color_t & color)
 {
-    SDL_Color color{};
-    color.r = static_cast<uint8_t>(red);
-    color.g = static_cast<uint8_t>(green);
-    color.b = static_cast<uint8_t>(blue);
-
-    auto a = static_cast<float>(alpha) * 2.55f;
-    color.a = static_cast<uint8_t>(std::round(a));
+    _font_color = color;
 }
 
-bool CXPlayerVideoRenderSDL::create(const void * wnd, int width, int height, const std::string & path, const int & size)
+bool CXPlayerVideoRenderSDL::create(const void * wnd, int width, int height)
 {
-    if (nullptr == wnd || width <= 0 || height <= 0 || path.empty() || size <= 0)
+    if (nullptr == wnd || width <= 0 || height <= 0)
     {
         xpu_format_string(_err, "Input param is invalid");
         return false;
@@ -60,7 +54,7 @@ bool CXPlayerVideoRenderSDL::create(const void * wnd, int width, int height, con
         return false;
     }
 
-    if (!openFont(path, size))
+    if (!openFont(_font_path, _font_size))
     {
         SDL_DestroyWindow(_wnd);
         _wnd = nullptr;
@@ -193,9 +187,17 @@ bool CXPlayerVideoRenderSDL::rendererText(const std::string & str)
     if (str.empty() || nullptr == _font_ctx)
         return true;
 
+    TTF_SetFontSize(_font_ctx, _font_size);
+
     int font_height = TTF_FontHeight(_font_ctx);
     const int line_space = 12;
     int y = 10;
+
+    SDL_Color font_color = { 0 };
+    font_color.r = static_cast<uint8_t>(_font_color.red);
+    font_color.g = static_cast<uint8_t>(_font_color.green);
+    font_color.b = static_cast<uint8_t>(_font_color.blue);
+    font_color.a = static_cast<uint8_t>(_font_color.alpha);
 
     std::string val;
     std::istringstream iss(str);
@@ -204,7 +206,6 @@ bool CXPlayerVideoRenderSDL::rendererText(const std::string & str)
         if (val.empty())
             continue;
 
-        SDL_Color font_color = { 255, 0, 0, 255 };
         SDL_Surface * surface = TTF_RenderUTF8_Blended(_font_ctx, val.c_str(), font_color);
         if (nullptr == surface)
         {

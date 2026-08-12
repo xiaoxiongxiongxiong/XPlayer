@@ -23,12 +23,26 @@ void CXPlayerSource::setFontPath(const std::string & path)
 
 void CXPlayerSource::setFontSize(int size)
 {
-    _font_size = size;
+    if (_font_size != size)
+    {
+        _font_size = size;
+        _font_changed.store(true);
+    }
 }
 
-void CXPlayerSource::setFontColor(int red, int green, int blue, int alpha)
+void CXPlayerSource::setFontColor(const xplayer_color_t & color)
 {
+    if (_font_color.red == color.red && 
+        _font_color.green == color.green && 
+        _font_color.blue == color.blue && 
+        _font_color.alpha == color.alpha)
+        return;
 
+    _font_color = color;
+
+    auto a = static_cast<float>(color.alpha) * 2.55f;
+    _font_color.alpha = static_cast<uint8_t>(std::round(a));
+    _font_changed.store(true);
 }
 
 bool CXPlayerSource::open(const std::string & url, const std::string & params)
@@ -379,7 +393,10 @@ bool CXPlayerSource::initVideoRenderer(const void * wnd, int width, int height)
         return false;
     }
 
-    if (!_video_renderer->create(wnd, width, height, _font_path, _font_size))
+    _video_renderer->setFontSize(_font_size);
+    _video_renderer->setFontPath(_font_path);
+    _video_renderer->setFontColor(_font_color);
+    if (!_video_renderer->create(wnd, width, height))
     {
         _err = _video_renderer->err();
         CXPlayerVideoRendererFactory::destroy(_video_renderer);
@@ -669,6 +686,13 @@ void CXPlayerSource::videoPlayThr()
 
         if (delay_ms > 0)
             std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+
+        if (_font_changed.load())
+        {
+            _video_renderer->setFontSize(_font_size);
+            _video_renderer->setFontColor(_font_color);
+            _font_changed.store(false);
+        }
 
         auto str = formatDetailString();
         _video_renderer->renderer(frm.width, frm.height, stream->getPixelFormat(), frm.data, frm.linesize, str);
