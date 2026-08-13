@@ -16,8 +16,6 @@ public:
 
     QMenu * addMenu(const QString & title);
 
-    void setText(const QString & text);
-
 signals:
     void minimizeClicked();
     void maximizeClicked();

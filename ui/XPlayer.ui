@@ -51,6 +51,9 @@ QWidget::titlebar {
     </property>
     <item row="0" column="0">
      <layout class="QVBoxLayout" name="verticalLayout">
+      <property name="spacing">
+       <number>0</number>
+      </property>
       <item>
        <widget class="CMenuWidget" name="m_widgetMenu" native="true">
         <property name="minimumSize">
@@ -71,6 +74,9 @@ QWidget::titlebar {
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_2">
+          <property name="spacing">
+           <number>0</number>
+          </property>
           <item>
            <widget class="CXPlayerVideoRenderOpengl" name="m_wndScreen">
             <property name="acceptDrops">
@@ -79,23 +85,21 @@ QWidget::titlebar {
            </widget>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_2">
-            <item>
-             <widget class="QSlider" name="m_sldProgress">
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>16</height>
-               </size>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">QSlider::groove:horizontal { 
+           <widget class="QSlider" name="m_sldProgress">
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>16</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">#m_sldProgress::groove:horizontal { 
 	border: 1px solid gray;
 	height: 2px; 
 	left: 4px; 
 	right: 4px; 
 } 
-QSlider::handle:horizontal { 
+#m_sldProgress::handle:horizontal { 
 	border: 1px solid gray; 
 	background:white;
 	border-radius: 5px;
@@ -103,24 +107,9 @@ QSlider::handle:horizontal {
 	height: 10px; 
 	margin: -5px; 
 } 
-QSlider::sub-page:horizontal{ 
+#m_sldProgress::sub-page:horizontal{ 
 	background: rgb(0, 255, 0); 
 }</string>
-              </property>
-              <property name="orientation">
-               <enum>Qt::Orientation::Horizontal</enum>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <widget class="Line" name="line">
-            <property name="frameShadow">
-             <enum>QFrame::Shadow::Plain</enum>
-            </property>
-            <property name="lineWidth">
-             <number>2</number>
             </property>
             <property name="orientation">
              <enum>Qt::Orientation::Horizontal</enum>
@@ -397,25 +386,6 @@ QSlider::sub-page:horizontal{
            </layout>
           </item>
          </layout>
-        </item>
-        <item>
-         <widget class="QTabWidget" name="m_tabRecord">
-          <property name="minimumSize">
-           <size>
-            <width>240</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>240</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">color: rgb(0, 0, 0);</string>
-          </property>
-         </widget>
         </item>
        </layout>
       </item>

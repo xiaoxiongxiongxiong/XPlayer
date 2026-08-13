@@ -24,5 +24,8 @@
         <file>res/selected.png</file>
         <file>res/cycle.ico</file>
         <file>res/random.ico</file>
+        <file>res/sequence.ico</file>
+        <file>res/single.ico</file>
+        <file>res/PlayList.ico</file>
     </qresource>
 </RCC>

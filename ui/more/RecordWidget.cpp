@@ -14,11 +14,15 @@ CRecordWidget::CRecordWidget(QWidget *parent)
 {
     ui.setupUi(this);
 
+    setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
+
+    setAttribute(Qt::WA_TranslucentBackground);
+
     this->setAcceptDrops(true);
 
-    connect(ui.m_btnAdd, SIGNAL(clicked()), this, SLOT(onBtnClickedAdd()));
-    connect(ui.m_btnDelete, SIGNAL(clicked()), this, SLOT(onBtnClickedDelete()));
-    connect(ui.m_btnMode, SIGNAL(clicked()), this, SLOT(onBtnClickedMode()));
+    //connect(ui.m_btnAdd, SIGNAL(clicked()), this, SLOT(onBtnClickedAdd()));
+    //connect(ui.m_btnDelete, SIGNAL(clicked()), this, SLOT(onBtnClickedDelete()));
+    //connect(ui.m_btnMode, SIGNAL(clicked()), this, SLOT(onBtnClickedMode()));
     connect(ui.m_lstRecord, &QListWidget::itemDoubleClicked, this, &CRecordWidget::onLstDbclickedRecord);
 }
 
@@ -213,11 +217,6 @@ void CRecordWidget::onBtnClickedDelete()
     {
         delete ui.m_lstRecord->takeItem(*iter);
     }
-}
-
-void CRecordWidget::onBtnClickedMode()
-{
-
 }
 
 void CRecordWidget::onLstDbclickedRecord(QListWidgetItem * item)

@@ -51,7 +51,8 @@ private slots:
     // 播放倍速
     void onBtnClickedSpeed();
     // 播放记录
-    void onBtnClickedRecord();
+    void onBtnClickedVodRecord();
+    void onBtnClickedLiveRecord();
 
     void onVolumeButtonEnter();
     void onVolumeChanged(int vol);
@@ -75,9 +76,16 @@ private:
     void initAudioMenuBar();
     // 初始化菜单栏设置部分
     void initSettingMenuBar();
-
     // 初始化更多菜单栏
     void initMoreMenuBar();
+    // 初始化帮助菜单栏
+    void initHelpMenuBar();
+
+    // 显示播放模式图标
+    void showPlayModeIcon(int mode);
+
+    // 显示播放记录
+    void showPlayRecord(CRecordWidget * widget);
 
     // 更新鼠标形状
     void updateCursorShape(const QPoint & pt);

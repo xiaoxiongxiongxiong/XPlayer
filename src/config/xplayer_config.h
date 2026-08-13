@@ -9,8 +9,7 @@
 
 struct xplayer_config_t;
 
-struct xplayer_record_flag_t {};
-
+struct xplayer_common_mode_t {};
 struct xplayer_common_detail_t {};
 
 // 播放倍速

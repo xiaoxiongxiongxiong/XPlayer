@@ -149,7 +149,7 @@ void CXPlayerConfig::apply_default()
 
 void CXPlayerConfig::init_defaults()
 {
-    apply_default<xplayer_record_flag_t>();
+    apply_default<xplayer_common_mode_t>();
     apply_default<xplayer_common_detail_t>();
     apply_default<xplayer_speed_realtime_t>();
     apply_default<xplayer_speed_custom_t>();
@@ -165,8 +165,8 @@ void CXPlayerConfig::init_defaults()
     apply_default<xplayer_font_color_t>();
 }
 
-template bool CXPlayerConfig::get<xplayer_record_flag_t>() const;
-template void CXPlayerConfig::set<xplayer_record_flag_t>(bool);
+template int CXPlayerConfig::get<xplayer_common_mode_t>() const;
+template void CXPlayerConfig::set<xplayer_common_mode_t>(int);
 
 template float CXPlayerConfig::get<xplayer_speed_realtime_t>() const;
 template void CXPlayerConfig::set<xplayer_speed_realtime_t>(float);
@@ -207,7 +207,7 @@ template void CXPlayerConfig::set<xplayer_font_path_t>(std::string);
 template xplayer_color_t CXPlayerConfig::get<xplayer_font_color_t>() const;
 template void CXPlayerConfig::set<xplayer_font_color_t>(xplayer_color_t);
 
-template void CXPlayerConfig::apply_default<xplayer_record_flag_t>();
+template void CXPlayerConfig::apply_default<xplayer_common_mode_t>();
 template void CXPlayerConfig::apply_default<xplayer_common_detail_t>();
 template void CXPlayerConfig::apply_default<xplayer_speed_realtime_t>();
 template void CXPlayerConfig::apply_default<xplayer_speed_custom_t>();

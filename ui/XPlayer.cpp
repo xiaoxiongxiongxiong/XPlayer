@@ -48,20 +48,15 @@ XPlayer::XPlayer(QWidget * parent)
     connect(ui.m_btnStop, SIGNAL(clicked()), this, SLOT(onBtnClickedStop()));
     connect(ui.m_btnMore, SIGNAL(clicked()), this, SLOT(onBtnClickedMore()));
 
-    ui.m_tabRecord->hide();
-
     m_pVodWidget = new CRecordWidget(this);
-    ui.m_tabRecord->addTab(m_pVodWidget, QStringLiteral("文件"));
     connect(m_pVodWidget, &CRecordWidget::itemDbclicked, this, &XPlayer::onLstDbclickedRecord);
 
     m_pLiveWidget = new CRecordWidget(this);
-    ui.m_tabRecord->addTab(m_pLiveWidget, QStringLiteral("链接"));
     connect(m_pLiveWidget, &CRecordWidget::itemDbclicked, this, &XPlayer::onLstDbclickedRecord);
 
     ui.m_sldProgress->installEventFilter(this);
     ui.m_wndScreen->installEventFilter(this);
     ui.m_wndScreen->setMouseTracking(true);
-    ui.m_tabRecord->setMouseTracking(true);
 
     // 创建音量滑块（初始隐藏）
     m_pVolumeWidget = new CSliderWidget(this);
@@ -330,7 +325,6 @@ void XPlayer::dropEvent(QDropEvent * event)
 
     QString strFileName = urls[0].toLocalFile();
     QFileInfo fileInfo(strFileName);
-    ui.m_widgetMenu->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
 
     m_pVodWidget->addRecord(fileInfo.fileName(), strFileName);
 
@@ -387,8 +381,6 @@ void XPlayer::onBtnClickedVod()
     cleanup();
 
     QFileInfo fileInfo(strFileName);
-    ui.m_widgetMenu->setText(QStringLiteral("%1").arg(fileInfo.fileName()));
-
     m_pVodWidget->addRecord(fileInfo.fileName(), strFileName);
 
     play(strFileName.toStdString());
@@ -408,8 +400,6 @@ void XPlayer::onBtnClickedLive()
     cleanup();
 
     auto url = lw.getUrl();
-    ui.m_widgetMenu->setText(url);
-
     m_pLiveWidget->addRecord(url, url);
 
     play(url.toStdString());
@@ -429,7 +419,12 @@ void XPlayer::onBtnClickedCache()
 
 void XPlayer::onBtnClickedMode()
 {
+    auto mode = ui.m_btnMode->property("mode").toInt();
+    mode = (mode + 1) % 4;
 
+    showPlayModeIcon(mode);
+
+    ui.m_btnMode->setProperty("mode", mode);
 }
 
 void XPlayer::onBtnClickedCtrl()
@@ -505,20 +500,14 @@ void XPlayer::onBtnClickedSpeed()
     m_pSpeedWidget->show();
 }
 
-void XPlayer::onBtnClickedRecord()
+void XPlayer::onBtnClickedVodRecord()
 {
-    auto flag = CXPlayerConfig::uniqueInstance().get<xplayer_record_flag_t>();
-    ui.m_tabRecord->setVisible(!flag);
-    CXPlayerConfig::uniqueInstance().set<xplayer_record_flag_t>(!flag);
+    showPlayRecord(m_pVodWidget);
+}
 
-    ui.horizontalLayout->activate();
-
-    if (XPLAYER_STATE_NONE != CXPlayerSource::uniqueInstance().state())
-    {
-        int width = 0, height = 0;
-        getDisplaySize(width, height);
-        CXPlayerSource::uniqueInstance().resize(width, height);
-    }
+void XPlayer::onBtnClickedLiveRecord()
+{
+    showPlayRecord(m_pLiveWidget);
 }
 
 void XPlayer::onVolumeButtonEnter()
@@ -551,7 +540,6 @@ void XPlayer::onLstDbclickedRecord(QListWidgetItem * item)
     cleanup();
 
     auto path = item->data(Qt::UserRole + 1).toString();
-    ui.m_widgetMenu->setText(item->text());
     play(path.toStdString());
 }
 
@@ -601,6 +589,7 @@ void XPlayer::initMenuBar()
     initAudioMenuBar();
     initSettingMenuBar();
     initMoreMenuBar();
+    initHelpMenuBar();
 
     connect(ui.m_widgetMenu, &CMenuWidget::minimizeClicked, this, &XPlayer::onBtnClickedMinimize);
     connect(ui.m_widgetMenu, &CMenuWidget::maximizeClicked, this, &XPlayer::onBtnClickedMaximize);
@@ -750,9 +739,60 @@ void XPlayer::initMoreMenuBar()
 
     m_pmnuMore->addSeparator();
 
-    act = m_pmnuMore->addAction(QStringLiteral("播放记录"));
+    act = m_pmnuMore->addAction(QStringLiteral("点播记录"));
     act->setIcon(QIcon(":/XPlayer/res/RecordList.ico"));
-    connect(act, &QAction::triggered, this, &XPlayer::onBtnClickedRecord);
+    connect(act, &QAction::triggered, this, &XPlayer::onBtnClickedVodRecord);
+
+    act = m_pmnuMore->addAction(QStringLiteral("直播记录"));
+    act->setIcon(QIcon(":/XPlayer/res/PlayList.ico"));
+    connect(act, &QAction::triggered, this, &XPlayer::onBtnClickedLiveRecord);
+}
+
+void XPlayer::initHelpMenuBar()
+{
+    auto * mnu = ui.m_widgetMenu->addMenu(QStringLiteral("帮助(H)"));
+    mnu->addAction(QStringLiteral("关于(A)"));
+}
+
+void XPlayer::showPlayModeIcon(int mode)
+{
+    switch (mode)
+    {
+    case 0:
+        ui.m_btnMode->setIcon(QIcon(":/XPlayer/res/cycle.ico"));
+        ui.m_btnMode->setToolTip(QStringLiteral("循环播放"));
+        break;
+    case 1:
+        ui.m_btnMode->setIcon(QIcon(":/XPlayer/res/single.ico"));
+        ui.m_btnMode->setToolTip(QStringLiteral("单曲循环"));
+        break;
+    case 2:
+        ui.m_btnMode->setIcon(QIcon(":/XPlayer/res/sequence.ico"));
+        ui.m_btnMode->setToolTip(QStringLiteral("顺序播放"));
+        break;
+    case 3:
+        ui.m_btnMode->setIcon(QIcon(":/XPlayer/res/random.ico"));
+        ui.m_btnMode->setToolTip(QStringLiteral("随机播放"));
+        break;
+    default:
+        break;
+    }
+
+    CXPlayerConfig::uniqueInstance().set<xplayer_common_mode_t>(mode);
+}
+
+void XPlayer::showPlayRecord(CRecordWidget * widget)
+{
+    if (nullptr == widget)
+        return;
+
+    auto tmp = widget->geometry();
+    auto rect = ui.m_btnMore->geometry();
+    const auto x = rect.left() - tmp.width() + rect.width();
+    const auto y = rect.top() - tmp.height();
+    QPoint pos(x, y);
+    widget->move(ui.m_btnMore->parentWidget()->mapToGlobal(pos));
+    widget->show();
 }
 
 void XPlayer::updateCursorShape(const QPoint & pt)
@@ -919,7 +959,7 @@ void XPlayer::cleanup()
         killTimer(m_iTid);
         m_iTid = -1;
     }
-    ui.m_widgetMenu->setText("");
+
     ui.m_btnCtrl->setIcon(QIcon(":/XPlayer/res/pause.ico"));
     ui.m_btnCtrl->setToolTip(QStringLiteral("播放"));
     ui.m_sldProgress->setValue(0);
@@ -994,7 +1034,8 @@ bool XPlayer::loadConfig()
     const auto vol = CXPlayerConfig::uniqueInstance().get<xplayer_audio_volume_t>();
     m_pVolumeWidget->setValue(vol);
     CXPlayerSource::uniqueInstance().setVolume(vol);
-    ui.m_tabRecord->setVisible(CXPlayerConfig::uniqueInstance().get<xplayer_record_flag_t>());
+
+    showPlayModeIcon(CXPlayerConfig::uniqueInstance().get<xplayer_common_mode_t>());
 
     return true;
 }

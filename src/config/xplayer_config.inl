@@ -8,11 +8,11 @@
             static constexpr auto val = Val;       \
          };
 
-XPLAYER_CONFIG_TRAIT(xplayer_record_flag_t, bool, "/record_flag", false)
+XPLAYER_CONFIG_TRAIT(xplayer_common_detail_t, bool, "/common/detail", false)
+XPLAYER_CONFIG_TRAIT(xplayer_common_mode_t, int, "/common/mode", 0)
 XPLAYER_CONFIG_TRAIT(xplayer_speed_custom_t, float, "/speed/custom", 1.0f)
 XPLAYER_CONFIG_TRAIT(xplayer_speed_realtime_t, float, "/speed/realtime", 1.0f)
 XPLAYER_CONFIG_TRAIT(xplayer_speed_id_t, int, "/speed/id", 3)
-XPLAYER_CONFIG_TRAIT(xplayer_common_detail_t, bool, "/common/detail", false)
 XPLAYER_CONFIG_TRAIT(xplayer_cache_duration_t, int, "/cache/duration", 1000)
 XPLAYER_CONFIG_TRAIT(xplayer_cache_frame_t, int, "/cache/frames", 5)
 XPLAYER_CONFIG_TRAIT(xplayer_audio_volume_t, int, "/audio/volume", 64)

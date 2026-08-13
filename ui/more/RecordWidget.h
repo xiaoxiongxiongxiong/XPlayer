@@ -39,7 +39,6 @@ protected:
 private slots:
     void onBtnClickedAdd();
     void onBtnClickedDelete();
-    void onBtnClickedMode();
 
     void onLstDbclickedRecord(QListWidgetItem * item);
 
