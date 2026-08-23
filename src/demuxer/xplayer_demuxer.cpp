@@ -4,10 +4,24 @@ extern "C" {
 #include "libavformat/avformat.h"
 }
 #include "utils/xplayer_utils.h"
+#include "xplayer_param_parser.h"
 
 bool CXPlayerDemuxImpl::open(const std::string & url, const std::string & specs)
 {
     AVDictionary * dict = nullptr;
+
+    CXPlayerParser pp;
+    if (!pp.parse(specs, ':', '=', XPLAYER_PARSER_ALL))
+    {
+        xpu_format_string(_err, "Parse '%s' failed", specs.c_str());
+        return false;
+    }
+
+    auto kvs = pp.get();
+    for (const auto & kv : kvs)
+    {
+        av_dict_set(&dict, kv.first.c_str(), kv.second.c_str(), 0);
+    }
 
     int ret = avformat_open_input(&_ctx, url.c_str(), nullptr, &dict);
     if (nullptr != dict)
